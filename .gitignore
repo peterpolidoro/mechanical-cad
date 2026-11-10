@@ -1,0 +1,14 @@
+.agents/handoff.local.md
+.cache/
+.pixi/
+.venv/
+.env
+.pytest_cache/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+tmp/
+*.FCStd1
+*.FCBak
