@@ -257,6 +257,18 @@ it is left as received and its `source.json` says so; the validator reports
 how many headers are not normalised and how many distinct author names they
 carry.
 
+`mechanical_cad/stepfile.py` is the reference for the normalised header and
+for the data-section hash. `vault-cad-tools/windows/Step-Header.ps1` is a port
+for the exporter; the two were compared on 49 exported files on 2026-11-10 and
+gave the same hashes and the same normalised bytes. An exporter leaves the
+translator's description option empty, because that text goes into
+`FILE_DESCRIPTION`, which normalising does not touch.
+
+**Protocol.** Any of the four protocols is valid here. The recommendation for
+files exported from Inventor is AP214 (layout-proposal.md, "Open choices"): it
+holds the visible bodies only, where AP242 also holds hidden ones that
+OpenCASCADE reads as ordinary solids.
+
 ## The flattened scene
 
 `python3 -m mechanical_cad flatten PROJECT --out DIR [--root KEY]` writes

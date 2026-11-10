@@ -10,7 +10,9 @@ Peter accepts the layout, and this file is retired when he does.
 The proposal was amended on 2026-11-10 after a review of all four
 repositories; what changed is listed at the end. The same day the enclosure's
 snapshot was converted in a dry run, outside the tracked tree, and passed the
-acceptance test below. The results are in "Dry run of 2026-11-10".
+acceptance test below. The results are in "Dry run of 2026-11-10". The
+read-only tests asked of Windows were run that day as well; they are in
+"Windows tests of 2026-11-10", with what Linux measured on their files.
 
 ## Where the proposal comes from
 
@@ -185,8 +187,8 @@ Observed on the enclosure repository at `0eeb1af` and `vault-cad-tools` at
 - **Header normalisation gives stable bytes, on one part.** The repository holds
   two exports of the same Vault version of the top panel, made about three hours
   apart. Their headers differ in two lines (the file name and the timestamp);
-  everything from `DATA;` on has the same SHA-256. Not yet repeated on other
-  parts, on assemblies, or across Inventor sessions and machines.
+  everything from `DATA;` on has the same SHA-256. (Repeated since on three
+  parts across nine Inventor sessions; see "Windows tests of 2026-11-10".)
 - **Asset names follow the Vault path.** The `<hash8>` suffix is the first eight
   hex digits of the SHA-256 of `<workspace-relative path>|<model state>`
   (`windows/Export-PartAssets.ps1`), so a rename or move in Vault renames the
@@ -195,7 +197,8 @@ Observed on the enclosure repository at `0eeb1af` and `vault-cad-tools` at
   STEP headers has an account-like name in its `author` field: four distinct
   names, one of them on 33 files, none of them the account that ran the export.
   The exporter passed an empty `Author` translator option, so the name comes
-  from somewhere else, presumably the native file. `scene.json` holds absolute
+  from somewhere else: the native file's own "Author" property, as the Windows
+  tests confirmed. `scene.json` holds absolute
   Windows paths with an account name 17 times and `native-snapshot.json` 54
   times; the receipt and lock hold a host name. (Corrected on 2026-11-10: the
   first draft said 33 of 37 headers.)
@@ -257,10 +260,13 @@ OpenCASCADE 7.9.3.
 - **Inventor's recorded volume is not a fingerprint.** Against OpenCASCADE's,
   the volume the exporter recorded agrees within a relative 1e-4 for 30 of the
   37 parts and within 1e-3 for 33; three purchased parts differ by 7.8 %, 8.2 %
-  and 10.9 % (the default-accuracy measurements already known). Inventor's
-  range boxes agree with OpenCASCADE's extents within 0.01 mm for 29 parts and
-  within 1.445 mm for all. The fingerprint therefore comes from one kernel, on
-  Linux; what Inventor reports stays a claim in `source.json`.
+  and 10.9 %. Two of the three are Inventor's default-accuracy measurements,
+  already known. The third, `MCMASTER 47065T245`, is something else: Inventor's
+  volume counts the part's four solid bodies and the AP214 file holds only the
+  visible one (see the Windows tests below). Inventor's range boxes agree with
+  OpenCASCADE's extents within 0.01 mm for 29 parts and within 1.445 mm for
+  all. The fingerprint therefore comes from one kernel, on Linux; what Inventor
+  reports stays a claim in `source.json`.
 - **Header normalisation on the real files.** Normalising each of the 37
   headers in memory leaves every data-section hash unchanged, and the two
   exports of the top panel normalise to the same bytes. Nothing was written.
@@ -275,17 +281,86 @@ Not done by the dry run: the enclosure's own curated files that carry part ids
 its eight scripts that read `references/enclosure/` are not converted; the
 authored monitor envelope is not moved; no manual was built.
 
+## Windows tests of 2026-11-10
+
+The five read-only tests below were run by the Windows agent on the acquired
+mirror of the same Vault versions (Inventor 2025.3; REST requests GET only;
+nothing saved, nothing written to Vault). Its report and files are in the
+shared evidence run `2026-11-10-windows-layout-tests-01`. Linux checked the
+run's 395 files against their checksums, reviewed and applied its patch to
+`vault-cad-tools`, and repeated what it could on the files themselves; where a
+line says "measured on Linux", that is this repository's `stepfile.py` or
+FreeCAD 1.1.3 with OpenCASCADE 7.9.3.
+
+1. **AP214 against AP242, three parts.** For the top panel and for a threaded
+   shoulder screw the two protocols give the same geometry: same solid and
+   face counts, volume, area, centre of mass and bounding box (measured on
+   Linux). For `MCMASTER 47065T245` they do not. Its native file has four solid
+   bodies of which one is visible. AP214 writes the visible one; AP242 writes
+   all four and marks three invisible. FreeCAD does not honour that mark: it
+   reads the AP242 file as four valid solids, 37 306.4 mm³ in place of
+   34 485.9 mm³, with a bounding box 1 mm larger (measured on Linux). The
+   three extra solids are 940.2 mm³ each, and the total is the volume Inventor
+   itself reports for the part. Every AP242 file also carries a saved-view
+   block (a camera and draughting model) that AP214 does not.
+2. **Stability between sessions.** For each of the three parts, nine AP214
+   exports from nine Inventor instances between 2026-10-21 and 2026-11-10 have
+   the same data-section hash and normalise to the same bytes. Measured on
+   Linux: the three exports made on 2026-11-10 have the data sections of the
+   files tracked in the enclosure repository since October, and normalise to
+   the same bytes as those files. One workstation; no restart between that
+   day's sessions; AP242 was not tested for stability.
+3. **Vault facts.** Nothing has changed in Vault for the 44 files since
+   2026-10-21: every acquired version is still the latest. Revision, lifecycle
+   definition and state, check-in date and check-out state reach REST for
+   every file. All 44 are revision 0, in state Work in Progress, none checked
+   out.
+4. **Parameters, holes and threads.** Seven plates were dumped without saving.
+   Parameters come with their expressions and units; hole features with tap
+   data (designation, class, pitch, tap drill), clearance data, extent and
+   centres in model coordinates. Fifteen of 3232 reads fail, all on a property
+   that does not apply to that hole. Three things matter for `source.json`: a
+   tapped hole has no hole diameter (it is in the thread data); thread table
+   values are in the thread standard's own unit, not the API's centimetres;
+   and holes repeated by a mirror or a pattern are not in the hole feature's
+   list of centres, so a hole count has to multiply through those features.
+   Not exercised, because none of the seven parts has them: thread features,
+   counterbores, sheet metal.
+5. **The header's author** is the native file's Summary Information "Author".
+   A non-empty translator option overrides it, the header's name is the output
+   file name, and no option controls the timestamp. The exporter therefore
+   has to rewrite `FILE_NAME` after the translator has run.
+   `vault-cad-tools/windows/Step-Header.ps1` does that as a port of
+   `stepfile.py`. Windows compared the two on 49 files (hashes, header fields,
+   normalised bytes) without a disagreement; measured on Linux, the six files
+   it rewrote from the test-1 exports are byte-identical to what `stepfile.py`
+   writes from the same inputs, and all 14 rewritten files are normalised by
+   the reference's own test. The translator's `Description` option lands in
+   `FILE_DESCRIPTION`, which the normaliser leaves alone, so the exporter
+   keeps it empty.
+
+Also from that run:
+
+- **The Vault folder holds more than the snapshot.** A read-only discovery of
+  the enclosure's folder finds 32 files and two root assemblies: the one that
+  was mirrored, and `SLLB Enclosure.iam`, which nothing in the folder uses and
+  whose 20 dependencies are, all but one, already in the snapshot. Six files of
+  the folder are not in the snapshot: that assembly, one extrusion only it
+  uses, three parts nothing in the folder uses, and the published monitor
+  envelope. Conversely 18 of the snapshot's 44 files live outside the folder
+  (purchased parts and parts of two other projects). "One directory per Vault
+  file" holds either way; which files a project mirrors is a separate choice.
+- **REST listings on this server must be read as one page.** Following the
+  paging cursor repeats and skips rows. One page of up to 1000 rows, accepted
+  only when its row count is the server's total, is reliable.
+
 ## Not verified
 
 - Overrides more than one level below a flexible instance, and nested flexible
   instances, on real data. The enclosure has neither.
-- Header stability beyond the one part above, and where the `author` name in
-  the header comes from.
-- Whether AP242 from Inventor reads identically in FreeCAD and what it adds.
-- What the Inventor API returns for parameters, holes and threads on a real
-  drilled or tapped part, and whether lifecycle state and revision reach the
-  export (the synchronisation design specifies them; the enclosure's files do
-  not contain them).
+- Header and data-section stability on another workstation or after an
+  Inventor update, and for AP242 at all.
+- Thread features, counterbores and sheet-metal data through the Inventor API.
 - A refresh-stable occurrence key. Occurrence ids are snapshot-scoped today;
   the exporter has not been asked for Inventor reference keys.
 - That a fingerprint made of mass properties is stable across kernel versions,
@@ -305,7 +380,12 @@ authored monitor envelope is not moved; no manual was built.
    rule a path can enforce.
 2. Readable keys tied to the master id, or a mirror of Vault's folder tree.
    Recommended: readable keys.
-3. AP214 or AP242, after the test.
+3. AP214 or AP242. Recommended after the test: AP214. It writes the bodies a
+   designer sees, which is the geometry every check so far was made on (479
+   solids). It is stable across sessions as measured. AP242 added nothing these
+   parts use, was not tested for stability, and brings hidden bodies that the
+   open kernel reads as ordinary solids. That a part has hidden bodies is
+   already recorded beside it (`native.bodies`).
 
 ## Acceptance test for the conversion
 
@@ -337,8 +417,8 @@ manual that Peter is assembling from.
 
 ## Read-only tests to request from Windows
 
-None of these depends on the open choices, and nothing in the Linux work waits
-for them, so they can run whenever Peter starts the Windows agent.
+All five were run on 2026-11-10; the results are in "Windows tests of
+2026-11-10". The requests as they were made:
 
 1. Export three parts as AP214 and as AP242; compare in FreeCAD.
 2. Export the same parts twice in separate sessions; compare data sections.
@@ -382,3 +462,6 @@ for them, so they can run whenever Peter starts the Windows agent.
 - A fifth Windows test, and the correction to the header-author count.
 - The results of the dry run, and with them the first evidence on overrides,
   on the fingerprint and on reproducible builds.
+- The results of the five Windows tests, with a recommendation for the
+  protocol, and the correction that one part's volume difference comes from
+  hidden bodies, not from measurement accuracy.

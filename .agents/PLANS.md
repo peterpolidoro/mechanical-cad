@@ -51,6 +51,17 @@ What was run against the enclosure (a dry run into the enclosure's ignored
 The measurements and what they mean are in docs/layout-proposal.md, "Dry run of
 2026-11-10".
 
+The Windows agent, started by Peter that day, ran the five read-only tests and
+a read-only discovery of the Vault folder. Linux verified its evidence,
+reviewed and applied its patch to `vault-cad-tools`, repeated the text-level
+results with `stepfile.py` and compared the AP214 and AP242 exports in FreeCAD.
+The results are in docs/layout-proposal.md, "Windows tests of 2026-11-10". In
+short: AP214 exports are stable across sessions and normalise to identical
+bytes; the exporter can write the normalised header with a port of
+`stepfile.py` that gives the same bytes; AP242 carries hidden bodies that
+FreeCAD reads as solids; nothing has changed in Vault since the snapshot; and
+the Vault folder has a second root assembly that the snapshot does not hold.
+
 Also done that day, in all four repositories: stale status text corrected,
 plans cut down to the current state with their past moved to history files,
 and the review findings and open questions that existed only on the shared
@@ -66,7 +77,8 @@ Layout:
    Recommended and built: two roots.
 2. Readable directory keys tied to the Vault master id, or a mirror of Vault's
    folder tree. Recommended and built: readable keys.
-3. AP214 or AP242, after the Windows test.
+3. AP214 or AP242. Tested on 2026-11-10; recommended: AP214 (the reasons are
+   in docs/layout-proposal.md, "Open choices").
 4. Acceptance of docs/direction.md as a whole. Its "one authority per part"
    entry under "Decided" has no date; confirm it and date it.
 
@@ -95,13 +107,18 @@ Smaller ones:
 10. Whether hand-edited `parameters.json`, `checks.json` and authored
     `assembly.json` become TOML, as this repository's rule for hand-edited
     files would have it.
-11. The ten questions on the Vault side
+11. Which Vault files the enclosure project mirrors. Its folder holds a second
+    root assembly, `SLLB Enclosure.iam`, and four other native files that the
+    snapshot does not hold; the snapshot holds 18 files from outside the
+    folder. The snapshot follows one root assembly; the target workflow of
+    2026-10-23 speaks of mirroring "every file of that project".
+12. The ten questions on the Vault side
     (`vault-cad-tools/docs/native-checkin-adapter-design.md`, section 10) and
     the enclosure's own (its plan, "Open items").
 
 ## Next work, in order
 
-1. Peter's answers to decisions 1, 2 and 4. If he takes the recommendations,
+1. Peter's answers to decisions 1 to 4. If he takes the recommendations,
    nothing built here changes; if not, the specification, validator and
    converter change together.
 2. The enclosure's conversion on a branch. The dry run covers `references/`
@@ -112,18 +129,18 @@ Smaller ones:
    tree; move the monitor envelope to `designs/parts/` with `build_part.py`,
    and its publication record into `vault.json`. Then run the acceptance test
    on the branch. `main` stays as it is until that passes.
-3. The Windows tests, whenever Peter starts that agent. The request is in the
-   shared mailbox. Then decision 3.
-4. Specify the exporter's package (files named by master id and model state, a
-   child list per assembly, no absolute paths, normalised header), have the
-   Windows exporter write it, and make `import-snapshot` read it. Re-export the
-   enclosure and compare it with step 2 using `compare-scenes`.
-5. One full render of the manual from the re-exported project, in
+3. Specify the exporter's package (files named by master id and model state, a
+   child list per assembly, no absolute paths, the header normalised with
+   `Step-Header.ps1`, the chosen protocol), have the Windows exporter write it,
+   and make `import-snapshot` read it. Re-export the enclosure and compare it
+   with step 2 using `compare-scenes`. What the feature dumps showed about
+   parameters and holes goes into the package's `source.json` at this point.
+4. One full render of the manual from the re-exported project, in
    `mechanical-docs`, compared with today's by parts, quantities, steps and
    checks. Merge the branch.
-6. The first new part for the enclosure written as code, built and checked
+5. The first new part for the enclosure written as code, built and checked
    here, manufactured, then published to Vault.
-7. The Guix channel (`.guix-channel` pointing at `.guix/modules`, as
+6. The Guix channel (`.guix-channel` pointing at `.guix/modules`, as
    `orb-weaver-context` does), then OCP against Guix's `opencascade-occt`,
    build123d, CadQuery. Peter recorded this packaging as his own deferred work
    on 2026-10-23; confirm before starting it.
@@ -141,7 +158,9 @@ Smaller ones:
   build123d or CadQuery path.
 - The scene written by `flatten` copies every STEP file into its output
   directory, because the documentation loader resolves assets below the scene.
-- Nothing here has been run on Windows.
+- On Windows only `mechanical_cad/stepfile.py` has been run, read-only, to
+  check the PowerShell port against it. The validator, the flatten step and the
+  tools under `tools/` have not.
 
 ## Hazards
 
@@ -152,7 +171,8 @@ Smaller ones:
   repository. Its `PLAN.md` is a dated log; where it differs from
   docs/direction.md, the direction wins.
 - **The shared clones the Windows agent syncs from lag behind** until someone
-  fast-forwards them after Peter pushes. The Windows request assumes he has
-  pushed the changes of 2026-11-10.
+  fast-forwards them after Peter pushes. From Linux this is done by file
+  copies, never by git commands that write on the mount; the procedure is in
+  the shared directory's `coordination/NEXT-AGENT.md`.
 - **Remotes.** `origin` here and in `mechanical-docs` still points at Codeberg;
   the GitHub remote is `peterpolidoro`. Remotes are Peter's to change.

@@ -122,9 +122,8 @@ choices are made.
    for part and placement for placement.
 4. Run the read-only Windows tests that settle the open choices: AP214 against
    AP242, header stability on more parts, lifecycle state and revision, and what
-   Inventor reports for parameters, holes and threads. Nothing in steps 2 and 3
-   waits for these and they need Peter to start the Windows agent, so they run
-   alongside, not after.
+   Inventor reports for parameters, holes and threads. Run on 2026-11-10; the
+   results are in layout-proposal.md.
 5. Change the Windows exporter to write the layout, re-export the enclosure and
    compare it with step 3. Render the manual once from the result and compare
    it with today's. Merge the branch.
