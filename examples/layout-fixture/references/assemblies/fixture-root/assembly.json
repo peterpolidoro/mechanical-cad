@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "key": "fixture-root",
+  "name": "FIXTURE ROOT",
+  "length_unit": "mm",
+  "frame": {
+    "handedness": "right",
+    "up_axis": "+Y"
+  },
+  "children": [
+    {
+      "name": "BASE PLATE:1",
+      "component": "base-plate",
+      "kind": "part",
+      "master_id": "900001",
+      "model_state": "[Primary]",
+      "transform": [
+        [1.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+        [0.0, -1.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0]
+      ],
+      "bom_structure": "Normal",
+      "visible": true,
+      "suppressed": false,
+      "grounded": true,
+      "flexible": false,
+      "mirrored": false
+    },
+    {
+      "name": "PIN PAIR:1",
+      "component": "pin-pair",
+      "kind": "assembly",
+      "master_id": "900003",
+      "model_state": "[Primary]",
+      "transform": [
+        [1.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 8.0],
+        [0.0, -1.0, 0.0, -15.0],
+        [0.0, 0.0, 0.0, 1.0]
+      ],
+      "bom_structure": "Normal",
+      "visible": true,
+      "suppressed": false,
+      "grounded": false,
+      "flexible": false,
+      "mirrored": false
+    },
+    {
+      "name": "PIN PAIR:2",
+      "component": "pin-pair",
+      "kind": "assembly",
+      "master_id": "900003",
+      "model_state": "[Primary]",
+      "transform": [
+        [1.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 8.0],
+        [0.0, -1.0, 0.0, 15.0],
+        [0.0, 0.0, 0.0, 1.0]
+      ],
+      "bom_structure": "Normal",
+      "visible": true,
+      "suppressed": false,
+      "grounded": false,
+      "flexible": true,
+      "mirrored": false,
+      "overrides": [
+        {
+          "path": ["PIN:2"],
+          "transform": [
+            [1.0, 0.0, 0.0, 35.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0]
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "key": "pin-pair",
+  "name": "PIN PAIR",
+  "length_unit": "cm",
+  "children": [
+    {
+      "name": "PIN:1",
+      "component": "pin",
+      "kind": "part",
+      "master_id": "900002",
+      "model_state": "[Primary]",
+      "transform": [
+        [1.0, 0.0, 0.0, -2.5],
+        [0.0, 1.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0]
+      ],
+      "bom_structure": "Normal",
+      "visible": true,
+      "suppressed": false,
+      "grounded": true,
+      "flexible": false,
+      "mirrored": false
+    },
+    {
+      "name": "PIN:2",
+      "component": "pin",
+      "kind": "part",
+      "master_id": "900002",
+      "model_state": "[Primary]",
+      "transform": [
+        [1.0, 0.0, 0.0, 2.5],
+        [0.0, 1.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0]
+      ],
+      "bom_structure": "Normal",
+      "visible": true,
+      "suppressed": false,
+      "grounded": false,
+      "flexible": false,
+      "mirrored": false
+    }
+  ]
+}

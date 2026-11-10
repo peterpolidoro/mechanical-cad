@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "exporter": "examples/layout-fixture/generate_fixture.py (synthetic)",
+  "generated_at": "2026-01-01T00:00:00Z",
+  "note": "synthetic: the package paths name the files as an exporter would have delivered them",
+  "files": {
+    "900001/part.step": {
+      "sha256": "605475a084b10db38603716c3da95a1e1418aa1f495d05c47e222ee6dc3328db",
+      "bytes": 6838
+    },
+    "900002/part.step": {
+      "sha256": "1450d70810c977bc23d3a15025535d989a7cec501027f645f39379a11edfa9e5",
+      "bytes": 3458
+    }
+  }
+}

@@ -4,21 +4,77 @@ Open-source tools for writing mechanical parts as code and checking their
 geometry, the layout that project repositories use for STEP files and their
 metadata, and a Guix channel for the mechanical CAD packages those tools need.
 
-**Status (2026-11-10): direction and layout proposed, nothing implemented.**
-This repository holds documents only. No specification, tool or package exists
-yet.
+**Status (2026-11-10): the direction and the layout are proposals; the layout
+has a draft specification and working tools.** Peter has not accepted either
+document. What exists was built against the recommended options so that the
+proposal could be tested on a real project before it is decided:
+
+- a validator and a flatten step for the layout, standard-library Python;
+- tools that measure a STEP file and build a part from a program, run by
+  FreeCAD;
+- a synthetic fixture and a test suite;
+- a dry-run conversion of the first project, which passes the proposal's
+  acceptance test (see `.agents/PLANS.md`).
+
+There is no Guix channel yet, and no package of OCP, build123d or CadQuery.
 
 ## Start here
 
 1. [Direction](docs/direction.md): the goal, what is decided, which repository
    owns what, the order of work and what is out of scope.
 2. [Layout proposal](docs/layout-proposal.md): the proposed structure for STEP
-   files and metadata, the measurements behind it and what is still unknown.
-3. Agents: [AGENTS.md](AGENTS.md), then [the living plan](.agents/PLANS.md).
+   files and metadata, the evidence behind it and what is still unknown.
+3. [Layout specification](docs/layout-specification.md): the draft that the
+   tools implement.
+4. Agents: [AGENTS.md](AGENTS.md), then [the living plan](.agents/PLANS.md).
+
+## Commands
+
+Nothing below needs a CAD kernel:
+
+```sh
+guix shell --pure -m manifest.scm -- python3 -B -m mechanical_cad validate PROJECT
+guix shell --pure -m manifest.scm -- python3 -B -m mechanical_cad flatten PROJECT --out NEW_DIR [--root KEY]
+guix shell --pure -m manifest.scm -- python3 -B -m mechanical_cad check PROJECT
+guix shell --pure -m manifest.scm -- python3 -B -m mechanical_cad compare-scenes OLD/scene.json NEW/scene.json
+guix shell --pure -m manifest.scm -- python3 -B -m mechanical_cad step-info FILE.step
+guix shell --pure -m manifest.scm -- python3 -B -m mechanical_cad normalise-header IN.step OUT.step
+guix shell --pure -m manifest.scm -- python3 -B -m pytest -q tests
+```
+
+- `validate` checks a project repository against the layout and prints errors
+  and findings.
+- `flatten` composes the per-assembly manifests into the `scene.json` that
+  `mechanical-docs` reads, with a copy of the STEP files it names.
+- `check` evaluates each authored part's `checks.json` against its measured
+  facts.
+- `compare-scenes` says whether two flattened scenes are the same assembly.
+
+These run in FreeCAD (`.guix/manifest-cad.scm`):
+
+```sh
+guix shell --pure -m .guix/manifest-cad.scm -- FreeCADCmd tools/step_facts.py --pass PROJECT
+guix shell --pure -m .guix/manifest-cad.scm -- FreeCADCmd tools/build_part.py --pass PROJECT/designs/parts/KEY
+guix shell --pure -m manifest.scm -m .guix/manifest-cad.scm -- python3 -B -m pytest -q tests
+```
+
+- `step_facts.py` measures every imported STEP file (validity, solids, volume,
+  area, centre of mass, bounding box) and writes `facts.json` beside it.
+- `build_part.py` builds an authored part from its `build.py` and
+  `parameters.json`: the STEP file, a receipt and the facts. Building an
+  unchanged part again changes no file.
+
+FreeCADCmd reads dashed options itself, even after `--pass`; put a bare `--`
+before a script's own options (`--pass PROJECT -- --force`). It also exits 0
+after an uncaught exception, so each script prints its own status line.
+
+`tools/conversion_acceptance.py` runs the acceptance test for converting an
+exporter's package into the layout.
 
 ## Related repositories
 
-- `vault-cad-tools`: exchange with Autodesk Vault and Inventor.
+- `vault-cad-tools`: exchange with Autodesk Vault and Inventor, and the import
+  command that writes the layout.
 - `mechanical-docs`: inventories and assembly manuals from a project repository.
 - `free-standing-tank-enclosure`: the first project and the test case.
 

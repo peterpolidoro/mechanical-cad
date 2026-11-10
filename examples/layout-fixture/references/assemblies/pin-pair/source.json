@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "kind": "assembly",
+  "key": "pin-pair",
+  "name": "PIN PAIR",
+  "model_state": "[Primary]",
+  "vault": {
+    "vault_id": "0",
+    "master_id": "900003",
+    "version_id": "900103",
+    "version_number": 1,
+    "revision": "A",
+    "lifecycle_state": "Synthetic",
+    "checkin_date": "2026-01-01T00:00:00Z",
+    "path": "$/SYNTHETIC/FIXTURE/PIN PAIR.iam",
+    "native_sha256": null
+  },
+  "export": {
+    "run": "synthetic-export-0001",
+    "exporter": "examples/layout-fixture/generate_fixture.py (synthetic)",
+    "exported_at": "2026-01-01T00:00:00Z",
+    "package_id": "900003|[Primary]"
+  },
+  "native": {
+    "length_unit": "cm"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "key": "fixture-with-spacer",
+  "name": "Fixture with spacer",
+  "length_unit": "mm",
+  "frame": {"handedness": "right", "up_axis": "+Y"},
+  "children": [
+    {
+      "name": "FIXTURE ROOT:1",
+      "component": "fixture-root",
+      "kind": "assembly",
+      "transform": [
+        [1.0, 0.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0]
+      ]
+    },
+    {
+      "name": "SPACER:1",
+      "component": "spacer",
+      "kind": "part",
+      "transform": [
+        [1.0, 0.0, 0.0, -25.0],
+        [0.0, 0.0, 1.0, 8.0],
+        [0.0, -1.0, 0.0, -15.0],
+        [0.0, 0.0, 0.0, 1.0]
+      ]
+    }
+  ]
+}

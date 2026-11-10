@@ -1,0 +1,7 @@
+{
+  "name": "Spacer",
+  "purpose": "Synthetic fixture part; not a manufactured design",
+  "outer_diameter_mm": 20.0,
+  "inner_diameter_mm": 10.5,
+  "height_mm": 5.0
+}

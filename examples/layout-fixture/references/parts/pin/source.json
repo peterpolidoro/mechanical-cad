@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "part",
+  "key": "pin",
+  "name": "PIN",
+  "model_state": "[Primary]",
+  "vault": {
+    "vault_id": "0",
+    "master_id": "900002",
+    "version_id": "900102",
+    "version_number": 1,
+    "revision": "A",
+    "lifecycle_state": "Synthetic",
+    "checkin_date": "2026-01-01T00:00:00Z",
+    "path": "$/SYNTHETIC/FIXTURE/PIN.ipt",
+    "native_sha256": null
+  },
+  "step": {
+    "sha256": "1450d70810c977bc23d3a15025535d989a7cec501027f645f39379a11edfa9e5",
+    "data_sha256": "b350652cb9df422bccb443dbcff0ede1b94261552b3087fe305aaaa3da185fce",
+    "bytes": 3458,
+    "protocol": "AP214",
+    "length_unit": "mm",
+    "header_normalised": false,
+    "received_sha256": null
+  },
+  "export": {
+    "run": "synthetic-export-0001",
+    "exporter": "examples/layout-fixture/generate_fixture.py (synthetic)",
+    "exported_at": "2026-01-01T00:00:00Z",
+    "package_id": "900002|[Primary]",
+    "package_path": "900002/part.step"
+  },
+  "properties": {
+    "part_number": "FX-002",
+    "description": "Synthetic pin",
+    "material": "Steel"
+  },
+  "bom_structure_default": "Normal",
+  "native": {
+    "length_unit": "mm",
+    "bodies": {
+      "surface_bodies": 1,
+      "solid_bodies": 1,
+      "visible_solid_bodies": 1
+    },
+    "extent_mm": [10.0, 10.0, 30.0],
+    "volume_mm3": 2356.19449
+  },
+  "materials": null
+}

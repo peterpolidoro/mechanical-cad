@@ -5,110 +5,154 @@
 Give Peter's Inventor and Vault projects an open representation in Git and the
 open-source tools to check it, document it and add to it, with the
 free-standing tank enclosure as the test project. The full statement is
-docs/direction.md.
+docs/direction.md. Finished checkpoints are in .agents/HISTORY.md.
 
-## Current checkpoint — 2026-11-10 (repository started, direction and layout proposed)
+## Current state (2026-11-10)
 
-Written by the agent session that ran in `mechanical-docs` on 2026-11-10, as a
-handoff to the first agent started here. Nothing is implemented. Peter committed
-the licence here (`1a9235f`) and in `mechanical-docs` (`1772669`) during that
-session; the rest is uncommitted.
+Peter has not accepted the direction document or the layout. On 2026-11-10 he
+asked for as much as possible to be done without his input while he assembles
+the enclosure, so the layout was built and tested against the recommended
+options (two roots, readable keys). All of it is provisional.
 
-- [x] Licence file, README, agent guidance, base Guix manifest
-  (`python`, `python-pytest`, `git`; observed to resolve: Python 3.12.12,
-  pytest 9.0.2).
-- [x] docs/direction.md: goal, the six-stage loop, decisions with dates,
-  repository roles, proposed layout and order of work, out of scope.
-- [x] docs/layout-proposal.md: the proposed layout, what was measured on the
-  enclosure, what is unverified, the acceptance test, the Windows tests.
-- [ ] Peter's acceptance of the direction document (drafted from his
-  statements; he has not said "accepted").
-- [ ] Peter's answers to the three open layout choices (below).
+What exists here:
 
-## What Peter decided on 2026-11-10
+- `mechanical_cad/` (standard library): `layout.py` validates a project
+  repository; `flatten.py` composes the per-assembly manifests into the
+  `scene.json` that `mechanical-docs` reads; `compare.py` says whether two
+  scenes are the same assembly; `facts.py` compares measured geometry and
+  evaluates a part's `checks.json`; `stepfile.py` reads a STEP file's
+  identities, header and unit and normalises the header; `cli.py` has
+  `validate`, `flatten`, `check`, `lock`, `compare-scenes`, `step-info` and
+  `normalise-header`.
+- `tools/` (run by FreeCADCmd): `step_facts.py` writes `facts.json` for
+  imported parts; `build_part.py` builds an authored part from `build.py` and
+  `parameters.json`. `tools/conversion_acceptance.py` (plain Python) runs the
+  acceptance test of docs/layout-proposal.md.
+- `examples/layout-fixture/`: a synthetic project with imported and authored
+  parts, a flexible instance with an override, and its generator.
+- docs/layout-specification.md: the draft the code implements.
+- Tests: 100 pass in the base role and 4 more with FreeCAD (run 2026-11-10,
+  Python 3.12.12, pytest 9.0.2, FreeCAD 1.1.3, OpenCASCADE 7.9.3).
 
-- Licence: 3-clause BSD, copyright HHMI, in all four repositories.
-- Hosting: GitHub. The Codeberg repositories will move there; where is not
-  settled.
-- This repository holds the tools and doubles as the Guix channel.
-- Cross-repository work runs from an agent session rooted here.
-- He wants the proper structure for STEP files and metadata worked out, then
-  the enclosure re-imported from Vault into it. He is willing to move the
-  current enclosure files to a branch.
-- While agents work, he assembles the enclosure from the published manual and
-  takes notes on the documentation. Afterwards agents design new parts for the
-  enclosure with the tools packaged here; he manufactures and checks them; then
-  `vault-cad-tools` places them in Vault.
+What was run against the enclosure (a dry run into the enclosure's ignored
+`.cache/layout-dry-run-01/`; nothing tracked there changed):
 
-Not decided, although recommended to him: that the direction lives here rather
-than in `orb-weaver-context` (he answered by choosing to start the agent here);
-the layout itself.
+- `vault-cad import-snapshot` converted the snapshot: 37 parts, 7 assemblies,
+  44 overrides.
+- The acceptance test passed all four checks: the layout validates; the STEP
+  files are the exporter's bytes; the flattened scene equals the exporter's
+  (37 parts, 17 assembly nodes, 155 occurrences, largest translation
+  difference 6.5e-11 mm); the documentation project re-keyed to the new part
+  ids loads in `mechanical_docs inspect` with the same counts, finding,
+  inventory, build scope and steps.
+- `step_facts.py` measured all 37 parts as valid (479 solids over the 155
+  occurrences).
+
+The measurements and what they mean are in docs/layout-proposal.md, "Dry run of
+2026-11-10".
+
+Also done that day, in all four repositories: stale status text corrected,
+plans cut down to the current state with their past moved to history files,
+and the review findings and open questions that existed only on the shared
+directory written into the repositories. The Windows agent's queued work was
+replaced by one message asking for five read-only tests, and the operator
+prompts were rewritten.
 
 ## Open decisions to put to Peter
 
+Layout:
+
 1. Two roots (`references/`, `designs/`) or one tree with an authority field.
-   Recommended: two roots.
+   Recommended and built: two roots.
 2. Readable directory keys tied to the Vault master id, or a mirror of Vault's
-   folder tree. Recommended: readable keys.
+   folder tree. Recommended and built: readable keys.
 3. AP214 or AP242, after the Windows test.
-4. Whether supplier-originated models may stay in a public repository, and the
-   wording of the enclosure README's scope statement (an agent's draft).
-5. Whether account, host and server names stay in public files.
+4. Acceptance of docs/direction.md as a whole. Its "one authority per part"
+   entry under "Decided" has no date; confirm it and date it.
+
+The four questions under "Not settled" in docs/direction.md:
+
+5. The Inventor requirement: the enclosure's brief asks for design work in
+   Inventor and records in Vault; the decision of 2026-10-23 is parts as code,
+   referenced from Inventor as STEP. Not reconciled.
+6. Names in public files. Known places: all 37 STEP headers carry an
+   account-like author name (four people, none of them Peter); the exporter's
+   records and the lock carry Peter's Windows account in absolute paths and a
+   host name; the enclosure's published `docs/manual/manual.json` and
+   `SOURCE.json` carry the account and the share path; `vault-project.toml` and
+   eight tracked files of `vault-cad-tools` carry the server name and vault
+   name; the Vault folder path with the lab's name is in 57 tracked files of
+   the enclosure. Removing them from new files is possible at the re-export;
+   history and the published site are a separate matter.
+7. Whether supplier-originated models may be redistributed publicly, and the
+   wording of the enclosure README's scope statement.
+8. Where on GitHub the repositories live. `origin` here is still Codeberg.
+
+Smaller ones:
+
+9. Whether the generated manual packages move out of the enclosure's tracked
+   `docs/` (141 MB there).
+10. Whether hand-edited `parameters.json`, `checks.json` and authored
+    `assembly.json` become TOML, as this repository's rule for hand-edited
+    files would have it.
+11. The ten questions on the Vault side
+    (`vault-cad-tools/docs/native-checkin-adapter-design.md`, section 10) and
+    the enclosure's own (its plan, "Open items").
 
 ## Next work, in order
 
-1. Get Peter's answers to decisions 1 and 2 and his acceptance of the direction.
-2. Write the layout as a specification with a standard-library validator and a
-   small synthetic fixture, here. Add the flatten step that produces the
-   `scene.json` shape `mechanical-docs` reads (`mechanical-docs/docs/input-contract.md`).
-3. Write the converter from the enclosure's existing snapshot to the layout and
-   run it on a branch of the enclosure. Pass the acceptance test in
-   docs/layout-proposal.md. `main` of the enclosure stays untouched until then.
-4. Replace the Windows agent's queued work with one message asking for the four
-   read-only tests in docs/layout-proposal.md, and rewrite the operator prompt.
-5. Have the Windows exporter write the layout; re-export; compare with step 3.
-6. Geometry facts, build and check commands; move the enclosure's monitor
-   envelope to the new shape as the first authored part.
-7. Channel skeleton (`.guix-channel` pointing at `.guix/modules`, as
+1. Peter's answers to decisions 1, 2 and 4. If he takes the recommendations,
+   nothing built here changes; if not, the specification, validator and
+   converter change together.
+2. The enclosure's conversion on a branch. The dry run covers `references/`
+   and the lock. Still to do there: re-key the curated files that carry part
+   ids (`assembly/materials.json`, the two procurement sheets,
+   `joint-audit.json`) by script; point the eight project scripts that read
+   `references/enclosure/` at the flattened scene; decide what stays of the old
+   tree; move the monitor envelope to `designs/parts/` with `build_part.py`,
+   and its publication record into `vault.json`. Then run the acceptance test
+   on the branch. `main` stays as it is until that passes.
+3. The Windows tests, whenever Peter starts that agent. The request is in the
+   shared mailbox. Then decision 3.
+4. Specify the exporter's package (files named by master id and model state, a
+   child list per assembly, no absolute paths, normalised header), have the
+   Windows exporter write it, and make `import-snapshot` read it. Re-export the
+   enclosure and compare it with step 2 using `compare-scenes`.
+5. One full render of the manual from the re-exported project, in
+   `mechanical-docs`, compared with today's by parts, quantities, steps and
+   checks. Merge the branch.
+6. The first new part for the enclosure written as code, built and checked
+   here, manufactured, then published to Vault.
+7. The Guix channel (`.guix-channel` pointing at `.guix/modules`, as
    `orb-weaver-context` does), then OCP against Guix's `opencascade-occt`,
    build123d, CadQuery. Peter recorded this packaging as his own deferred work
    on 2026-10-23; confirm before starting it.
 
+## Known limits of what was built
+
+- The validator has been run on two projects: the fixture and the converted
+  enclosure. The tolerances for comparing geometry facts are provisional (one
+  kernel version).
+- `import-snapshot` reads only the package the exporter wrote on 2026-10-21
+  and refuses suppressed or mirrored occurrences, an instance whose definition
+  disagrees with another instance's, and nested flexible instances that would
+  need an override on an outer level.
+- `build_part.py` takes a FreeCAD `Part.Shape` with one product. There is no
+  build123d or CadQuery path.
+- The scene written by `flatten` copies every STEP file into its output
+  directory, because the documentation loader resolves assets below the scene.
+- Nothing here has been run on Windows.
+
 ## Hazards
 
-- **The Windows operator prompt points at superseded work.** In the shared
-  directory, `coordination/PROMPT-WINDOWS.txt` still sends the Windows agent to
-  two unread messages of 2026-10-23 (`151357Z`, `153207Z`): a `metadata.json`
-  sample and an incremental export dry run, both on the old layout. Folder
-  discovery in the first message is unaffected. Rewrite the prompt before Peter
-  starts that agent.
-- **The shared coordination plan is stale.** `coordination/PLAN.md` and
-  `NEXT-AGENT.md` describe 2026-10-23. Where they differ from
-  docs/direction.md, the direction wins; update them as the Linux role.
-- **The enclosure's `main` feeds the published manual.** Its Pages workflow
-  builds on every push to `main`, and Peter is assembling from that manual.
-- **Remotes.** `origin` here still points at Codeberg; the GitHub remote is
-  `peterpolidoro`. Remotes are Peter's to change.
-- **The handoff files in the sibling repositories were written on 2026-10-22/23**
-  and name commits and patches that are long since committed. Each now starts
-  with a 2026-11-10 note; trust that note and the tracked plans over the rest.
-
-## State of the four repositories when this was written
-
-| Repository | HEAD | Uncommitted |
-| --- | --- | --- |
-| `mechanical-cad` | `1a9235f` (licence only) | README, guidance, plan, manifest, ignore rules, `docs/` |
-| `mechanical-docs` | `1772669` (licence, first plan update) | README, guidance, plan, `docs/next-agent.md` |
-| `vault-cad-tools` | `7807e8f` | licence, README, guidance, plan |
-| `free-standing-tank-enclosure` | `0eeb1af` | licence, README, guidance, plan |
-
-The shared clones matched `7807e8f` and `0eeb1af`. No tests were run in any
-repository on 2026-11-10: every change is documentation or licence text.
-
-## Not run, not known
-
-- No code exists here, so nothing was tested beyond the manifest resolving.
-- The measurements in docs/layout-proposal.md were made on Linux from tracked
-  files; none involved Vault, Inventor or the Windows machine.
-- The claim in the external discussion that the package names are free on PyPI
-  was not checked.
+- **The enclosure's `main` feeds the published manual**, which Peter is
+  assembling from. Its Pages workflow now runs only when a push changes
+  `docs/`, `mkdocs.yml` or the workflow. Conversion work belongs on a branch.
+- **The shared directory has no history.** Decisions that last go into a
+  repository. Its `PLAN.md` is a dated log; where it differs from
+  docs/direction.md, the direction wins.
+- **The shared clones the Windows agent syncs from lag behind** until someone
+  fast-forwards them after Peter pushes. The Windows request assumes he has
+  pushed the changes of 2026-11-10.
+- **Remotes.** `origin` here and in `mechanical-docs` still points at Codeberg;
+  the GitHub remote is `peterpolidoro`. Remotes are Peter's to change.

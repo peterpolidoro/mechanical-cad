@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "key": "pin",
+  "step": {
+    "sha256": "1450d70810c977bc23d3a15025535d989a7cec501027f645f39379a11edfa9e5",
+    "data_sha256": "b350652cb9df422bccb443dbcff0ede1b94261552b3087fe305aaaa3da185fce"
+  },
+  "tool": {
+    "name": "FreeCAD",
+    "version": "1.1.3",
+    "kernel": "OpenCASCADE",
+    "kernel_version": "7.9.3"
+  },
+  "length_unit_declared": "mm",
+  "valid": true,
+  "solids": 1,
+  "shells": 1,
+  "faces": 3,
+  "volume_mm3": 2356.194490192345,
+  "area_mm2": 1099.5574287564277,
+  "center_of_mass_mm": [-3.8600154000813526e-16, -1.5061704512462347e-16, 14.999999999999998],
+  "bounding_box_mm": {
+    "min": [-5.0, -5.0, 0.0],
+    "max": [5.0, 5.0, 30.0]
+  }
+}

@@ -87,36 +87,69 @@ maps one-to-one onto Vault.
 - A part directory holds the STEP file, the facts recorded on Windows (Vault
   identity, version, lifecycle state, properties, material claim, parameters,
   holes and threads) and the facts computed on Linux (validity, extents, volume,
-  a geometry fingerprint). Each file has exactly one writer.
+  a geometry fingerprint). Each file is written by exactly one command.
 - An assembly directory holds a manifest of its direct children with their
   local placements. The flattened scene that the documentation reads is derived
   from these manifests, not stored.
 - A part written as code has the same shape, with its program, parameters,
   checks and build receipt beside the STEP.
 - Directories are keyed by a readable name tied to the Vault master id, so a
-  rename or move in Vault does not rename anything here.
+  rename or move in Vault does not rename anything here. The exporter on
+  Windows identifies files by master id; the import command on Linux assigns
+  the keys.
 - STEP headers are normalised at export so an unchanged part exports to the same
   bytes. Geometry is compared by fingerprint, never by bytes alone.
+- The lock file is an index derived from the directories, never a second copy
+  of their facts.
 
 Open choices: two top-level roots (`references/` for Vault's authority,
 `designs/` for the repository's) or one tree with an authority field; readable
 keys or a mirror of Vault's folder tree; AP214 or AP242 (to be tested, not
 assumed).
 
+The detail, the evidence and the acceptance test are in
+[layout-proposal.md](layout-proposal.md). A draft specification that implements
+the recommended choices, with its validator, is in
+[layout-specification.md](layout-specification.md); it is provisional until the
+choices are made.
+
 ## Proposed: order of work
 
 1. Accept or amend this document.
 2. Write the layout as a specification with a validator, here.
 3. Convert the enclosure's existing snapshot into the layout on a branch, on
-   Linux alone, and require the regenerated scene and manual to match today's.
+   Linux alone, and require the scene flattened from it to equal today's, part
+   for part and placement for placement.
 4. Run the read-only Windows tests that settle the open choices: AP214 against
    AP242, header stability on more parts, lifecycle state and revision, and what
-   Inventor reports for parameters, holes and threads.
+   Inventor reports for parameters, holes and threads. Nothing in steps 2 and 3
+   waits for these and they need Peter to start the Windows agent, so they run
+   alongside, not after.
 5. Change the Windows exporter to write the layout, re-export the enclosure and
-   compare it with step 3. Merge the branch.
+   compare it with step 3. Render the manual once from the result and compare
+   it with today's. Merge the branch.
 6. Build the first code-authored part with the tools here and publish it to
    Vault.
 7. Package OCP, build123d and CadQuery in the channel.
+
+## Not settled
+
+These are Peter's to settle. The direction above depends on each of them, and
+none is decided. The working list, with what is known about each, is in
+`.agents/PLANS.md`.
+
+- **The Inventor requirement.** The enclosure's brief asks for design work in
+  Inventor and finished records in Vault
+  (`free-standing-tank-enclosure/README.md`). The decision above that new parts
+  are written as code, and reach Inventor as referenced STEP files, has not
+  been reconciled with that brief. Stage 6 of the loop depends on the answer.
+- **Names in public files.** Whether server, host and account names, Vault
+  paths and the names of people in exported files may stay in public
+  repositories. Some are already published (layout-proposal.md, "Evidence").
+- **Supplier models.** Whether component models that originate from suppliers
+  may be redistributed in a public repository.
+- **Where on GitHub** the repositories live, and with it the links between
+  them.
 
 ## Out of scope
 
