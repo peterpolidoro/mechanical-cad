@@ -78,7 +78,8 @@ def test_a_body_the_file_marks_invisible_is_not_measured(project_copy, tmp_path)
     (tmp_path / "two.py").write_text(TWO_SOLIDS)
     subprocess.run([FREECAD, str(tmp_path / "two.py"), "--pass", str(tmp_path / "two.step")], capture_output=True, check=True)
     data = (tmp_path / "two.step").read_bytes()
-    solids = [int(i) for i in re.findall(rb"#(\d+) = MANIFOLD_SOLID_BREP", data)]
+    # a solid with an internal void is a BREP_WITH_VOIDS: both are solids
+    solids = [int(i) for i in re.findall(rb"#(\d+) = (?:MANIFOLD_SOLID_BREP|BREP_WITH_VOIDS)", data)]
     assert len(solids) == 2
     replace_step(project_copy, plate, invisible(data, solids[1]))
     out = run("step_facts.py", project_copy, "--", "--only", "base-plate")

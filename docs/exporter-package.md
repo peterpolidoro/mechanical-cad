@@ -1,14 +1,15 @@
 # The exporter's package: draft specification
 
-**Status: draft 1, written 2026-11-11, not reviewed by Peter or by the Windows
-agent, not implemented.** It specifies what the Windows exporter delivers for
-one export of one root assembly, and what the import command does with it. The
+**Status: draft 2, 2026-11-11, not reviewed by Peter or by the Windows agent,
+not implemented.** It specifies what the Windows exporter delivers for one
+export of one root assembly, and what the import command does with it. The
 exporter in `vault-cad-tools` (`windows/Export-PartAssets.ps1`) writes an
 earlier package today, and `vault-cad import-snapshot` reads only that one.
 
-Two statements below rest on the Windows AP242 tests of 2026-11-11, whose
-report was not finished when this was written. They are marked *(pending the
-report)* and were read from the run's files as they stood.
+Draft 2 has the results of the Windows AP242 tests of 2026-11-11
+([layout-proposal.md](layout-proposal.md), "Windows tests of 2026-11-11"): the
+two statements that draft 1 marked as waiting for that report are confirmed,
+and the rule about views under "The STEP files" is new.
 
 The layout the package feeds is in
 [layout-specification.md](layout-specification.md). Where this document says
@@ -23,7 +24,10 @@ The layout the package feeds is in
   of the package except `package.json`. Nothing but `package.json` carries a
   time.
 - No record carries a path on the workstation, a host name or an account
-  name. The earlier package carried all three.
+  name. The earlier package carried all three. The files as the translator
+  wrote them, whose headers carry the native file's author, and the
+  exporter's own logs stay on the workstation; the package holds the hash of
+  each translator output and nothing else of it.
 - Every native document the exporter opens is bound to the hash it was
   acquired with, and nothing is saved, as today.
 
@@ -72,7 +76,9 @@ import command adds. In particular:
 - `vault`: all nine fields. Version number, revision, lifecycle state and
   check-in date reach the REST interface for every file (measured on
   2026-11-10) and are written here, not in a separate record. `path` is the
-  Vault path.
+  Vault path. The exporter takes them from the records made at or after the
+  acquisition (`acquisition.json`, the dependency inventory, the output of
+  `Get-VaultFileFacts.ps1`); it makes no Vault request of its own.
 - `step` (parts): all seven fields, with `header_normalised` true and
   `received_sha256` null, because the exporter normalises before it delivers.
 - `export`: `translator_output_sha256`, the hash of the file as the translator
@@ -113,7 +119,11 @@ component by identity:
   `overrides` on that instance's child entry, as in the layout. An override
   more than one level below the instance, and a flexible instance inside a
   flexible instance, are written the same way; neither has been met on real
-  data.
+  data. Open, and put to the Windows agent on 2026-11-11: today the exporter
+  writes the occurrences in context and the import command derives the
+  overrides. If that split is sounder with the Inventor API, the package
+  holds each assembly's children as defined plus the occurrences in context,
+  and this paragraph changes.
 - A suppressed child is written with `suppressed` true, and its component is
   exported like any other.
 - A child whose placement is not a rotation and a translation (a mirrored
@@ -123,17 +133,30 @@ component by identity:
 
 - AP242 (`ApplicationProtocolType` 5), sketches not included, every other
   translator option at its default, and the translator's description, author,
-  organization and authorisation options empty.
-- Exported with no view open, as the exporter runs today. A file exported
-  while a view is open carries that view's camera, so its data section
-  changes with the view; exported without one, ten exports of a part from six
-  Inventor instances on two days had one data section *(pending the report)*.
-- The header is normalised with `windows/Step-Header.ps1` under the name
-  `part.step`.
-- Bodies hidden in the native part are in the file, marked invisible. The
-  translator reports eight options and none leaves them out *(pending the
-  report)*. Linux leaves them out when it measures and draws
-  (`stepfile.py`, `visible_only`).
+  organization and authorisation options empty. The translator reports eight
+  options; `translator_options` in `package.json` records all eight.
+- Exported from documents that have no view. The exporter opens the root
+  invisibly in its own Inventor instance, and then neither the root nor any
+  document it refers to has a view (measured on 2026-11-11: none of 44). It
+  checks this for every document it exports from and stops if one has a view.
+  Why: without a view the translator writes a fixed default camera, and ten
+  exports of a part from six Inventor instances on two days had one data
+  section; with a view it writes that view's camera, and the data section
+  changes whenever the camera does. The camera is not rewritten afterwards:
+  the data section stays the translator's.
+- The header is normalised with `Set-StepFileHeader` of
+  `windows/Step-Header.ps1` under the name `part.step`. (It gives the bytes
+  `stepfile.py` gives, on all 37 AP242 files as on the AP214 ones. The
+  exporter does not call it yet.) An AP242 header has a second, constant
+  `FILE_DESCRIPTION` string naming a recommended practice for PMI; it stays.
+- Bodies hidden in the native part are in the file, marked invisible. None of
+  the translator's options leaves them out. Linux leaves them out when it
+  measures and draws (`stepfile.py`, `visible_only`), and understands one form
+  of the mark; the exporter stops if a file has an `INVISIBILITY` in another
+  form (`Get-StepInvisibility` in `Step-Header.ps1` is the text-level check).
+- A solid with an internal void is a `BREP_WITH_VOIDS`, not a
+  `MANIFOLD_SOLID_BREP`. Whatever counts solids in the text of a file to
+  compare them with `native.bodies` counts both.
 
 ## What the import command does with it
 

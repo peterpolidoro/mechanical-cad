@@ -28,17 +28,26 @@ the other two measure the same in both protocols. One part of the 37 has
 hidden bodies, so the filter rests on one real file; any other form of the
 mark is refused.
 
-Asked of Windows that day (three read-only tests): whether AP242 exports are
-stable between sessions and what the saved-view block depends on; which
-translator options exist; and all 37 parts as AP242 for Linux to compare with
-the tracked AP214 files by fingerprint. The agent was still running when this
-was written and had not reported. Read from its unfinished run, so not yet
-evidence: `compare_step_exports.py` finds all 37 AP242 files to be the same
-geometry as the tracked AP214 parts (one with three invisible items left
-out); exports made without a view have one data section across sessions,
-exports made with a view open change with the camera; the translator reports
-eight options and none concerns hidden bodies or the view. The check is
-repeated on the sealed run.
+Asked of Windows that day and reported the same day (three read-only tests,
+shared evidence run `2026-11-11-windows-ap242-tests-01`, 184 files checked
+against their checksums on Linux): AP242 exports made from a document without
+a view have one data section across sessions, and the exporter runs without a
+view; with a view the file carries that view's camera, and the difference is
+confined to the 12 instances the camera reaches (recounted on Linux from the
+run's files); the translator reports eight options and none concerns hidden
+bodies or the view; and `compare_step_exports.py` on the sealed files finds
+all 37 AP242 exports to be the same geometry as the tracked AP214 parts, one
+with three invisible items left out. One framing part has a solid with a
+void, written as `BREP_WITH_VOIDS` in both protocols: counts of solids from
+text take both (one test here did not, and does now). The detail is in
+docs/layout-proposal.md, "Windows tests of 2026-11-11". The Windows patch
+(probes and text-level helpers, the exporter untouched) is reviewed and
+applied in `vault-cad-tools`.
+
+What follows for the saved view, written into docs/exporter-package.md
+(draft 2) and docs/layout-specification.md: it is not normalised; the
+exporter exports only from documents without a view and checks that. Peter
+has not confirmed it; it is among the draft's choices under "Open decisions".
 
 The enclosure was converted that day on its branch `layout-conversion`, and
 the acceptance test passed there on the tracked tree (it had passed on a dry
@@ -115,9 +124,11 @@ prompts were rewritten.
 The layout's three choices were decided on 2026-11-11 and are in
 docs/direction.md, "Decided". What is left:
 
-1. Whether the saved-view block of AP242 files has to be normalised like the
-   header. It depends on the Windows stability test; nothing to decide until
-   that has run.
+1. The exporter's package, docs/exporter-package.md (draft 2). Its choices:
+   no names of people and no workstation paths in any record; files named by
+   master id and model state, keys assigned on Linux; a refresh replaces only
+   what changed in Vault; the saved view is left as the translator wrote it,
+   and the exporter refuses a document that has a view.
 2. Acceptance of docs/direction.md as a whole. Its "one authority per part"
    entry under "Decided" has no date; confirm it and date it.
 
@@ -162,24 +173,23 @@ Smaller ones:
 
 1. Peter's review of the enclosure's branch `layout-conversion` (done on
    2026-11-11 in a worktree beside the project checkout, at Peter's word; the
-   project's plan on that branch has the state and what was checked). When he
-   starts the Windows agent: review its three AP242 tests, and compare the 37
-   AP242 exports with the tracked AP214 files (`step_facts.py` on both, then
-   the fingerprints).
+   project's plan on that branch has the state and what was checked).
 2. The merge of that branch, which is Peter's. `vault-cad-tools` reads the new
    lock since 2026-11-11 (`status`, `prepare-publish` from
    `designs/parts/<key>/part.step`, `import-publish-result` into the part's
    `vault.json`), so nothing in the tools holds it back. The index is derived
    in two places, here and there; they agree on the enclosure, and no test
    compares them.
-3. The exporter's package. A draft is in docs/exporter-package.md (2026-11-11):
-   one directory per Vault file and model state, identities and no keys, no
-   workstation paths or names of people, AP242 exported without a view, the
-   header normalised, and what the import command does with it. It is not
-   reviewed. Next: confirm its two statements that wait for the Windows AP242
-   report; Peter's and the Windows agent's review; the Windows exporter
-   writes it; `import-snapshot` reads it into an existing project, keeping
-   keys. Then re-export the enclosure and compare it with the branch
+3. The exporter's package. Draft 2 is in docs/exporter-package.md
+   (2026-11-11): one directory per Vault file and model state, identities and
+   no keys, no workstation paths or names of people, AP242 exported from
+   documents without a view, the header normalised, and what the import
+   command does with it. Asked of Windows on 2026-11-11, for when Peter
+   starts it: review the draft against what Inventor and Vault give, and
+   write the package as a new mode of the exporter that leaves today's
+   output unchanged, run read-only on the enclosure. On Linux, in
+   `vault-cad-tools`: `import-snapshot` reads the package into an existing
+   project, keeping keys. Then compare the re-export with the branch
    (`compare-scenes`, and `compare_step_exports.py` for the parts).
 4. One full render of the manual from the re-exported project, in
    `mechanical-docs`, compared with today's by parts, quantities, steps and

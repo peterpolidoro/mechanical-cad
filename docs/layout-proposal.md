@@ -13,7 +13,9 @@ repositories; what changed is listed at the end. The same day the enclosure's
 snapshot was converted in a dry run, outside the tracked tree, and passed the
 acceptance test below. The results are in "Dry run of 2026-11-10". The
 read-only tests asked of Windows were run that day as well; they are in
-"Windows tests of 2026-11-10", with what Linux measured on their files.
+"Windows tests of 2026-11-10", with what Linux measured on their files. The
+three tests that the choice of AP242 asked for were run on 2026-11-11 and are
+in "Windows tests of 2026-11-11".
 
 ## Where the proposal comes from
 
@@ -355,12 +357,75 @@ Also from that run:
   paging cursor repeats and skips rows. One page of up to 1000 rows, accepted
   only when its row count is the server's total, is reliable.
 
+## Windows tests of 2026-11-11
+
+After Peter chose AP242, three read-only tests were asked of Windows and run
+the same day (Inventor 2025.3; no Vault access; nothing saved; every opened
+file re-hashed and unchanged). The report and files are in the shared evidence
+run `2026-11-11-windows-ap242-tests-01`. Linux checked the run's 184 files
+against their checksums, reviewed and applied its patch to `vault-cad-tools`
+(probes, text-level helpers and their tests; the exporter is untouched), and
+made the comparison of test 3 with `tools/compare_step_exports.py` (FreeCAD
+1.1.3, OpenCASCADE 7.9.3).
+
+1. **AP242 exports are stable when the document has no view.** Three parts,
+   each exported in three separate Inventor instances that day, reached
+   through the invisibly opened assembly and opened by itself, and compared
+   with the file of 2026-11-10 and with the snapshot exporter's own AP242
+   file: one data-section hash per part (ten exports from six instances for
+   the top panel and for the corner cube, eight from five for the shoulder
+   screw). Only the header's time stamp and name differ. One workstation; no
+   restart.
+2. **The saved view is the camera of the document's view.** Opened as the
+   exporter opens it, the root assembly has no view and none of its 43
+   referenced documents has one; the translator then writes a fixed default
+   camera (a 20 mm square window looking along -Z, one text per length unit
+   over all 37 files). A part opened visibly has a view, and the file carries
+   that view's camera: rotating, zooming or setting an orientation changes
+   the file each time, for the same camera two instances write the same file,
+   and changing the camera does not mark the document as modified. In every
+   pair compared the difference is confined to the 12 instances reachable
+   from `CAMERA_MODEL_D3`; none of them is referenced from outside. Tried on
+   two parts, in the invisible application; an interactive user's window was
+   not tried.
+3. **No translator option leaves out the hidden bodies or the saved view.**
+   The translator reports eight options (`IncludeSketches`,
+   `ApplicationProtocolType`, `Author`, `Organization`, `Authorization`,
+   `Description`, `export_fit_tolerance`, `ExportUCS`). Changing the three that
+   are not header texts leaves the corner cube's data section unchanged. No
+   option name the translator does not report was tried.
+4. **All 37 parts as AP242 are the same geometry as the tracked AP214
+   files.** One strict exporter run (44 of 44 documents bound to the
+   acquisition), headers normalised with the PowerShell port, which
+   `stepfile.py` confirms on all 37. Measured on Linux against the converted
+   enclosure: 37 of 37 have the fingerprint of the tracked part; no data
+   section is the same, as expected; one file marks items invisible
+   (`MCMASTER 47065T245`, three, in the understood form) and is the same
+   geometry once they are left out.
+5. **A solid with an internal void is a `BREP_WITH_VOIDS`.** One framing part
+   has 11 solid bodies in Inventor and 10 `MANIFOLD_SOLID_BREP` plus one
+   `BREP_WITH_VOIDS` in its file, in both protocols. A count of solids from
+   the text has to take both. `stepfile.py` does not look at the kind of a
+   hidden item, and FreeCAD measures the part as valid.
+
+Also constant in every AP242 header: a second `FILE_DESCRIPTION` string naming
+the CAx-IF recommended practice for PMI, which normalising leaves alone.
+
+What follows from tests 1 and 2: the saved view does not have to be
+normalised. A file exported for a repository comes from a document without a
+view, which is how the exporter runs; the exporter is to check that and stop
+otherwise ([exporter-package.md](exporter-package.md)). Rewriting the camera
+would be the first change to a data section, and every identity recorded so
+far rests on the data section being the translator's.
+
 ## Not verified
 
 - Overrides more than one level below a flexible instance, and nested flexible
   instances, on real data. The enclosure has neither.
-- Header and data-section stability on another workstation or after an
-  Inventor update, and for AP242 at all (asked of Windows on 2026-11-11).
+- Header and data-section stability on another workstation, after a restart
+  or after an Inventor update, in either protocol.
+- What the window of an interactive Inventor session does to the saved view
+  of an AP242 file. The exporter never has one.
 - The invisibility mark in any form but the one in the one part that has it.
 - Thread features, counterbores and sheet-metal data through the Inventor API.
 - A refresh-stable occurrence key. Occurrence ids are snapshot-scoped today;
@@ -431,10 +496,11 @@ Also from that run:
      protocols. One form of the mark is understood, the one Inventor wrote for
      that part; anything else is refused, not guessed.
    - **Stability of AP242 exports** between sessions, and what the saved-view
-     block depends on: not tested. Asked of Windows on 2026-11-11.
+     block depends on: tested on 2026-11-11. Exports made without a view are
+     stable, and the exporter has none; the block is the view's camera
+     otherwise ("Windows tests of 2026-11-11").
    - **All 37 parts as AP242**, each compared with its tracked AP214 file by
-     fingerprint: not done. Asked of Windows on 2026-11-11 (the exports) for
-     Linux to compare.
+     fingerprint: done on 2026-11-11, 37 of 37 the same geometry.
    - **The exporter's default protocol** is still AP214; it changes with the
      exporter's package.
    - Someone who opens a tracked AP242 `part.step` directly in FreeCAD sees
@@ -519,3 +585,5 @@ All five were run on 2026-11-10; the results are in "Windows tests of
 - The results of the five Windows tests, with a recommendation for the
   protocol, and the correction that one part's volume difference comes from
   hidden bodies, not from measurement accuracy.
+- Peter's three decisions of 2026-11-11, and the results of the three Windows
+  tests that AP242 asked for.

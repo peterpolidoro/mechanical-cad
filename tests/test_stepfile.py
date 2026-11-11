@@ -141,6 +141,10 @@ def test_invisible_items_are_found_and_left_out():
     # two statements change and nothing else: the mark goes, and the representation lists the visible item only
     assert visible == HIDDEN.replace(MARK, b"").replace(b"(#70,#30,\r\n #31,#32)", b"(#70,#32)")
     assert S.invisible_items(visible) == [] and S.visible_only(visible) == visible
+    # the kind of item does not matter: a hidden solid with an internal void is a BREP_WITH_VOIDS
+    voids = HIDDEN.replace(b"#31=MANIFOLD_SOLID_BREP('Solid2',#41);", b"#31=BREP_WITH_VOIDS('Solid2',#41,(#43));")
+    assert voids != HIDDEN and S.invisible_items(voids) == [30, 31]
+    assert S.visible_only(voids) == voids.replace(MARK, b"").replace(b"(#70,#30,\r\n #31,#32)", b"(#70,#32)")
 
 
 def test_a_file_that_marks_nothing_invisible_is_returned_as_it_is():

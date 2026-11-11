@@ -286,6 +286,14 @@ records which one a file is. Files exported from Inventor are AP242 (Peter,
 choices"). The files of a project exported earlier stay what they are until it
 is exported again.
 
+**Saved view.** An AP242 file exported from Inventor carries a camera
+(`CAMERA_MODEL_D3` and what it reaches). From a document that has no view it
+is a fixed default camera, and the file is the same in every session; from a
+document that has a view it is that view's camera. A file exported for a
+repository comes from a document without a view, which the exporter checks
+([exporter-package.md](exporter-package.md)). Normalising does not touch the
+camera, and nothing here reads it.
+
 **Invisible items.** `part.step` is kept as the exporter wrote it, hidden
 bodies included. `mechanical_cad/stepfile.py` is the reference for finding
 them (`invisible_items`) and for the file without them (`visible_only`): each
@@ -326,8 +334,8 @@ scene's size.
 - **The exporter's package.** What the Windows exporter delivers to the import
   command has a draft of its own, [exporter-package.md](exporter-package.md):
   files named by master id and model state, a child list per assembly, no
-  workstation paths. It is not reviewed and not implemented; the import
-  command today reads the package the exporter wrote on 2026-10-21.
+  workstation paths. It is not reviewed by Peter and not implemented; the
+  import command today reads the package the exporter wrote on 2026-10-21.
 - **Hand-edited JSON.** `parameters.json`, `checks.json` and an authored
   `assembly.json` are edited by hand, and this repository's rule is TOML for
   hand-edited files. The names follow the proposal; the rule has not been
