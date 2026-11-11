@@ -9,6 +9,12 @@ paths of occurrence names and must be the same on both sides.
 Numbers are compared within a tolerance, everything else exactly. A field that
 only the new scene has is reported, not counted as a difference; a field that
 only the old scene has is a difference unless it is listed as dropped.
+
+A STEP file that differs is a difference, unless the new scene is said to come
+from another export of the same Vault versions (another protocol, another
+header). Then every byte of a file may differ while the part is the same, and
+this module cannot tell: the parts whose files differ are listed, and their
+geometry is compared with the kernel (tools/compare_step_exports.py).
 """
 from __future__ import annotations
 
@@ -39,14 +45,16 @@ def _scale(scene):
     return best
 
 
-def compare(old, new, part_map=None, dropped_fields=()):
+def compare(old, new, part_map=None, dropped_fields=(), other_export=False):
     """Return a report dict; report["same"] says whether the scenes agree.
 
     part_map: {new part id: old part id}. Parts missing from the map are
     matched by equal id.
+    other_export: a part whose STEP file differs is listed under
+    "assets_that_differ" and is not a difference.
     """
     part_map = dict(part_map or {})
-    diffs, added = [], set()
+    diffs, added, assets = [], set(), []
     tol = RELATIVE_TOL * max(_scale(old), _scale(new))
     worst = {"rotation": 0.0, "translation": 0.0, "world_rotation": 0.0, "world_translation": 0.0}
 
@@ -95,6 +103,10 @@ def compare(old, new, part_map=None, dropped_fields=()):
         aa, ba = a.get("asset", {}), b.get("asset", {})
         for name in ("format", "units", "sha256"):
             if aa.get(name) != ba.get(name):
+                if name == "sha256":
+                    assets.append(nid)
+                    if other_export:
+                        continue
                 diffs.append(f"{where}: asset.{name} was {aa.get(name)!r}, is {ba.get(name)!r}")
         for name in PART_NUMBERS:
             if name in a and name in b:
@@ -149,5 +161,6 @@ def compare(old, new, part_map=None, dropped_fields=()):
         "tolerance": {"rotation_cell": ROTATION_TOL, "length": tol, "length_relative": RELATIVE_TOL},
         "largest_deviation": worst,
         "fields_only_in_new": sorted(added),
+        "assets_that_differ": sorted(assets),
         "differences": diffs,
     }

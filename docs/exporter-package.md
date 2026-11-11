@@ -1,15 +1,19 @@
 # The exporter's package: draft specification
 
-**Status: draft 2, 2026-11-11, not reviewed by Peter or by the Windows agent,
-not implemented.** It specifies what the Windows exporter delivers for one
-export of one root assembly, and what the import command does with it. The
-exporter in `vault-cad-tools` (`windows/Export-PartAssets.ps1`) writes an
-earlier package today, and `vault-cad import-snapshot` reads only that one.
+**Status: draft 2, 2026-11-11, not reviewed by Peter or by the Windows agent.
+No exporter writes it yet.** It specifies what the Windows exporter delivers
+for one export of one root assembly, and what the import command does with
+it. The exporter in `vault-cad-tools` (`windows/Export-PartAssets.ps1`) writes
+an earlier package today. `vault-cad import-snapshot` reads both: the earlier
+one into a new directory, and since 2026-11-11 this one into a new directory
+or into a project (provisional, tested on packages written on Linux).
 
 Draft 2 has the results of the Windows AP242 tests of 2026-11-11
 ([layout-proposal.md](layout-proposal.md), "Windows tests of 2026-11-11"): the
 two statements that draft 1 marked as waiting for that report are confirmed,
-and the rule about views under "The STEP files" is new.
+and the rule about views under "The STEP files" is new. The section on the
+import command was rewritten later that day, when the command was built;
+what the exporter delivers is as the Windows agent was given it.
 
 The layout the package feeds is in
 [layout-specification.md](layout-specification.md). Where this document says
@@ -160,26 +164,50 @@ component by identity:
 
 ## What the import command does with it
 
-Not built. `vault-cad import-snapshot` is to read this package beside the
-earlier one, into an existing project:
+`vault-cad import-snapshot PACKAGE --into PROJECT --run RUN`
+(`vault-cad-tools/src/vault_cad_tools/package_import.py`), built on 2026-11-11
+against this draft. It checks the whole package and the project before it
+writes anything:
 
-1. Verify every file against `package.json`, and the vault and root against
-   the project.
-2. Find each file's key by master id and model state in the project's index.
-   A file the project does not have yet gets a key from its name, as today.
-3. Refuse the package when the project holds a later version of one of its
-   files (by version number).
-4. Leave a component's directory untouched when its version id, native hash
-   and STEP bytes are what the project has. Replace it when they are not. An
-   unchanged file therefore keeps pointing at the export it first came from,
-   and a refresh changes only what changed in Vault.
-5. Report the components of the project that the package no longer has, and
-   remove nothing unless asked to.
-6. Keep `package.json` under `references/receipts/<run>/` and derive the
-   index again.
+1. Every file is verified against `package.json`, and nothing may be in the
+   package that `package.json` does not list. The vault and the root assembly
+   are compared with the project's `vault-project.toml`. The project's
+   directories must be what its index says they are.
+2. Each file's key is found by master id and model state in the project's
+   index. A file the project does not have yet gets a key from its name, as
+   today, one that no imported or authored component has.
+3. The package is refused when the project holds a later version of one of
+   its files (by version number), and when the order of two versions cannot
+   be told because a version number is unknown.
+4. A component's directory is left untouched when its version id, its native
+   hash, its STEP bytes and the exporter's record of it are what the project
+   has. The record is `source.json` without its `export` block, and for an
+   assembly its children. An unchanged file therefore keeps pointing at the
+   export it first came from, and a refresh changes only what changed. What
+   is not unchanged is reported as updated (a new Vault version) or rewritten
+   (the same version, exported differently) and replaced.
+5. The components of the project that the package does not have are
+   reported. Nothing is removed; removal on request is not built.
+6. `package.json` is kept under `references/receipts/<run>/`, and the index
+   is derived again. `facts.json` is left alone: the result names the parts
+   whose `part.step` changed, for `tools/step_facts.py` to measure.
 
-After it: `tools/step_facts.py` for the parts that changed, `validate`, and
-`compare-scenes` between the scene flattened before and after.
+After it: `tools/step_facts.py`, `validate`, and `compare-scenes` between the
+scene flattened before and after. When the STEP files are another export of
+the same versions, as in the change from AP214 to AP242, every one differs:
+`compare-scenes --other-export` then lists them and compares everything else,
+and `tools/compare_step_exports.py` compares their geometry.
+
+Tried on 2026-11-11 on copies of the converted enclosure, with packages
+written on Linux from what the project holds:
+
+- The package of exactly what the project holds: 44 files unchanged, and no
+  file of the project changes but the new receipt.
+- The same with the 37 AP242 files of the Windows tests in place of the
+  tracked AP214 files: 37 parts rewritten, the 7 assemblies untouched, all
+  keys kept. After `step_facts.py` the project validates without an error,
+  and its flattened scene equals the branch's (37 parts, 17 assembly nodes,
+  155 occurrences, no placement differs) apart from the 37 STEP files.
 
 ## Not in the package
 

@@ -49,6 +49,19 @@ What follows for the saved view, written into docs/exporter-package.md
 exporter exports only from documents without a view and checks that. Peter
 has not confirmed it; it is among the draft's choices under "Open decisions".
 
+The import side of the package was built the same day in `vault-cad-tools`
+(`import-snapshot` reads the package into a project, keeps keys, leaves
+unchanged files untouched), against packages written on Linux, because no
+exporter writes the package yet. Tried on copies of the converted enclosure:
+a package of what the project holds changes nothing; the same package with
+the 37 AP242 files of the Windows tests rewrites the 37 parts and nothing
+else, and after `step_facts.py` the project validates and its flattened scene
+equals the branch's apart from the STEP files. For that comparison
+`compare-scenes` got `--other-export`, which lists STEP files that differ
+without counting them. The detail is in docs/exporter-package.md. The
+Windows agent's review of the draft may still change the package (who derives
+the overrides of flexible instances is put to it), and the reader with it.
+
 The enclosure was converted that day on its branch `layout-conversion`, and
 the acceptance test passed there on the tracked tree (it had passed on a dry
 run the day before). The conversion brought two things back here: a
@@ -62,7 +75,8 @@ What exists here:
 - `mechanical_cad/` (standard library): `layout.py` validates a project
   repository; `flatten.py` composes the per-assembly manifests into the
   `scene.json` that `mechanical-docs` reads; `compare.py` says whether two
-  scenes are the same assembly; `facts.py` compares measured geometry and
+  scenes are the same assembly, and for another export of the same versions
+  lists the STEP files that differ; `facts.py` compares measured geometry and
   evaluates a part's `checks.json`; `stepfile.py` reads a STEP file's
   identities, header, unit and invisible items, normalises the header and
   writes the file without its invisible items; `cli.py` has `validate`,
@@ -81,7 +95,7 @@ What exists here:
 - `examples/layout-fixture/`: a synthetic project with imported and authored
   parts, a flexible instance with an override, and its generator.
 - docs/layout-specification.md: the draft the code implements.
-- Tests: 118 pass in the base role and 6 more with FreeCAD (run 2026-11-11,
+- Tests: 119 pass in the base role and 6 more with FreeCAD (run 2026-11-11,
   Python 3.12.12, pytest 9.0.2, FreeCAD 1.1.3, OpenCASCADE 7.9.3).
 
 What was run against the enclosure (a dry run into the enclosure's ignored
@@ -188,9 +202,14 @@ Smaller ones:
    starts it: review the draft against what Inventor and Vault give, and
    write the package as a new mode of the exporter that leaves today's
    output unchanged, run read-only on the enclosure. On Linux, in
-   `vault-cad-tools`: `import-snapshot` reads the package into an existing
-   project, keeping keys. Then compare the re-export with the branch
-   (`compare-scenes`, and `compare_step_exports.py` for the parts).
+   `vault-cad-tools`, `import-snapshot` reads the package into an existing
+   project, keeping keys (built 2026-11-11, tried on packages written on
+   Linux). When Windows reports: correct the draft and the reader where
+   Inventor disagrees with them, import its package into the branch, measure,
+   validate, and compare with the branch as it is (`compare-scenes
+   --other-export`, and `compare_step_exports.py` for the parts). The scene's
+   part properties will differ where the exporter leaves out the names of
+   people; that difference is expected and has to be read, not waved through.
 4. One full render of the manual from the re-exported project, in
    `mechanical-docs`, compared with today's by parts, quantities, steps and
    checks. Merge the branch.

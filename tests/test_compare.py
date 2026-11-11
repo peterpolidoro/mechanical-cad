@@ -51,6 +51,20 @@ def test_what_counts_as_a_difference(fixture_dir):
     assert not any("document" in d for d in diffs)
 
 
+def test_another_export_may_have_other_step_files(fixture_dir):
+    old, new = scenes(fixture_dir)
+    changed = new["parts"][0]["id"]
+    new["parts"][0]["asset"]["sha256"] = "0" * 64
+    report = compare.compare(old, new)
+    assert not report["same"] and report["assets_that_differ"] == [changed]
+    report = compare.compare(old, new, other_export=True)
+    assert report["same"] and report["assets_that_differ"] == [changed] and report["differences"] == []
+    new["parts"][0]["asset"]["units"] = "furlong"                              # the unit is not the export's to change
+    new["occurrences"][0]["transform_world"][0][3] += 5
+    diffs = compare.compare(old, new, other_export=True)["differences"]
+    assert len(diffs) == 2 and "asset.units" in diffs[0] and "transform_world differs" in diffs[1]
+
+
 def test_fields_only_one_side_has(fixture_dir):
     old, new = scenes(fixture_dir)
     for a in old["assemblies"]:

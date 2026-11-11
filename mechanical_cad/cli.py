@@ -93,14 +93,19 @@ def _compare(args):
     old = jsonio.load(args.old, allow_bom=True)
     new = jsonio.load(args.new, allow_bom=True)
     part_map = jsonio.load(args.part_map) if args.part_map else None
-    report = compare.compare(old, new, part_map, tuple(args.dropped or ()))
+    report = compare.compare(old, new, part_map, tuple(args.dropped or ()), other_export=args.other_export)
     if args.json:
         jsonio.write(args.json, report)
     for line in report["differences"][:args.limit]:
         print("DIFF", line)
     if len(report["differences"]) > args.limit:
         print(f"... and {len(report['differences']) - args.limit} more")
-    print(json.dumps({k: report[k] for k in ("same", "counts", "largest_deviation", "fields_only_in_new")}, indent=2))
+    summary = {k: report[k] for k in ("same", "counts", "largest_deviation", "fields_only_in_new")}
+    summary["parts_whose_step_file_differs"] = len(report["assets_that_differ"])
+    print(json.dumps(summary, indent=2))
+    if args.other_export and report["assets_that_differ"]:
+        print(f"{len(report['assets_that_differ'])} STEP file(s) differ and were not compared here; "
+              "compare them by geometry with tools/compare_step_exports.py")
     return 0 if report["same"] else 1
 
 
@@ -169,6 +174,9 @@ def main(argv=None):
     p.add_argument("new")
     p.add_argument("--part-map", help="JSON object {new part id: old part id}")
     p.add_argument("--dropped", action="append", help="a field the new scene may lack (repeatable)")
+    p.add_argument("--other-export", action="store_true",
+                   help="the new scene is another export of the same Vault versions: STEP files that differ are "
+                        "listed, not counted as differences")
     p.add_argument("--json", help="also write the report to this file")
     p.add_argument("--limit", type=int, default=40, help="differences to print (default 40)")
     p.set_defaults(func=_compare)

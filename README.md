@@ -52,6 +52,9 @@ guix shell --pure -m manifest.scm -- python3 -B -m pytest -q tests
 - `check` evaluates each authored part's `checks.json` against its measured
   facts.
 - `compare-scenes` says whether two flattened scenes are the same assembly.
+  With `--other-export`, STEP files that differ are listed, not counted: use
+  it with `compare_step_exports.py` when a project was exported again in
+  another protocol.
 
 These run in FreeCAD (`.guix/manifest-cad.scm`):
 

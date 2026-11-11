@@ -327,15 +327,19 @@ what the designer sees. The scene is the `draft-1` scene of
 `python3 -m mechanical_cad compare-scenes OLD NEW [--part-map FILE]` says
 whether two scenes are the same assembly: the same parts, groups and
 occurrences, with rotation cells within 1e-9 and lengths within 1e-6 of the
-scene's size.
+scene's size. A STEP file that differs is a difference. With `--other-export`
+it is listed and not counted: the new scene is then another export of the
+same Vault versions, whose files differ in every byte, and their geometry is
+compared with `tools/compare_step_exports.py`.
 
 ## What is not specified yet
 
 - **The exporter's package.** What the Windows exporter delivers to the import
   command has a draft of its own, [exporter-package.md](exporter-package.md):
   files named by master id and model state, a child list per assembly, no
-  workstation paths. It is not reviewed by Peter and not implemented; the
-  import command today reads the package the exporter wrote on 2026-10-21.
+  workstation paths. It is not reviewed by Peter and no exporter writes it
+  yet; the import command reads it and the package the exporter wrote on
+  2026-10-21.
 - **Hand-edited JSON.** `parameters.json`, `checks.json` and an authored
   `assembly.json` are edited by hand, and this repository's rule is TOML for
   hand-edited files. The names follow the proposal; the rule has not been
