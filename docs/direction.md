@@ -68,6 +68,7 @@ The free-standing tank enclosure is the test project for every stage.
   Vault and `designs/` for what is authored in the repository. (2026-11-11)
 - Directories are keyed by a readable name tied to the Vault master id, not by
   a mirror of Vault's folder tree. (2026-11-11)
+- Files exported from Inventor are AP242. (2026-11-11)
 
 ## Repositories
 
@@ -106,17 +107,18 @@ maps one-to-one onto Vault.
 - The lock file is an index derived from the directories, never a second copy
   of their facts.
 
-Two of the three choices this layout left open were decided on 2026-11-11 and
-are under "Decided": two top-level roots, and readable keys. One is open:
-AP214 or AP242 for the files exported from Inventor. Both were tested on
-2026-11-10 and the recommendation is AP214; the choice can be changed later by
-a re-export, because the protocol is recorded for each part.
+The three choices this layout left open were decided on 2026-11-11 and are
+under "Decided": two top-level roots, readable keys, and AP242 for the files
+exported from Inventor. An AP242 file also holds the bodies that are hidden in
+the native part, marked invisible; they are left out when a part is measured
+and when it is drawn. The files tracked today are AP214 and stay so until the
+re-export.
 
 The detail, the evidence and the acceptance test are in
 [layout-proposal.md](layout-proposal.md). A draft specification that implements
 the two decided choices, with its validator, is in
 [layout-specification.md](layout-specification.md); it stays a draft until the
-layout as a whole is accepted.
+enclosure has been converted and re-exported under it.
 
 ## Proposed: order of work
 

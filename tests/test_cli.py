@@ -61,3 +61,16 @@ def test_step_info_and_normalise(fixture_dir, tmp_path, capsys):
     result = json.loads(capsys.readouterr().out)
     assert result["changed"] and result["data_sha256"] == info["data_sha256"] and result["received_sha256"] == info["sha256"]
     assert main(["normalise-header", str(pin), str(out)]) == 1                  # never overwrites
+
+
+def test_visible_only(fixture_dir, project_copy, tmp_path, capsys):
+    from conftest import add_invisible_point
+    add_invisible_point(project_copy)
+    step = project_copy / "references/parts/base-plate/part.step"
+    assert main(["visible-only", str(step), str(tmp_path / "out.step")]) == 0
+    assert json.loads(capsys.readouterr().out) | {"sha256": ""} == {"invisible_items_left_out": 1, "sha256": "", "changed": True}
+    assert b"INVISIBILITY" not in (tmp_path / "out.step").read_bytes()
+    assert main(["visible-only", str(step), str(tmp_path / "out.step")]) == 1          # never overwrites
+    plain = fixture_dir / "references/parts/pin/part.step"
+    assert main(["visible-only", str(plain), str(tmp_path / "pin.step")]) == 0
+    assert (tmp_path / "pin.step").read_bytes() == plain.read_bytes()

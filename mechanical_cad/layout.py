@@ -38,7 +38,8 @@ CHILD_FLAGS = ("visible", "suppressed", "grounded", "flexible", "mirrored")
 CHILD_FLAG_DEFAULTS = {"visible": True, "suppressed": False, "grounded": False, "flexible": False, "mirrored": False}
 OVERRIDE_FIELDS = {"path", "transform"}
 FACTS_FIELDS = {"schema_version", "key", "step", "tool", "valid", "length_unit_declared", "solids",
-                "shells", "faces", "volume_mm3", "area_mm2", "center_of_mass_mm", "bounding_box_mm", "notes"}
+                "shells", "faces", "volume_mm3", "area_mm2", "center_of_mass_mm", "bounding_box_mm", "invisible_items",
+                "notes"}
 RECEIPT_FIELDS = {"schema_version", "key", "name", "step", "program", "parameters", "tool", "reimport"}
 
 FILES = {
@@ -78,6 +79,7 @@ class Component:
     step_sha256: str | None = None
     step_data_sha256: str | None = None
     step_length_unit: str | None = None
+    step_invisible_items: int | None = None
 
     @property
     def path(self):
@@ -255,6 +257,10 @@ def _check_step(project, comp):
         comp.step_length_unit = stepfile.length_unit(data)
     except stepfile.StepFileError as exc:
         project.error(f"{comp.path}/part.step", f"no usable length unit: {exc}")
+    try:
+        comp.step_invisible_items = len(stepfile.invisible_items(data))
+    except stepfile.StepFileError as exc:
+        project.error(f"{comp.path}/part.step", f"marks something invisible in a way that is not understood: {exc}")
     comp._step_bytes = len(data)
 
 
@@ -461,6 +467,12 @@ def _check_facts(project, comp):
     box = data.get("bounding_box_mm")
     if not isinstance(box, dict) or not _vec3(box.get("min")) or not _vec3(box.get("max")):
         project.error(where, "bounding_box_mm must have min and max, three numbers each")
+    hidden = data.get("invisible_items", 0)
+    if isinstance(hidden, bool) or not isinstance(hidden, int) or hidden < 0 or ("invisible_items" in data and not hidden):
+        project.error(where, "invisible_items must be a positive integer, and absent when nothing was left out")
+    elif comp.step_invisible_items is not None and hidden != comp.step_invisible_items:
+        project.error(where, f"invisible_items is {hidden} but part.step marks {comp.step_invisible_items} item(s) "
+                             "invisible; measure it again")
     declared = data.get("length_unit_declared")
     if comp.step_length_unit and declared != comp.step_length_unit:
         project.error(where, f"length_unit_declared is {declared!r} but the file declares {comp.step_length_unit!r}")

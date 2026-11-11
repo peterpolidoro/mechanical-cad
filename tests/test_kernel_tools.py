@@ -2,12 +2,13 @@
 
     guix shell --pure -m manifest.scm -m .guix/manifest-cad.scm -- python3 -B -m pytest -q tests/test_kernel_tools.py
 """
+import re
 import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
-from conftest import REPO, edit_json
+from conftest import REPO, edit_json, invisible, replace_step
 
 from mechanical_cad import layout
 
@@ -59,3 +60,31 @@ def test_facts_are_kept_when_current_and_reproduced_when_forced(project_copy):
     out = run("step_facts.py", project_copy, "--", "--only", "base-plate")
     assert "1 measured" in out and plate.read_bytes() == before
     assert "no such imported part: nothing" in run("step_facts.py", project_copy, "--", "--only", "nothing")
+
+
+TWO_SOLIDS = """
+import sys
+import FreeCAD as App
+import Part
+small = Part.makeBox(2, 2, 2)
+small.translate(App.Vector(20, 0, 0))
+Part.makeCompound([Part.makeBox(10, 10, 10), small]).exportStep(sys.argv[-1])
+"""
+
+
+def test_a_body_the_file_marks_invisible_is_not_measured(project_copy, tmp_path):
+    plate = "references/parts/base-plate"
+    (tmp_path / "two.py").write_text(TWO_SOLIDS)
+    subprocess.run([FREECAD, str(tmp_path / "two.py"), "--pass", str(tmp_path / "two.step")], capture_output=True, check=True)
+    data = (tmp_path / "two.step").read_bytes()
+    solids = [int(i) for i in re.findall(rb"#(\d+) = MANIFOLD_SOLID_BREP", data)]
+    assert len(solids) == 2
+    replace_step(project_copy, plate, invisible(data, solids[1]))
+    out = run("step_facts.py", project_copy, "--", "--only", "base-plate")
+    assert "1 measured" in out and "invisible_left_out=1" in out, out
+    project = layout.load(project_copy)
+    facts = project.components["base-plate"].facts
+    assert facts["solids"] == 1 and facts["invisible_items"] == 1
+    assert facts["volume_mm3"] == pytest.approx(1000.0) and facts["bounding_box_mm"]["max"] == pytest.approx([10, 10, 10])
+    assert not [e for e in project.errors if "facts.json" in e]
+    assert "0 measured, 1 already current" in run("step_facts.py", project_copy, "--", "--only", "base-plate")

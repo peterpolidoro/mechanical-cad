@@ -2,7 +2,7 @@
 import shutil
 
 import pytest
-from conftest import edit_json, relock, write_json
+from conftest import add_invisible_point, edit_json, relock, write_json
 
 from mechanical_cad import layout
 
@@ -234,6 +234,24 @@ def test_facts(project_copy):
                   ("length_unit_declared is 'in'",), ("unknown field(s) measured_at",)):
         assert has(project.errors, PLATE + "/facts.json", *words), words
     assert has(project.findings, PIN, "no facts.json")
+
+
+def test_facts_say_how_many_invisible_items_were_left_out(project_copy):
+    facts = project_copy / PLATE / "facts.json"
+    edit_json(facts, lambda d: d.update(invisible_items=2))
+    assert has(errors(project_copy), PLATE + "/facts.json", "invisible_items is 2 but part.step marks 0 item(s) invisible")
+    edit_json(facts, lambda d: d.update(invisible_items=0))
+    assert has(errors(project_copy), PLATE + "/facts.json", "absent when nothing was left out")
+    edit_json(facts, lambda d: d.pop("invisible_items"))
+    assert errors(project_copy) == []
+    add_invisible_point(project_copy, PLATE)
+    assert errors(project_copy) == []
+    edit_json(facts, lambda d: d.pop("invisible_items"))        # as facts measured without the filter would be
+    assert has(errors(project_copy), PLATE + "/facts.json", "invisible_items is 0 but part.step marks 1 item(s) invisible",
+               "measure it again")
+    step = project_copy / PLATE / "part.step"
+    step.write_bytes(step.read_bytes().replace(b"INVISIBILITY((#9002))", b"INVISIBILITY((#15))"))
+    assert has(errors(project_copy), PLATE + "/part.step", "marks something invisible in a way that is not understood")
 
 
 def test_receipt_goes_stale_when_the_program_or_parameters_change(project_copy):

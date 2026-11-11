@@ -2,7 +2,7 @@
 import json
 
 import pytest
-from conftest import edit_json
+from conftest import add_invisible_point, edit_json
 
 from mechanical_cad import flatten, layout
 from mechanical_cad import transforms as T
@@ -128,6 +128,21 @@ def test_write(fixture_dir, tmp_path):
     assert (out / "assets/pin.step").read_bytes() == (fixture_dir / "references/parts/pin/part.step").read_bytes()
     with pytest.raises(flatten.FlattenError, match="not empty"):
         flatten.write(layout.load(fixture_dir), out)
+
+
+def test_an_asset_leaves_out_what_the_file_marks_invisible(project_copy, tmp_path):
+    from mechanical_cad import stepfile
+    assert flatten.write(layout.load(project_copy), tmp_path / "before")["invisible_items_left_out"] == {}
+    add_invisible_point(project_copy)
+    tracked = (project_copy / "references/parts/base-plate/part.step").read_bytes()
+    result = flatten.write(layout.load(project_copy), tmp_path / "flat")
+    assert result["invisible_items_left_out"] == {"base-plate": 1}
+    asset = (tmp_path / "flat/assets/base-plate.step").read_bytes()
+    assert asset == stepfile.visible_only(tracked) != tracked and stepfile.invisible_items(asset) == []
+    scene = json.loads((tmp_path / "flat/scene.json").read_text())
+    record = next(p for p in scene["parts"] if p["id"] == "base-plate")
+    assert record["asset"]["sha256"] == stepfile.sha256_bytes(asset)        # the scene describes the file beside it
+    assert (tmp_path / "flat/assets/pin.step").read_bytes() == (project_copy / "references/parts/pin/part.step").read_bytes()
 
 
 def test_a_project_with_errors_is_not_flattened(project_copy):

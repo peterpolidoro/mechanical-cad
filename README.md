@@ -5,11 +5,11 @@ geometry, the layout that project repositories use for STEP files and their
 metadata, and a Guix channel for the mechanical CAD packages those tools need.
 
 **Status (2026-11-11): the direction and the layout are proposals; the layout
-has a draft specification and working tools.** Peter has decided two of the
-layout's open choices (two top-level roots, readable directory keys); the STEP
-protocol is open and neither document is accepted as a whole. What exists was
-built so that the proposal could be tested on a real project before it is
-decided:
+has a draft specification and working tools.** Peter has decided the layout's
+three open choices (two top-level roots, readable directory keys, AP242 for
+files exported from Inventor); the direction document as a whole is not yet
+accepted. What exists has been tested on a fixture and on a dry-run conversion
+of a real project:
 
 - a validator and a flatten step for the layout, standard-library Python;
 - tools that measure a STEP file and build a part from a program, run by
@@ -41,6 +41,7 @@ guix shell --pure -m manifest.scm -- python3 -B -m mechanical_cad check PROJECT
 guix shell --pure -m manifest.scm -- python3 -B -m mechanical_cad compare-scenes OLD/scene.json NEW/scene.json
 guix shell --pure -m manifest.scm -- python3 -B -m mechanical_cad step-info FILE.step
 guix shell --pure -m manifest.scm -- python3 -B -m mechanical_cad normalise-header IN.step OUT.step
+guix shell --pure -m manifest.scm -- python3 -B -m mechanical_cad visible-only IN.step OUT.step
 guix shell --pure -m manifest.scm -- python3 -B -m pytest -q tests
 ```
 

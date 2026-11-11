@@ -9,12 +9,29 @@ docs/direction.md. Finished checkpoints are in .agents/HISTORY.md.
 
 ## Current state (2026-11-11)
 
-On 2026-11-11 Peter decided two of the layout's three open choices: two roots
-and readable keys, which is what was built on 2026-11-10 while he assembled
-the enclosure. He asked why AP214 is recommended over AP242; the reasons, and
-what speaks for AP242, are in docs/layout-proposal.md, "Open choices". The
-protocol is open, and he has not accepted the direction document or the layout
-as a whole.
+On 2026-11-11 Peter decided the layout's three open choices: two roots and
+readable keys, which is what was built on 2026-11-10 while he assembled the
+enclosure, and AP242 for files exported from Inventor, against the
+recommendation of AP214 and after hearing both sides
+(docs/layout-proposal.md, "Open choices"). He has not been asked again about
+the direction document as a whole.
+
+What AP242 needed on Linux was built the same day: an AP242 file holds the
+bodies hidden in the native part, marked invisible, and FreeCAD ignores the
+mark. `stepfile.py` finds the marked items and writes the file without them;
+`step_facts.py` measures that and records how many items it left out; the
+validator compares that number with the file; `flatten` writes the filtered
+file as the scene's asset; `visible-only` is the command for a person.
+Measured on the three AP242 files of the Windows tests: the corner cube
+without its three invisible solids has the fingerprint of its AP214 file, and
+the other two measure the same in both protocols. One part of the 37 has
+hidden bodies, so the filter rests on one real file; any other form of the
+mark is refused.
+
+Asked of Windows that day (three read-only tests, not yet run; Peter starts
+the agent): whether AP242 exports are stable between sessions and what the
+saved-view block depends on; which translator options exist; and all 37 parts
+as AP242 for Linux to compare with the tracked AP214 files by fingerprint.
 
 What exists here:
 
@@ -23,9 +40,10 @@ What exists here:
   `scene.json` that `mechanical-docs` reads; `compare.py` says whether two
   scenes are the same assembly; `facts.py` compares measured geometry and
   evaluates a part's `checks.json`; `stepfile.py` reads a STEP file's
-  identities, header and unit and normalises the header; `cli.py` has
-  `validate`, `flatten`, `check`, `lock`, `compare-scenes`, `step-info` and
-  `normalise-header`.
+  identities, header, unit and invisible items, normalises the header and
+  writes the file without its invisible items; `cli.py` has `validate`,
+  `flatten`, `check`, `lock`, `compare-scenes`, `step-info`,
+  `normalise-header` and `visible-only`.
 - `tools/` (run by FreeCADCmd): `step_facts.py` writes `facts.json` for
   imported parts; `build_part.py` builds an authored part from `build.py` and
   `parameters.json`. `tools/conversion_acceptance.py` (plain Python) runs the
@@ -35,7 +53,7 @@ What exists here:
 - `examples/layout-fixture/`: a synthetic project with imported and authored
   parts, a flexible instance with an override, and its generator.
 - docs/layout-specification.md: the draft the code implements.
-- Tests: 104 pass in the base role and 4 more with FreeCAD (run 2026-11-10,
+- Tests: 118 pass in the base role and 5 more with FreeCAD (run 2026-11-11,
   Python 3.12.12, pytest 9.0.2, FreeCAD 1.1.3, OpenCASCADE 7.9.3).
 
 What was run against the enclosure (a dry run into the enclosure's ignored
@@ -75,13 +93,12 @@ prompts were rewritten.
 
 ## Open decisions to put to Peter
 
-Layout (two roots and readable keys were decided on 2026-11-11 and are in
-docs/direction.md, "Decided"):
+The layout's three choices were decided on 2026-11-11 and are in
+docs/direction.md, "Decided". What is left:
 
-1. AP214 or AP242. Tested on 2026-11-10; recommended: AP214. Peter has the
-   reasons (docs/layout-proposal.md, "Open choices") and has not answered. It
-   does not block the conversion of the existing snapshot, whose files are
-   AP214; it is needed for the re-export.
+1. Whether the saved-view block of AP242 files has to be normalised like the
+   header. It depends on the Windows stability test; nothing to decide until
+   that has run.
 2. Acceptance of docs/direction.md as a whole. Its "one authority per part"
    entry under "Decided" has no date; confirm it and date it.
 
@@ -124,10 +141,13 @@ Smaller ones:
 
 ## Next work, in order
 
-1. Peter's word to start the enclosure's conversion (step 2), which the two
-   decisions of 2026-11-11 make possible, and his answers on the protocol and
-   on docs/direction.md as a whole.
-2. The enclosure's conversion on a branch. The dry run covers `references/`
+1. Peter's word to start the enclosure's conversion (step 2), which the
+   decisions of 2026-11-11 make possible. In parallel, when he starts the
+   Windows agent: review its three AP242 tests, and compare the 37 AP242
+   exports with the tracked AP214 files (`step_facts.py` on both, then the
+   fingerprints).
+2. The enclosure's conversion on a branch. Its files stay AP214 until the
+   re-export of step 3. The dry run covers `references/`
    and the lock. Still to do there: re-key the curated files that carry part
    ids (`assembly/materials.json`, the two procurement sheets,
    `joint-audit.json`) by script; point the eight project scripts that read
@@ -137,7 +157,7 @@ Smaller ones:
    on the branch. `main` stays as it is until that passes.
 3. Specify the exporter's package (files named by master id and model state, a
    child list per assembly, no absolute paths, the header normalised with
-   `Step-Header.ps1`, the chosen protocol), have the Windows exporter write it,
+   `Step-Header.ps1`, AP242), have the Windows exporter write it,
    and make `import-snapshot` read it. Re-export the enclosure and compare it
    with step 2 using `compare-scenes`. What the feature dumps showed about
    parameters and holes goes into the package's `source.json` at this point.

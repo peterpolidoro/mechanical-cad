@@ -7,7 +7,9 @@ before this script's own options.
 
 Writes references/parts/<key>/facts.json for every imported part whose facts
 are missing or describe a different part.step, a different unit or a different
-tool or kernel version. With --force every part is measured again. A file
+tool or kernel version. A file that marks items invisible (the hidden bodies of
+an AP242 export) is measured without them, and the facts say how many were
+left out. With --force every part is measured again. A file
 whose measurement has not changed is not rewritten.
 
 The facts of authored parts under designs/ are written by tools/build_part.py.
@@ -20,6 +22,7 @@ from __future__ import annotations
 import sys
 
 sys.dont_write_bytecode = True
+import tempfile
 import time
 from pathlib import Path
 
@@ -35,9 +38,18 @@ def facts_for(comp, tool):
     out = {"schema_version": layout.SCHEMA_VERSION, "key": comp.key,
            "step": {"sha256": stepfile.sha256_bytes(data), "data_sha256": stepfile.data_sha256(data)},
            "tool": tool, "length_unit_declared": stepfile.length_unit(data)}
-    out.update(kernel.measure(kernel.read_step(comp.step_path)))
-    if not out["notes"]:
-        del out["notes"]
+    hidden = stepfile.invisible_items(data)
+    if hidden:
+        with tempfile.TemporaryDirectory() as tmp:
+            visible = Path(tmp) / "visible.step"
+            visible.write_bytes(stepfile.visible_only(data))
+            out.update(kernel.measure(kernel.read_step(visible)))
+        out["invisible_items"] = len(hidden)
+    else:
+        out.update(kernel.measure(kernel.read_step(comp.step_path)))
+    notes = out.pop("notes")
+    if notes:
+        out["notes"] = notes
     return out
 
 
@@ -68,7 +80,8 @@ def main(argv):
             continue
         old = comp.facts or {}
         current = (old.get("step", {}).get("sha256") == comp.step_sha256 and old.get("tool") == tool
-                   and old.get("length_unit_declared") == comp.step_length_unit)
+                   and old.get("length_unit_declared") == comp.step_length_unit
+                   and old.get("invisible_items", 0) == (comp.step_invisible_items or 0))
         if current and not force:
             kept += 1
             continue
@@ -84,7 +97,8 @@ def main(argv):
         measured += 1
         e = [new["bounding_box_mm"]["max"][i] - new["bounding_box_mm"]["min"][i] for i in range(3)]
         print(f"[step_facts] {comp.key}: valid={new['valid']} solids={new['solids']} "
-              f"extent_mm={[round(v, 3) for v in e]} volume_mm3={new['volume_mm3']:.3f} ({time.time() - t0:.1f} s)", flush=True)
+              f"extent_mm={[round(v, 3) for v in e]} volume_mm3={new['volume_mm3']:.3f} "
+              f"invisible_left_out={new.get('invisible_items', 0)} ({time.time() - t0:.1f} s)", flush=True)
     print(f"[step_facts] {len(parts)} part(s): {measured} measured, {kept} already current, {failed} failed; "
           f"{tool['name']} {tool['version']}, {tool['kernel']} {tool['kernel_version']}")
     return 1 if failed else 0

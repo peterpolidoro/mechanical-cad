@@ -46,14 +46,24 @@ def _document(comp):
     return path.replace("\\", "/").split("/")[-1] if isinstance(path, str) and path else comp.key
 
 
+def _asset_bytes(comp):
+    """The bytes of a part's asset when they are not those of part.step: the
+    file without the items it marks invisible. None when the file is copied."""
+    if not comp.step_invisible_items:
+        return None
+    return stepfile.visible_only(comp.step_path.read_bytes())
+
+
 def _part_record(comp):
     src = comp.source or {}
     step = src.get("step") or (comp.receipt or {}).get("step") or {}
+    filtered = _asset_bytes(comp)
     rec = {
         "id": comp.key,
         "name": comp.name,
         "asset": {"path": f"assets/{comp.key}.step", "format": "step",
-                  "units": step.get("length_unit") or comp.step_length_unit, "sha256": comp.step_sha256},
+                  "units": step.get("length_unit") or comp.step_length_unit,
+                  "sha256": comp.step_sha256 if filtered is None else stepfile.sha256_bytes(filtered)},
     }
     native = src.get("native") or {}
     if native.get("extent_mm") is not None:
@@ -164,18 +174,31 @@ def flatten(project, root=None):
 
 
 def write(project, out_dir, root=None):
-    """Write scene.json and assets/<key>.step into a new directory."""
+    """Write scene.json and assets/<key>.step into a new directory.
+
+    An asset is a copy of the part's part.step, except for a part whose file
+    marks items invisible: its asset is the file without them, so that what is
+    drawn from the scene is what the designer sees.
+    """
     out = Path(out_dir)
     if out.exists() and any(out.iterdir()):
         raise FlattenError(f"{out} exists and is not empty; the flattened scene is written to a fresh directory")
     scene, assets, skipped = flatten(project, root)
     (out / "assets").mkdir(parents=True, exist_ok=True)
+    recorded = {p["id"]: p["asset"]["sha256"] for p in scene["parts"]}
+    left_out = {}
     for key, src in assets:
         dst = out / "assets" / f"{key}.step"
-        shutil.copyfile(src, dst)
-        if stepfile.sha256_file(dst) != project.components[key].step_sha256:
-            raise FlattenError(f"{dst}: the copy does not match {src}")
+        filtered = _asset_bytes(project.components[key])
+        if filtered is None:
+            shutil.copyfile(src, dst)
+        else:
+            dst.write_bytes(filtered)
+            left_out[key] = project.components[key].step_invisible_items
+        if stepfile.sha256_file(dst) != recorded[key]:
+            raise FlattenError(f"{dst}: what was written is not what the scene records for {src}")
     jsonio.write(out / "scene.json", scene)
     return {"scene": str(out / "scene.json"), "parts": len(scene["parts"]), "assemblies": len(scene["assemblies"]),
             "occurrences": len(scene["occurrences"]), "suppressed_left_out": skipped,
+            "invisible_items_left_out": left_out,
             "scene_sha256": stepfile.sha256_file(out / "scene.json")}

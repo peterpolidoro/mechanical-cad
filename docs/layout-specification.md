@@ -1,10 +1,10 @@
 # Repository layout: draft specification
 
 **Status: draft 1, written 2026-11-10, provisional.** It implements
-[layout-proposal.md](layout-proposal.md) with two roots and readable keys,
-which Peter decided on 2026-11-11. The protocol of exported files is still
-open (this document accepts any), and Peter has not accepted the proposal as a
-whole; what he changes there changes this document and its validator. The
+[layout-proposal.md](layout-proposal.md) with the three choices Peter decided
+on 2026-11-11: two roots, readable keys, and AP242 for files exported from
+Inventor. It has been run on the fixture and on a dry-run conversion of the
+enclosure, not yet on a re-exported project. The
 proposal holds the reasons and the evidence; this document says exactly what a
 conforming repository contains.
 
@@ -53,6 +53,7 @@ The commands, and where they live:
 | facts | `references/parts/*/facts.json` | `tools/step_facts.py`, run by FreeCADCmd |
 | build | `part.step`, `receipt.json`, `facts.json` of an authored part | `tools/build_part.py`, run by FreeCADCmd |
 | validate, check, flatten | nothing in the repository | `python3 -m mechanical_cad` |
+| step-info, normalise-header, visible-only | nothing in the repository | `python3 -m mechanical_cad` |
 
 ## Keys
 
@@ -171,8 +172,19 @@ What a geometry kernel measured of `part.step`, in millimetres.
 `schema_version`, `key`, `step` (`sha256` and `data_sha256` of the file
 measured), `tool` (`name`, `version`, `kernel`, `kernel_version`), `valid`,
 `length_unit_declared`, `solids`, `shells`, `faces`, `volume_mm3`, `area_mm2`,
-`center_of_mass_mm`, `bounding_box_mm` (`min`, `max`), and `notes` when the
-tool has something to say.
+`center_of_mass_mm`, `bounding_box_mm` (`min`, `max`), `invisible_items` when
+the file marks items invisible, and `notes` when the tool has something to
+say.
+
+**Invisible items are not measured.** An AP242 file exported from Inventor
+holds the bodies that are hidden in the native part and lists them in an
+`INVISIBILITY` entity. The facts describe the file without them, which is the
+geometry a designer sees and the geometry an AP214 export of the same part
+holds; `invisible_items` is how many were left out and is absent when there
+are none. The validator counts the marked items in `part.step` itself and
+refuses facts whose count differs. One form of the mark is understood (styled
+items listed directly in a representation); a file that hides anything else is
+an error until someone has looked at it.
 
 Facts that describe a different `part.step`, or geometry the kernel does not
 find valid, are errors. A part without facts is reported. The file carries no
@@ -265,16 +277,28 @@ gave the same hashes and the same normalised bytes. An exporter leaves the
 translator's description option empty, because that text goes into
 `FILE_DESCRIPTION`, which normalising does not touch.
 
-**Protocol.** Any of the four protocols is valid here. The recommendation for
-files exported from Inventor is AP214 (layout-proposal.md, "Open choices"): it
-holds the visible bodies only, where AP242 also holds hidden ones that
-OpenCASCADE reads as ordinary solids.
+**Protocol.** Any of the four protocols is valid here, and `source.json`
+records which one a file is. Files exported from Inventor are AP242 (Peter,
+2026-11-11; the reasons on both sides are in layout-proposal.md, "Open
+choices"). The files of a project exported earlier stay what they are until it
+is exported again.
+
+**Invisible items.** `part.step` is kept as the exporter wrote it, hidden
+bodies included. `mechanical_cad/stepfile.py` is the reference for finding
+them (`invisible_items`) and for the file without them (`visible_only`): each
+marked item is taken out of the item list of the representations that hold
+it, the `INVISIBILITY` entities are removed, and no other byte changes.
+`python3 -m mechanical_cad visible-only IN OUT` writes that file, for someone
+who wants to open a part in a CAD program that ignores the mark, as FreeCAD
+does.
 
 ## The flattened scene
 
 `python3 -m mechanical_cad flatten PROJECT --out DIR [--root KEY]` writes
 `DIR/scene.json` and `DIR/assets/<key>.step`, a copy of every STEP file the
-scene uses. The scene is the `draft-1` scene of
+scene uses. The asset of a part whose file marks items invisible is the file
+without them, and the scene records that asset's hash, so what is drawn is
+what the designer sees. The scene is the `draft-1` scene of
 `mechanical-docs/docs/input-contract.md`. It is derived and never committed.
 
 - The root is the named assembly, or the only assembly no other assembly

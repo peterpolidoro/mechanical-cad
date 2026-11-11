@@ -116,3 +116,60 @@ def test_product_name_is_set_without_touching_anything_else():
         S.set_product_name(two, "x")
     with pytest.raises(S.StepFileError, match="found 0"):
         S.set_product_name(data.replace(b"PRODUCT(", b"PRODUKT("), "x")
+
+
+# the entities Inventor's AP242 translator writes for a part with three bodies of which two are hidden
+HIDDEN = (b"ISO-10303-21;\r\nHEADER;\r\nFILE_DESCRIPTION((''),'2;1');\r\n"
+          b"FILE_NAME('p.step','2026-01-01T00:00:00',(''),(''),'','','');\r\n"
+          b"FILE_SCHEMA(('AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF { 1 0 10303 442 1 1 4 }'));\r\nENDSEC;\r\nDATA;\r\n"
+          b"#10=MECHANICAL_DESIGN_GEOMETRIC_PRESENTATION_REPRESENTATION('',(#20,#21,#22),#90);\r\n"
+          b"#15=ADVANCED_BREP_SHAPE_REPRESENTATION('[Primary]',(#32),#90);\r\n"
+          b"#19=INVISIBILITY((#20,#20,#21,#21));\r\n"
+          b"#20=STYLED_ITEM('',(#80),#30);\r\n#21=STYLED_ITEM('',(#80),#31);\r\n#22=STYLED_ITEM('',(#80),#32);\r\n"
+          b"#30=MANIFOLD_SOLID_BREP('Solid;1',#40);\r\n#31=MANIFOLD_SOLID_BREP('Solid2',#41);\r\n"
+          b"#32=MANIFOLD_SOLID_BREP('Solid3',#42);\r\n"
+          b"#60=SHAPE_REPRESENTATION('',(#70,#30,\r\n #31,#32),#90);\r\n"
+          b"ENDSEC;\r\nEND-ISO-10303-21;\r\n")
+MARK = b"#19=INVISIBILITY((#20,#20,#21,#21));\r\n"
+ITEMS = b"#60=SHAPE_REPRESENTATION('',(#70,#30,\r\n #31,#32),#90);\r\n"
+
+
+def test_invisible_items_are_found_and_left_out():
+    assert S.invisible_items(HIDDEN) == [30, 31]
+    assert S.header(HIDDEN)["protocol"] == "AP242"
+    visible = S.visible_only(HIDDEN)
+    # two statements change and nothing else: the mark goes, and the representation lists the visible item only
+    assert visible == HIDDEN.replace(MARK, b"").replace(b"(#70,#30,\r\n #31,#32)", b"(#70,#32)")
+    assert S.invisible_items(visible) == [] and S.visible_only(visible) == visible
+
+
+def test_a_file_that_marks_nothing_invisible_is_returned_as_it_is():
+    assert S.invisible_items(INVENTOR) == []
+    assert S.visible_only(INVENTOR) is INVENTOR
+    in_a_string = HIDDEN.replace(MARK, b"").replace(b"'Solid2'", b"'INVISIBILITY'")
+    assert S.visible_only(in_a_string) == in_a_string
+
+
+@pytest.mark.parametrize("old, new, message", [
+    (MARK, b"#19=INVISIBILITY((#30));\r\n", "hides #30, which is not a STYLED_ITEM"),
+    (MARK, b"#19=INVISIBILITY((#99));\r\n", "hides #99, which is not a STYLED_ITEM"),
+    (ITEMS, ITEMS + b"#95=MAPPED_ITEM('',#96,#30);\r\n", r"#30 is marked invisible and is used by #95 \(MAPPED_ITEM\)"),
+    (ITEMS, ITEMS + b"#95=(REPRESENTATION('',(#30),#90) SHAPE_REPRESENTATION());\r\n", "used by #95 \\(a complex instance\\)"),
+    (ITEMS, b"", "#30 is marked invisible but is not an item of any representation"),
+    (ITEMS, b"#60=SHAPE_REPRESENTATION('',(#30,#31),#90);\r\n", "every item of #60 SHAPE_REPRESENTATION is marked invisible"),
+    (ITEMS, b"#60=SHAPE_REPRESENTATION('',(#70,#31,#32),#30);\r\n", "#60 SHAPE_REPRESENTATION uses an invisible item outside"),
+    (b"#20=STYLED_ITEM('',(#80),#30);", b"#20=STYLED_ITEM('',(#80));", "#20 STYLED_ITEM does not name the item it styles"),
+])
+def test_invisibility_that_is_not_understood_is_refused(old, new, message):
+    assert old in HIDDEN
+    with pytest.raises(S.StepFileError, match=message):
+        S.visible_only(HIDDEN.replace(old, new))
+
+
+def test_describe_counts_the_invisible_items(tmp_path):
+    path = tmp_path / "p.step"
+    path.write_bytes(HIDDEN.replace(b"DATA;\r\n", b"DATA;\r\n#1=( LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT(.MILLI.,.METRE.) );\r\n"))
+    assert S.describe(path)["invisible_items"] == 2
+    path.write_bytes(HIDDEN.replace(MARK, b"#19=INVISIBILITY((#30));\r\n"))
+    info = S.describe(path)
+    assert info["invisible_items"] is None and "not a STYLED_ITEM" in info["invisible_items_error"]

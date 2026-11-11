@@ -1,13 +1,12 @@
 # Repository layout: proposal and evidence
 
-**Status: proposal of 2026-11-10. On 2026-11-11 Peter decided two of its three
-open choices (two roots, readable keys); the protocol is open and the proposal
-as a whole is not accepted.** [direction.md](direction.md)
+**Status: proposal of 2026-11-10. On 2026-11-11 Peter decided its three open
+choices: two roots, readable keys, AP242.** [direction.md](direction.md)
 says why this matters; this file holds the reasoning, what was measured, and
 what is still unknown. A draft specification with a validator, a fixture and a
-flatten step implements the recommended options
-([layout-specification.md](layout-specification.md)); it is provisional until
-Peter accepts the layout, and this file is retired when he does.
+flatten step implements them
+([layout-specification.md](layout-specification.md)). This file is retired
+when the enclosure has been converted and re-exported under the layout.
 
 The proposal was amended on 2026-11-10 after a review of all four
 repositories; what changed is listed at the end. The same day the enclosure's
@@ -361,7 +360,8 @@ Also from that run:
 - Overrides more than one level below a flexible instance, and nested flexible
   instances, on real data. The enclosure has neither.
 - Header and data-section stability on another workstation or after an
-  Inventor update, and for AP242 at all.
+  Inventor update, and for AP242 at all (asked of Windows on 2026-11-11).
+- The invisibility mark in any form but the one in the one part that has it.
 - Thread features, counterbores and sheet-metal data through the Inventor API.
 - A refresh-stable occurrence key. Occurrence ids are snapshot-scoped today;
   the exporter has not been asked for Inventor reference keys.
@@ -383,9 +383,11 @@ Also from that run:
    enforce.
 2. Readable keys tied to the master id, or a mirror of Vault's folder tree.
    **Decided by Peter on 2026-11-11: readable keys.**
-3. AP214 or AP242. Open; Peter asked on 2026-11-11 for the reasons behind the
-   recommendation of AP214. They are practical, not a judgement that AP214 is
-   the better standard:
+3. AP214 or AP242. **Decided by Peter on 2026-11-11: AP242**, after he asked
+   for the reasons behind the recommendation of AP214 and was given them and
+   what speaks for AP242. What the decision asks for is listed after them. The
+   reasons for AP214 were practical, not a judgement that it is the better
+   standard:
    - **Continuity.** All 37 tracked files are AP214, and every check so far
      was made on them (479 solids, the acceptance test, the published manual).
      An AP214 re-export can be compared with the tracked files by the hash of
@@ -416,6 +418,28 @@ Also from that run:
    part, the specification accepts either, and the exporter writes either, so
    changing it later costs one re-export and one comparison through the
    kernel.
+
+   What AP242 asks for, and where each stands:
+   - **Hidden bodies are left out on Linux.** Built on 2026-11-11:
+     `stepfile.py` finds the items a file marks invisible and writes the file
+     without them; the facts command measures that, and the flatten step
+     writes it as the scene's asset. Measured with FreeCAD on the three test
+     parts: the AP242 file of `MCMASTER 47065T245` without its three invisible
+     solids has the fingerprint of the AP214 file (1 solid, 200 faces,
+     34 485.858 mm³, 13 072.588 mm², the same extent and centre of mass), and
+     the other two parts mark nothing invisible and measure the same in both
+     protocols. One form of the mark is understood, the one Inventor wrote for
+     that part; anything else is refused, not guessed.
+   - **Stability of AP242 exports** between sessions, and what the saved-view
+     block depends on: not tested. Asked of Windows on 2026-11-11.
+   - **All 37 parts as AP242**, each compared with its tracked AP214 file by
+     fingerprint: not done. Asked of Windows on 2026-11-11 (the exports) for
+     Linux to compare.
+   - **The exporter's default protocol** is still AP214; it changes with the
+     exporter's package.
+   - Someone who opens a tracked AP242 `part.step` directly in FreeCAD sees
+     the hidden bodies. `python3 -m mechanical_cad visible-only IN OUT`
+     writes the file without them.
 
 ## Acceptance test for the conversion
 

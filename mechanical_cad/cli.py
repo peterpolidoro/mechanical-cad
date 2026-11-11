@@ -7,6 +7,7 @@ lock PROJECT                print the index vault-lock.json must equal
 compare-scenes OLD NEW      are two flattened scenes the same assembly?
 step-info FILE              what a STEP file says about itself
 normalise-header IN OUT     rewrite a STEP header to fixed values
+visible-only IN OUT         write a STEP file without the items it marks invisible
 """
 from __future__ import annotations
 
@@ -121,6 +122,24 @@ def _normalise(args):
     return 0
 
 
+def _visible_only(args):
+    out = Path(args.out)
+    if out.exists():
+        print(f"ERROR   {out} exists")
+        return 1
+    data = Path(args.input).read_bytes()
+    try:
+        left_out = stepfile.invisible_items(data)
+        new = stepfile.visible_only(data)
+    except stepfile.StepFileError as exc:
+        print(f"ERROR   {args.input}: {exc}")
+        return 1
+    out.write_bytes(new)
+    print(json.dumps({"invisible_items_left_out": len(left_out), "sha256": stepfile.sha256_bytes(new),
+                      "changed": new != data}, indent=2))
+    return 0
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="python3 -m mechanical_cad", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -163,6 +182,11 @@ def main(argv=None):
     p.add_argument("out")
     p.add_argument("--name", default="part.step", help="the file name written into the header")
     p.set_defaults(func=_normalise)
+
+    p = sub.add_parser("visible-only", help="write a STEP file without the items it marks invisible")
+    p.add_argument("input")
+    p.add_argument("out")
+    p.set_defaults(func=_visible_only)
 
     args = parser.parse_args(argv)
     return args.func(args)

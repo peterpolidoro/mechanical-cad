@@ -314,6 +314,147 @@ def length_unit(data):
     return found.pop()
 
 
+# ------------------------------------------------------------------ visibility
+
+_INSTANCE = re.compile(rb"#(\d+)\s*=\s*([A-Za-z_][A-Za-z0-9_]*)?\s*\(")
+_REF = re.compile(rb"#(\d+)")
+_ONE_REF = re.compile(rb"\s*#(\d+)\s*\Z")
+_STYLED = ("STYLED_ITEM", "OVER_RIDING_STYLED_ITEM")
+
+
+def _elements(data, i):
+    """The spans (start, end) of the comma-separated elements of the list that
+    opens with the parenthesis at data[i], and the index past its closing one."""
+    assert data[i:i + 1] == b"("
+    spans, depth, begin, j = [], 0, i + 1, i
+    while j < len(data):
+        k = _skip(data, j)
+        if k != j:
+            j = k
+            continue
+        c = data[j:j + 1]
+        if c == b"(":
+            depth += 1
+        elif c == b")":
+            depth -= 1
+            if depth == 0:
+                if data[begin:j].strip():
+                    spans.append((begin, j))
+                return spans, j + 1
+        elif c == b"," and depth == 1:
+            spans.append((begin, j))
+            begin = j + 1
+        j += 1
+    raise StepFileError("unterminated parameter list")
+
+
+def _ref_list(data, span, what):
+    """The entity ids of a parameter that must be a list of references."""
+    s, e = span
+    p = data.find(b"(", s, e)
+    if p < 0 or data[s:p].strip():
+        raise StepFileError(f"{what} is not a list")
+    out = []
+    for a, b in _elements(data, p)[0]:
+        m = _ONE_REF.match(data, a, b)
+        if not m:
+            raise StepFileError(f"{what} holds something that is not a reference")
+        out.append((int(m.group(1)), a, b))
+    return out, p
+
+
+def _visibility_edits(data):
+    """What `visible_only` has to change: (ids of the invisible items, edits).
+
+    An edit is (start, end, replacement) on the bytes of `data`.
+    """
+    if b"INVISIBILITY" not in data:
+        return [], []
+    start = sections(data)[2]
+    instances = []
+    for s, e in _statements(data, start, len(data)):
+        m = _INSTANCE.match(data, s, e)
+        if m:
+            instances.append((int(m.group(1)), (m.group(2) or b"").decode("ascii").upper(), s, e, m.end() - 1))
+    by_id = {i[0]: i for i in instances}
+    hidden = {}                                   # item id -> the INVISIBILITY that hides it
+    edits = []
+    for ident, kind, s, e, paren in instances:
+        if kind != "INVISIBILITY":
+            continue
+        params = _elements(data, paren)[0]
+        if len(params) != 1:
+            raise StepFileError(f"#{ident} INVISIBILITY does not have one parameter")
+        for ref, _, _ in _ref_list(data, params[0], f"#{ident} INVISIBILITY")[0]:
+            styled = by_id.get(ref)
+            if styled is None or styled[1] not in _STYLED:
+                raise StepFileError(f"#{ident} INVISIBILITY hides #{ref}, which is not a STYLED_ITEM; "
+                                    "only hidden styled items are understood")
+            fields = _elements(data, styled[4])[0]
+            item = _ONE_REF.match(data, *fields[2]) if len(fields) >= 3 else None
+            if not item:
+                raise StepFileError(f"#{ref} STYLED_ITEM does not name the item it styles")
+            hidden[int(item.group(1))] = ident
+        end = e + (2 if data[e:e + 2] == b"\r\n" else 1 if data[e:e + 1] == b"\n" else 0)
+        edits.append((s, end, b""))
+    if not hidden:
+        return [], []
+    placed = set()
+    for ident, kind, s, e, paren in instances:
+        if kind == "INVISIBILITY" or kind in _STYLED:
+            continue
+        used = {int(r) for r in _REF.findall(data, paren, e)} & set(hidden)
+        if not used:
+            continue
+        name = kind or "a complex instance"
+        fields = _elements(data, paren)[0] if kind.endswith("REPRESENTATION") else []
+        if len(fields) < 2:
+            raise StepFileError(f"#{min(used)} is marked invisible and is used by #{ident} ({name}); only items "
+                                "listed directly in a representation can be left out")
+        refs, p = _ref_list(data, fields[1], f"the items of #{ident} {name}")
+        outside = _REF.findall(data, paren, fields[1][0]) + _REF.findall(data, fields[1][1], e)
+        if {int(r) for r in outside} & set(hidden):
+            raise StepFileError(f"#{ident} {name} uses an invisible item outside its list of items")
+        keep = [data[a:b].strip() for r, a, b in refs if r not in hidden]
+        if not keep:
+            raise StepFileError(f"every item of #{ident} {name} is marked invisible")
+        edits.append((p, fields[1][1], b"(" + b",".join(keep) + b")"))
+        placed |= used
+    missing = sorted(set(hidden) - placed)
+    if missing:
+        raise StepFileError(f"#{missing[0]} is marked invisible but is not an item of any representation")
+    return sorted(hidden), edits
+
+
+def invisible_items(data):
+    """The entity ids of the representation items the file marks invisible.
+
+    Inventor's AP242 translator writes the bodies that are hidden in the native
+    part as well as the visible ones, and lists the STYLED_ITEM of each hidden
+    one in an INVISIBILITY entity. A reader that does not honour that entity
+    (OpenCASCADE, and with it FreeCAD) takes them for ordinary solids. Only this
+    form is understood: an INVISIBILITY that hides anything but styled items,
+    or an invisible item that is not listed directly in a representation,
+    raises StepFileError.
+    """
+    return _visibility_edits(data)[0]
+
+
+def visible_only(data):
+    """The same file without the items it marks invisible.
+
+    Each invisible item is taken out of the item list of every representation
+    that holds it, and the INVISIBILITY entities are removed; the items' own
+    entities stay in the file, referenced by no shape. No other byte changes.
+    A file that marks nothing invisible is returned as it is, and applying
+    this twice gives the same bytes as applying it once.
+    """
+    _, edits = _visibility_edits(data)
+    for s, e, new in sorted(edits, reverse=True):
+        data = data[:s] + new + data[e:]
+    return data
+
+
 def describe(path):
     """Everything this module reads from one file, as a dict."""
     data = Path(path).read_bytes()
@@ -323,4 +464,9 @@ def describe(path):
     except StepFileError as exc:
         out["length_unit"] = None
         out["length_unit_error"] = str(exc)
+    try:
+        out["invisible_items"] = len(invisible_items(data))
+    except StepFileError as exc:
+        out["invisible_items"] = None
+        out["invisible_items_error"] = str(exc)
     return out
