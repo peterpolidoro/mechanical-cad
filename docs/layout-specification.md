@@ -29,13 +29,15 @@ designs/                       the repository is the authority
     build.py                   people and agents
     parameters.json            people and agents
     checks.json                people and agents (optional)
+    README.md                  people and agents (optional)
     part.step                  build command
     receipt.json               build command
     facts.json                 build command
-    vault.json                 written when a publication to Vault is verified
+    vault.json                 publication record command, when a publication is verified
   assemblies/<key>/
     assembly.json              people and agents
-vault-lock.json                import command; a derived index
+    README.md                  people and agents (optional)
+vault-lock.json                import and publication record commands; a derived index
 ```
 
 Each file has one writer. Nothing under `references/` is edited by hand, and a
@@ -52,6 +54,7 @@ The commands, and where they live:
 | import | `references/`, `vault-lock.json` | `vault-cad-tools` (`vault-cad import-snapshot`, provisional) |
 | facts | `references/parts/*/facts.json` | `tools/step_facts.py`, run by FreeCADCmd |
 | build | `part.step`, `receipt.json`, `facts.json` of an authored part | `tools/build_part.py`, run by FreeCADCmd |
+| publication record | `vault.json` of an authored part, and the `publications` of `vault-lock.json` | `vault-cad-tools` (`vault-cad import-publish-result`) |
 | validate, check, flatten | nothing in the repository | `python3 -m mechanical_cad` |
 | step-info, normalise-header, visible-only | nothing in the repository | `python3 -m mechanical_cad` |
 

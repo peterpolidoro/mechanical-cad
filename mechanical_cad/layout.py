@@ -46,8 +46,8 @@ FILES = {
     ("references", "part"): ({"part.step", "source.json"}, {"facts.json"}),
     ("references", "assembly"): ({"assembly.json", "source.json"}, set()),
     ("designs", "part"): ({"part.step", "build.py", "parameters.json", "receipt.json"},
-                          {"checks.json", "facts.json", "vault.json"}),
-    ("designs", "assembly"): ({"assembly.json"}, set()),
+                          {"checks.json", "facts.json", "vault.json", "README.md"}),
+    ("designs", "assembly"): ({"assembly.json"}, {"README.md"}),
 }
 
 

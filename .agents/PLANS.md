@@ -33,6 +33,14 @@ the agent): whether AP242 exports are stable between sessions and what the
 saved-view block depends on; which translator options exist; and all 37 parts
 as AP242 for Linux to compare with the tracked AP214 files by fingerprint.
 
+The enclosure was converted that day on its branch `layout-conversion`, and
+the acceptance test passed there on the tracked tree (it had passed on a dry
+run the day before). The conversion brought two things back here: a
+`README.md` is now a file the layout expects beside an authored part or
+assembly, and the flattened scene lists parts by key, so a project that
+numbers parts in scene order has to state its own order (the enclosure's
+recipe uses its procurement sheet).
+
 What exists here:
 
 - `mechanical_cad/` (standard library): `layout.py` validates a project
@@ -50,6 +58,8 @@ What exists here:
   acceptance test of docs/layout-proposal.md. `tools/update_shared_clone.py`
   (plain Python) fast-forwards a clone on the network share by file copies,
   because git cannot write safely on that mount.
+- The enclosure on its branch is the second project in the layout, after the
+  fixture, and the first with an authored part published to Vault.
 - `examples/layout-fixture/`: a synthetic project with imported and authored
   parts, a flexible instance with an override, and its generator.
 - docs/layout-specification.md: the draft the code implements.
@@ -141,25 +151,26 @@ Smaller ones:
 
 ## Next work, in order
 
-1. Peter's word to start the enclosure's conversion (step 2), which the
-   decisions of 2026-11-11 make possible. In parallel, when he starts the
-   Windows agent: review its three AP242 tests, and compare the 37 AP242
-   exports with the tracked AP214 files (`step_facts.py` on both, then the
-   fingerprints).
-2. The enclosure's conversion on a branch. Its files stay AP214 until the
-   re-export of step 3. The dry run covers `references/`
-   and the lock. Still to do there: re-key the curated files that carry part
-   ids (`assembly/materials.json`, the two procurement sheets,
-   `joint-audit.json`) by script; point the eight project scripts that read
-   `references/enclosure/` at the flattened scene; decide what stays of the old
-   tree; move the monitor envelope to `designs/parts/` with `build_part.py`,
-   and its publication record into `vault.json`. Then run the acceptance test
-   on the branch. `main` stays as it is until that passes.
+1. Peter's review of the enclosure's branch `layout-conversion` (done on
+   2026-11-11 in a worktree beside the project checkout, at Peter's word; the
+   project's plan on that branch has the state and what was checked). When he
+   starts the Windows agent: review its three AP242 tests, and compare the 37
+   AP242 exports with the tracked AP214 files (`step_facts.py` on both, then
+   the fingerprints).
+2. The merge of that branch, which is Peter's. `vault-cad-tools` reads the new
+   lock since 2026-11-11 (`status`, `prepare-publish` from
+   `designs/parts/<key>/part.step`, `import-publish-result` into the part's
+   `vault.json`), so nothing in the tools holds it back. The index is derived
+   in two places, here and there; they agree on the enclosure, and no test
+   compares them.
 3. Specify the exporter's package (files named by master id and model state, a
    child list per assembly, no absolute paths, the header normalised with
    `Step-Header.ps1`, AP242), have the Windows exporter write it,
-   and make `import-snapshot` read it. Re-export the enclosure and compare it
-   with step 2 using `compare-scenes`. What the feature dumps showed about
+   and make `import-snapshot` read it, keeping the existing keys. The package
+   waits for the Windows AP242 tests, which decide whether the saved-view
+   block is normalised and whether a translator option leaves hidden bodies
+   out. Re-export the enclosure and compare it with the branch using
+   `compare-scenes`. What the feature dumps showed about
    parameters and holes goes into the package's `source.json` at this point.
 4. One full render of the manual from the re-exported project, in
    `mechanical-docs`, compared with today's by parts, quantities, steps and

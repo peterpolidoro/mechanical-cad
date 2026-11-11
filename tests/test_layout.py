@@ -57,10 +57,13 @@ def test_files_of_a_component(project_copy):
     (project_copy / PLATE / "notes.txt").write_text("by hand")
     (project_copy / PIN / "source.json").unlink()
     (project_copy / SPACER / "sketch.FCStd").write_text("x")
+    (project_copy / SPACER / "README.md").write_text("what the part is for")      # prose beside a program is expected
+    (project_copy / TOP / "README.md").write_text("what the assembly is for")
     project = layout.load(project_copy)
     assert has(project.errors, PLATE, "unexpected file(s) notes.txt")
     assert has(project.errors, PIN, "source.json is missing")
     assert has(project.findings, SPACER, "outside the layout: sketch.FCStd")
+    assert not has(project.findings + project.errors, "README.md")
 
 
 def test_other_entries_under_a_root_are_reported_not_refused(project_copy):
