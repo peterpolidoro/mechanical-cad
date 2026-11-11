@@ -71,6 +71,11 @@ after an uncaught exception, so each script prints its own status line.
 `tools/conversion_acceptance.py` runs the acceptance test for converting an
 exporter's package into the layout.
 
+`tools/update_shared_clone.py LOCAL_CHECKOUT SHARED_CLONE` fast-forwards a
+clone that lives on a filesystem where git cannot write safely (the network
+share the Windows agent fetches from) to the commit of a clean, pushed local
+checkout, by copying a pack, the refs, the changed files and the index.
+
 ## Related repositories
 
 - `vault-cad-tools`: exchange with Autodesk Vault and Inventor, and the import

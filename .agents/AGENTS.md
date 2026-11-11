@@ -43,6 +43,9 @@ project repository).
 - Nothing writes to Vault without Peter's explicit request. Windows work is
   requested through the shared directory's mailbox; a message never wakes an
   agent, Peter starts it.
+- After Peter pushes, bring the clones on the shared directory up to date with
+  `tools/update_shared_clone.py`. Never run a git command that writes in a
+  clone on that mount.
 - This repository is public. Keep server names, Vault paths, host and account
   names, credentials and project data out of it. Fixtures are synthetic. Do not
   copy files from the shared evidence area into any generic repository.

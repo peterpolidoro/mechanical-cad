@@ -27,11 +27,13 @@ What exists here:
 - `tools/` (run by FreeCADCmd): `step_facts.py` writes `facts.json` for
   imported parts; `build_part.py` builds an authored part from `build.py` and
   `parameters.json`. `tools/conversion_acceptance.py` (plain Python) runs the
-  acceptance test of docs/layout-proposal.md.
+  acceptance test of docs/layout-proposal.md. `tools/update_shared_clone.py`
+  (plain Python) fast-forwards a clone on the network share by file copies,
+  because git cannot write safely on that mount.
 - `examples/layout-fixture/`: a synthetic project with imported and authored
   parts, a flexible instance with an override, and its generator.
 - docs/layout-specification.md: the draft the code implements.
-- Tests: 100 pass in the base role and 4 more with FreeCAD (run 2026-11-10,
+- Tests: 104 pass in the base role and 4 more with FreeCAD (run 2026-11-10,
   Python 3.12.12, pytest 9.0.2, FreeCAD 1.1.3, OpenCASCADE 7.9.3).
 
 What was run against the enclosure (a dry run into the enclosure's ignored
@@ -111,7 +113,10 @@ Smaller ones:
     root assembly, `SLLB Enclosure.iam`, and four other native files that the
     snapshot does not hold; the snapshot holds 18 files from outside the
     folder. The snapshot follows one root assembly; the target workflow of
-    2026-10-23 speaks of mirroring "every file of that project".
+    2026-10-23 speaks of mirroring "every file of that project". Peter on
+    2026-11-10: he does not know that assembly and wants to look at it in
+    Inventor before giving an opinion. What the discovery recorded about it is
+    in the enclosure's plan.
 12. The ten questions on the Vault side
     (`vault-cad-tools/docs/native-checkin-adapter-design.md`, section 10) and
     the enclosure's own (its plan, "Open items").
@@ -171,8 +176,8 @@ Smaller ones:
   repository. Its `PLAN.md` is a dated log; where it differs from
   docs/direction.md, the direction wins.
 - **The shared clones the Windows agent syncs from lag behind** until someone
-  fast-forwards them after Peter pushes. From Linux this is done by file
-  copies, never by git commands that write on the mount; the procedure is in
-  the shared directory's `coordination/NEXT-AGENT.md`.
+  fast-forwards them after Peter pushes. From Linux this is done with
+  `tools/update_shared_clone.py`, never by git commands that write on the
+  mount: a `git fetch` there deleted a ref on 2026-11-10.
 - **Remotes.** `origin` here and in `mechanical-docs` still points at Codeberg;
   the GitHub remote is `peterpolidoro`. Remotes are Peter's to change.
