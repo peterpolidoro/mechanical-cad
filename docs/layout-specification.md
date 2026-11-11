@@ -324,8 +324,9 @@ scene's size.
 ## What is not specified yet
 
 - **The exporter's package.** What the Windows exporter delivers to the import
-  command (files named by master id and model state, a child list per
-  assembly) is described in the proposal and not specified here. The import
+  command has a draft of its own, [exporter-package.md](exporter-package.md):
+  files named by master id and model state, a child list per assembly, no
+  workstation paths. It is not reviewed and not implemented; the import
   command today reads the package the exporter wrote on 2026-10-21.
 - **Hand-edited JSON.** `parameters.json`, `checks.json` and an authored
   `assembly.json` are edited by hand, and this repository's rule is TOML for

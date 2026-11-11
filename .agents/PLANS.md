@@ -28,10 +28,17 @@ the other two measure the same in both protocols. One part of the 37 has
 hidden bodies, so the filter rests on one real file; any other form of the
 mark is refused.
 
-Asked of Windows that day (three read-only tests, not yet run; Peter starts
-the agent): whether AP242 exports are stable between sessions and what the
-saved-view block depends on; which translator options exist; and all 37 parts
-as AP242 for Linux to compare with the tracked AP214 files by fingerprint.
+Asked of Windows that day (three read-only tests): whether AP242 exports are
+stable between sessions and what the saved-view block depends on; which
+translator options exist; and all 37 parts as AP242 for Linux to compare with
+the tracked AP214 files by fingerprint. The agent was still running when this
+was written and had not reported. Read from its unfinished run, so not yet
+evidence: `compare_step_exports.py` finds all 37 AP242 files to be the same
+geometry as the tracked AP214 parts (one with three invisible items left
+out); exports made without a view have one data section across sessions,
+exports made with a view open change with the camera; the translator reports
+eight options and none concerns hidden bodies or the view. The check is
+repeated on the sealed run.
 
 The enclosure was converted that day on its branch `layout-conversion`, and
 the acceptance test passed there on the tracked tree (it had passed on a dry
@@ -55,7 +62,9 @@ What exists here:
 - `tools/` (run by FreeCADCmd): `step_facts.py` writes `facts.json` for
   imported parts; `build_part.py` builds an authored part from `build.py` and
   `parameters.json`. `tools/conversion_acceptance.py` (plain Python) runs the
-  acceptance test of docs/layout-proposal.md. `tools/update_shared_clone.py`
+  acceptance test of docs/layout-proposal.md. `tools/compare_step_exports.py`
+  (FreeCADCmd) compares other exports of a project's parts with the tracked
+  files by fingerprint. `tools/update_shared_clone.py`
   (plain Python) fast-forwards a clone on the network share by file copies,
   because git cannot write safely on that mount.
 - The enclosure on its branch is the second project in the layout, after the
@@ -63,7 +72,7 @@ What exists here:
 - `examples/layout-fixture/`: a synthetic project with imported and authored
   parts, a flexible instance with an override, and its generator.
 - docs/layout-specification.md: the draft the code implements.
-- Tests: 118 pass in the base role and 5 more with FreeCAD (run 2026-11-11,
+- Tests: 118 pass in the base role and 6 more with FreeCAD (run 2026-11-11,
   Python 3.12.12, pytest 9.0.2, FreeCAD 1.1.3, OpenCASCADE 7.9.3).
 
 What was run against the enclosure (a dry run into the enclosure's ignored
@@ -163,15 +172,15 @@ Smaller ones:
    `vault.json`), so nothing in the tools holds it back. The index is derived
    in two places, here and there; they agree on the enclosure, and no test
    compares them.
-3. Specify the exporter's package (files named by master id and model state, a
-   child list per assembly, no absolute paths, the header normalised with
-   `Step-Header.ps1`, AP242), have the Windows exporter write it,
-   and make `import-snapshot` read it, keeping the existing keys. The package
-   waits for the Windows AP242 tests, which decide whether the saved-view
-   block is normalised and whether a translator option leaves hidden bodies
-   out. Re-export the enclosure and compare it with the branch using
-   `compare-scenes`. What the feature dumps showed about
-   parameters and holes goes into the package's `source.json` at this point.
+3. The exporter's package. A draft is in docs/exporter-package.md (2026-11-11):
+   one directory per Vault file and model state, identities and no keys, no
+   workstation paths or names of people, AP242 exported without a view, the
+   header normalised, and what the import command does with it. It is not
+   reviewed. Next: confirm its two statements that wait for the Windows AP242
+   report; Peter's and the Windows agent's review; the Windows exporter
+   writes it; `import-snapshot` reads it into an existing project, keeping
+   keys. Then re-export the enclosure and compare it with the branch
+   (`compare-scenes`, and `compare_step_exports.py` for the parts).
 4. One full render of the manual from the re-exported project, in
    `mechanical-docs`, compared with today's by parts, quantities, steps and
    checks. Merge the branch.

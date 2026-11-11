@@ -5,8 +5,13 @@ whatever unit the file declares, so everything here is in millimetres.
 """
 from __future__ import annotations
 
+import tempfile
+from pathlib import Path
+
 import FreeCAD as App
 import Part
+
+from mechanical_cad import stepfile
 
 
 def tool():
@@ -16,6 +21,23 @@ def tool():
 
 def read_step(path):
     return Part.read(str(path))
+
+
+def measure_step(path, data=None):
+    """The facts of a STEP file, measured without the items it marks invisible.
+
+    Returns (facts, number of invisible items left out). An AP242 file exported
+    from Inventor holds the bodies hidden in the native part; they are not part
+    of what the file is taken to be (mechanical_cad/stepfile.py, visible_only).
+    """
+    data = Path(path).read_bytes() if data is None else data
+    hidden = stepfile.invisible_items(data)
+    if not hidden:
+        return measure(read_step(path)), 0
+    with tempfile.TemporaryDirectory() as tmp:
+        visible = Path(tmp) / "visible.step"
+        visible.write_bytes(stepfile.visible_only(data))
+        return measure(read_step(visible)), len(hidden)
 
 
 def measure(shape):

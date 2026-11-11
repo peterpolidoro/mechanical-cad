@@ -22,7 +22,6 @@ from __future__ import annotations
 import sys
 
 sys.dont_write_bytecode = True
-import tempfile
 import time
 from pathlib import Path
 
@@ -38,15 +37,10 @@ def facts_for(comp, tool):
     out = {"schema_version": layout.SCHEMA_VERSION, "key": comp.key,
            "step": {"sha256": stepfile.sha256_bytes(data), "data_sha256": stepfile.data_sha256(data)},
            "tool": tool, "length_unit_declared": stepfile.length_unit(data)}
-    hidden = stepfile.invisible_items(data)
+    measured, hidden = kernel.measure_step(comp.step_path, data)
+    out.update(measured)
     if hidden:
-        with tempfile.TemporaryDirectory() as tmp:
-            visible = Path(tmp) / "visible.step"
-            visible.write_bytes(stepfile.visible_only(data))
-            out.update(kernel.measure(kernel.read_step(visible)))
-        out["invisible_items"] = len(hidden)
-    else:
-        out.update(kernel.measure(kernel.read_step(comp.step_path)))
+        out["invisible_items"] = hidden
     notes = out.pop("notes")
     if notes:
         out["notes"] = notes

@@ -58,9 +58,13 @@ These run in FreeCAD (`.guix/manifest-cad.scm`):
 ```sh
 guix shell --pure -m .guix/manifest-cad.scm -- FreeCADCmd tools/step_facts.py --pass PROJECT
 guix shell --pure -m .guix/manifest-cad.scm -- FreeCADCmd tools/build_part.py --pass PROJECT/designs/parts/KEY
+guix shell --pure -m .guix/manifest-cad.scm -- FreeCADCmd tools/compare_step_exports.py --pass PROJECT MAP.json NEW_REPORT.json
 guix shell --pure -m manifest.scm -m .guix/manifest-cad.scm -- python3 -B -m pytest -q tests
 ```
 
+- `compare_step_exports.py` measures other exports of a project's parts (an
+  AP242 export of a part tracked as AP214, an export from another session) and
+  says whether each is the same geometry as the tracked file.
 - `step_facts.py` measures every imported STEP file (validity, solids, volume,
   area, centre of mass, bounding box) and writes `facts.json` beside it.
 - `build_part.py` builds an authored part from its `build.py` and

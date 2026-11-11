@@ -2,13 +2,14 @@
 
     guix shell --pure -m manifest.scm -m .guix/manifest-cad.scm -- python3 -B -m pytest -q tests/test_kernel_tools.py
 """
+import json
 import re
 import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
-from conftest import REPO, edit_json, invisible, replace_step
+from conftest import REPO, edit_json, invisible, replace_step, write_json
 
 from mechanical_cad import layout
 
@@ -88,3 +89,25 @@ def test_a_body_the_file_marks_invisible_is_not_measured(project_copy, tmp_path)
     assert facts["volume_mm3"] == pytest.approx(1000.0) and facts["bounding_box_mm"]["max"] == pytest.approx([10, 10, 10])
     assert not [e for e in project.errors if "facts.json" in e]
     assert "0 measured, 1 already current" in run("step_facts.py", project_copy, "--", "--only", "base-plate")
+
+
+def test_another_export_is_compared_by_its_geometry(project_copy, tmp_path):
+    plate = project_copy / "references/parts/base-plate/part.step"
+    pin = project_copy / "references/parts/pin/part.step"
+    # the plate again with another header (other bytes, the same data section), and the pin standing in for the plate
+    other = tmp_path / "plate-again.step"
+    other.write_bytes(plate.read_bytes().replace(b"1970-01-01T00:00:00", b"2026-11-11T09:00:00"))
+    write_json(tmp_path / "map.json", {"base-plate": str(other), "pin": str(plate), "nothing": str(other)})
+    out = run("compare_step_exports.py", project_copy, tmp_path / "map.json", tmp_path / "report.json")
+    assert "3 compared: 1 the same geometry, 1 different, 1 failed" in out and "exit status 1" in out, out
+    report = json.loads((tmp_path / "report.json").read_text())
+    same = report["parts"]["base-plate"]
+    assert same["same_geometry"] and same["same_data_section"] and not same["same_bytes"] and not same["other"]["header_normalised"]
+    assert not report["parts"]["pin"]["same_geometry"] and any("volume_mm3" in d for d in report["parts"]["pin"]["differences"])
+    assert "no imported part of this key" in report["parts"]["nothing"]["error"]
+    assert "exists; choose a new file" in run("compare_step_exports.py", project_copy, tmp_path / "map.json", tmp_path / "report.json")
+    before = {p: p.read_bytes() for p in project_copy.rglob("*") if p.is_file()}
+    write_json(tmp_path / "all.json", {"base-plate": str(plate), "pin": str(pin)})
+    assert "2 compared: 2 the same geometry, 0 different, 0 failed; 0 part(s) of the project not compared" in run(
+        "compare_step_exports.py", project_copy, tmp_path / "all.json", tmp_path / "all-report.json")
+    assert {p: p.read_bytes() for p in project_copy.rglob("*") if p.is_file()} == before          # nothing in the project is written
