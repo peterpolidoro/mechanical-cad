@@ -1,9 +1,10 @@
 # Repository layout: draft specification
 
 **Status: draft 1, written 2026-11-10, provisional.** It implements
-[layout-proposal.md](layout-proposal.md) with the recommended answers to the
-open choices (two roots, readable keys). Peter has not accepted the proposal;
-if he chooses otherwise this document and its validator change with it. The
+[layout-proposal.md](layout-proposal.md) with two roots and readable keys,
+which Peter decided on 2026-11-11. The protocol of exported files is still
+open (this document accepts any), and Peter has not accepted the proposal as a
+whole; what he changes there changes this document and its validator. The
 proposal holds the reasons and the evidence; this document says exactly what a
 conforming repository contains.
 

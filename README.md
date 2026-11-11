@@ -4,10 +4,12 @@ Open-source tools for writing mechanical parts as code and checking their
 geometry, the layout that project repositories use for STEP files and their
 metadata, and a Guix channel for the mechanical CAD packages those tools need.
 
-**Status (2026-11-10): the direction and the layout are proposals; the layout
-has a draft specification and working tools.** Peter has not accepted either
-document. What exists was built against the recommended options so that the
-proposal could be tested on a real project before it is decided:
+**Status (2026-11-11): the direction and the layout are proposals; the layout
+has a draft specification and working tools.** Peter has decided two of the
+layout's open choices (two top-level roots, readable directory keys); the STEP
+protocol is open and neither document is accepted as a whole. What exists was
+built so that the proposal could be tested on a real project before it is
+decided:
 
 - a validator and a flatten step for the layout, standard-library Python;
 - tools that measure a STEP file and build a part from a program, run by

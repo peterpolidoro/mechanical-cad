@@ -1,6 +1,8 @@
 # Repository layout: proposal and evidence
 
-**Status: proposal of 2026-11-10, not accepted.** [direction.md](direction.md)
+**Status: proposal of 2026-11-10. On 2026-11-11 Peter decided two of its three
+open choices (two roots, readable keys); the protocol is open and the proposal
+as a whole is not accepted.** [direction.md](direction.md)
 says why this matters; this file holds the reasoning, what was measured, and
 what is still unknown. A draft specification with a validator, a fixture and a
 flatten step implements the recommended options
@@ -376,16 +378,44 @@ Also from that run:
 ## Open choices (Peter)
 
 1. Two top-level roots as drawn, or one tree with an authority field in every
-   directory. Recommended: two roots, because "never edit `references/`" is a
-   rule a path can enforce.
+   directory. **Decided by Peter on 2026-11-11: two roots.** The reason given
+   for the recommendation: "never edit `references/`" is a rule a path can
+   enforce.
 2. Readable keys tied to the master id, or a mirror of Vault's folder tree.
-   Recommended: readable keys.
-3. AP214 or AP242. Recommended after the test: AP214. It writes the bodies a
-   designer sees, which is the geometry every check so far was made on (479
-   solids). It is stable across sessions as measured. AP242 added nothing these
-   parts use, was not tested for stability, and brings hidden bodies that the
-   open kernel reads as ordinary solids. That a part has hidden bodies is
-   already recorded beside it (`native.bodies`).
+   **Decided by Peter on 2026-11-11: readable keys.**
+3. AP214 or AP242. Open; Peter asked on 2026-11-11 for the reasons behind the
+   recommendation of AP214. They are practical, not a judgement that AP214 is
+   the better standard:
+   - **Continuity.** All 37 tracked files are AP214, and every check so far
+     was made on them (479 solids, the acceptance test, the published manual).
+     An AP214 re-export can be compared with the tracked files by the hash of
+     the data section, which was the same for the three parts re-exported on
+     2026-11-10. An AP242 re-export differs in every file, so the same
+     comparison has to go through the kernel, part by part.
+   - **Stability.** Nine AP214 exports per part gave the same data section.
+     AP242 was exported once per part. Each AP242 file carries a saved-view
+     block (a camera); whether that block is the same from one session to the
+     next was not tested.
+   - **Hidden bodies.** AP242 writes them and marks them invisible; FreeCAD
+     reads them as ordinary solids. In this project that is one part of 37
+     (`MCMASTER 47065T245`, three hidden bodies, counted from the `bodies`
+     record of the exporter's `scene.json`). With AP242 the Linux side needs a
+     filter for the invisibility mark before anything is measured or drawn.
+   - **Nothing gained on these parts.** For the two other parts tested the
+     geometry is identical in both protocols.
+
+   What speaks for AP242: it is the standard that replaced AP203 and AP214
+   and the one that is still developed (stated from general knowledge of
+   ISO 10303, not checked against a source in this work); it can carry
+   tolerances and annotations as data, should a designer add them to the
+   native part (none of these parts has any, and what FreeCAD would do with
+   them was not tested); and it keeps the hidden bodies, which is closer to
+   the native file.
+
+   The choice is not permanent: `source.json` records the protocol of each
+   part, the specification accepts either, and the exporter writes either, so
+   changing it later costs one re-export and one comparison through the
+   kernel.
 
 ## Acceptance test for the conversion
 

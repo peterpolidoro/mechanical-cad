@@ -7,12 +7,14 @@ open-source tools to check it, document it and add to it, with the
 free-standing tank enclosure as the test project. The full statement is
 docs/direction.md. Finished checkpoints are in .agents/HISTORY.md.
 
-## Current state (2026-11-10)
+## Current state (2026-11-11)
 
-Peter has not accepted the direction document or the layout. On 2026-11-10 he
-asked for as much as possible to be done without his input while he assembles
-the enclosure, so the layout was built and tested against the recommended
-options (two roots, readable keys). All of it is provisional.
+On 2026-11-11 Peter decided two of the layout's three open choices: two roots
+and readable keys, which is what was built on 2026-11-10 while he assembled
+the enclosure. He asked why AP214 is recommended over AP242; the reasons, and
+what speaks for AP242, are in docs/layout-proposal.md, "Open choices". The
+protocol is open, and he has not accepted the direction document or the layout
+as a whole.
 
 What exists here:
 
@@ -73,23 +75,22 @@ prompts were rewritten.
 
 ## Open decisions to put to Peter
 
-Layout:
+Layout (two roots and readable keys were decided on 2026-11-11 and are in
+docs/direction.md, "Decided"):
 
-1. Two roots (`references/`, `designs/`) or one tree with an authority field.
-   Recommended and built: two roots.
-2. Readable directory keys tied to the Vault master id, or a mirror of Vault's
-   folder tree. Recommended and built: readable keys.
-3. AP214 or AP242. Tested on 2026-11-10; recommended: AP214 (the reasons are
-   in docs/layout-proposal.md, "Open choices").
-4. Acceptance of docs/direction.md as a whole. Its "one authority per part"
+1. AP214 or AP242. Tested on 2026-11-10; recommended: AP214. Peter has the
+   reasons (docs/layout-proposal.md, "Open choices") and has not answered. It
+   does not block the conversion of the existing snapshot, whose files are
+   AP214; it is needed for the re-export.
+2. Acceptance of docs/direction.md as a whole. Its "one authority per part"
    entry under "Decided" has no date; confirm it and date it.
 
 The four questions under "Not settled" in docs/direction.md:
 
-5. The Inventor requirement: the enclosure's brief asks for design work in
+3. The Inventor requirement: the enclosure's brief asks for design work in
    Inventor and records in Vault; the decision of 2026-10-23 is parts as code,
    referenced from Inventor as STEP. Not reconciled.
-6. Names in public files. Known places: all 37 STEP headers carry an
+4. Names in public files. Known places: all 37 STEP headers carry an
    account-like author name (four people, none of them Peter); the exporter's
    records and the lock carry Peter's Windows account in absolute paths and a
    host name; the enclosure's published `docs/manual/manual.json` and
@@ -98,34 +99,34 @@ The four questions under "Not settled" in docs/direction.md:
    name; the Vault folder path with the lab's name is in 57 tracked files of
    the enclosure. Removing them from new files is possible at the re-export;
    history and the published site are a separate matter.
-7. Whether supplier-originated models may be redistributed publicly, and the
+5. Whether supplier-originated models may be redistributed publicly, and the
    wording of the enclosure README's scope statement.
-8. Where on GitHub the repositories live. `origin` here is still Codeberg.
+6. Where on GitHub the repositories live. `origin` here is still Codeberg.
 
 Smaller ones:
 
-9. Whether the generated manual packages move out of the enclosure's tracked
+7. Whether the generated manual packages move out of the enclosure's tracked
    `docs/` (141 MB there).
-10. Whether hand-edited `parameters.json`, `checks.json` and authored
-    `assembly.json` become TOML, as this repository's rule for hand-edited
-    files would have it.
-11. Which Vault files the enclosure project mirrors. Its folder holds a second
-    root assembly, `SLLB Enclosure.iam`, and four other native files that the
-    snapshot does not hold; the snapshot holds 18 files from outside the
-    folder. The snapshot follows one root assembly; the target workflow of
-    2026-10-23 speaks of mirroring "every file of that project". Peter on
-    2026-11-10: he does not know that assembly and wants to look at it in
-    Inventor before giving an opinion. What the discovery recorded about it is
-    in the enclosure's plan.
-12. The ten questions on the Vault side
+8. Whether hand-edited `parameters.json`, `checks.json` and authored
+   `assembly.json` become TOML, as this repository's rule for hand-edited
+   files would have it.
+9. Which Vault files the enclosure project mirrors. Its folder holds a second
+   root assembly, `SLLB Enclosure.iam`, and four other native files that the
+   snapshot does not hold; the snapshot holds 18 files from outside the
+   folder. The snapshot follows one root assembly; the target workflow of
+   2026-10-23 speaks of mirroring "every file of that project". Peter on
+   2026-11-10: he does not know that assembly and wants to look at it in
+   Inventor before giving an opinion. What the discovery recorded about it is
+   in the enclosure's plan.
+10. The ten questions on the Vault side
     (`vault-cad-tools/docs/native-checkin-adapter-design.md`, section 10) and
     the enclosure's own (its plan, "Open items").
 
 ## Next work, in order
 
-1. Peter's answers to decisions 1 to 4. If he takes the recommendations,
-   nothing built here changes; if not, the specification, validator and
-   converter change together.
+1. Peter's word to start the enclosure's conversion (step 2), which the two
+   decisions of 2026-11-11 make possible, and his answers on the protocol and
+   on docs/direction.md as a whole.
 2. The enclosure's conversion on a branch. The dry run covers `references/`
    and the lock. Still to do there: re-key the curated files that carry part
    ids (`assembly/materials.json`, the two procurement sheets,

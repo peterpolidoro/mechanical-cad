@@ -64,6 +64,10 @@ The free-standing tank enclosure is the test project for every stage.
   the Guix channel for the mechanical CAD packages. (2026-11-10)
 - Work that spans the repositories is run from an agent session rooted in
   `mechanical-cad`. (2026-11-10)
+- A project repository has two top-level roots: `references/` for what mirrors
+  Vault and `designs/` for what is authored in the repository. (2026-11-11)
+- Directories are keyed by a readable name tied to the Vault master id, not by
+  a mirror of Vault's folder tree. (2026-11-11)
 
 ## Repositories
 
@@ -102,16 +106,17 @@ maps one-to-one onto Vault.
 - The lock file is an index derived from the directories, never a second copy
   of their facts.
 
-Open choices: two top-level roots (`references/` for Vault's authority,
-`designs/` for the repository's) or one tree with an authority field; readable
-keys or a mirror of Vault's folder tree; AP214 or AP242 (to be tested, not
-assumed).
+Two of the three choices this layout left open were decided on 2026-11-11 and
+are under "Decided": two top-level roots, and readable keys. One is open:
+AP214 or AP242 for the files exported from Inventor. Both were tested on
+2026-11-10 and the recommendation is AP214; the choice can be changed later by
+a re-export, because the protocol is recorded for each part.
 
 The detail, the evidence and the acceptance test are in
 [layout-proposal.md](layout-proposal.md). A draft specification that implements
-the recommended choices, with its validator, is in
-[layout-specification.md](layout-specification.md); it is provisional until the
-choices are made.
+the two decided choices, with its validator, is in
+[layout-specification.md](layout-specification.md); it stays a draft until the
+layout as a whole is accepted.
 
 ## Proposed: order of work
 
