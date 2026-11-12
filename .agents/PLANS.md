@@ -304,14 +304,30 @@ Smaller ones:
    derives the overrides), and imported it into a copy of the branch: it
    validates, its scene equals the branch's with no placement differing, and
    it matches Inventor's own export of the root assembly. The details are in
-   the draft, "What the import command does with it". Left: the same import
-   into the enclosure's branch itself, which replaces every tracked STEP file
-   there and waits for Peter's word; then `assembly/documentation.json` there
-   is pinned to the new scene. Peter's review of the draft. The findings of
-   the Linux review on the exporter script are with the Windows agent.
-4. One full render of the manual from the re-exported project, in
-   `mechanical-docs`, compared with today's by parts, quantities, steps and
-   checks. Merge the branch.
+   the draft, "What the import command does with it". On Peter's word the
+   package was imported into the enclosure's branch itself on 2026-11-12
+   (the one the corrected exporter wrote; the same files but `package.json`):
+   the branch validates, its scene equals the one before with no placement
+   differing, and it matches Inventor's own export of the root assembly, 479
+   of 479 solids. One thing broke and was repaired in the project: its site
+   pages found the earlier exporter's part ids in each `source.json`, which
+   an import replaces; they are now read from the earlier export's own
+   record under `references/receipts/`. Left: Peter's review of the draft.
+   `mechanical-docs` was run on the imported branch the same day, the whole
+   pipeline at preview quality (staging, inspect, meshes, 88 renders, manual,
+   check: all passed), and its manual has the steps, joints, quantities and
+   groups of the published one. It printed the line about quantities being
+   CAD instance counts only for the exporter's own scene, not for a
+   flattened one; corrected in `mechanical-docs` (uncommitted there, 127
+   tests). Its mesh script cannot be given `--max-triangles` under FreeCADCmd
+   1.1.3, which takes a dashed option after `--pass` for its own; the default
+   is the value the recipe asked for. Not done: a full-quality render.
+4. Merge the enclosure's branch into `main` (Peter's; he said on 2026-11-12
+   that the AP242 files can become `main` if they are ready, and the checks
+   of item 3 say they are). Then the shared clone of the enclosure moves,
+   and the Windows side has to follow the new layout: its scripts and tests
+   read `references/enclosure/` of the earlier layout. A full-quality render
+   of the manual waits for Peter's corrected instructions.
 5. The first new part for the enclosure written as code, built and checked
    here, manufactured, then published to Vault.
 6. The Guix channel (`.guix-channel` pointing at `.guix/modules`, as
