@@ -16,7 +16,10 @@ a part in the wrong place is reported with the distance to the nearest solid
 of its volume.
 
 OTHER.step is taken to be in the assembly's own frame, as such an export is;
---frame z-up reads a file that tools/assembly_step.py turned upright.
+--frame z-up reads a file that tools/assembly_step.py turned upright. The
+file need not have one length unit: Inventor writes each product of an
+assembly in its document's unit, and the kernel reads all of it in
+millimetres.
 
 OUT.json, which must not exist, gets the comparison. The script prints its own
 status line; trust that and the file, not the exit code of FreeCADCmd.
@@ -32,7 +35,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import kernel  # noqa: E402
-from mechanical_cad import flatten, jsonio, layout, solids, stepfile  # noqa: E402
+from mechanical_cad import assemblies, flatten, jsonio, layout, solids, stepfile  # noqa: E402
 
 REPORT_SCHEMA = 1
 
@@ -41,9 +44,13 @@ def identity(path, data):
     out = {"file": str(path), "sha256": stepfile.sha256_bytes(data), "bytes": len(data)}
     try:
         out["protocol"] = stepfile.header(data)["protocol"]
-        out["length_unit"] = stepfile.length_unit(data)
     except Exception as exc:                       # the comparison does not depend on the header
         out["header_error"] = str(exc)
+    try:
+        out["length_unit"] = stepfile.length_unit(data)
+    except stepfile.StepFileError as exc:          # an assembly export may keep each document's own unit
+        out["length_unit"] = None
+        out["length_units"] = str(exc)
     return out
 
 
@@ -63,7 +70,7 @@ def compare(project, key, other, frame):
     other_id["invisible_items_left_out"] = hidden
     return {
         "schema_version": REPORT_SCHEMA, "key": top.key, "root": top.path,
-        "scene_sha256": stepfile.sha256_bytes(jsonio.dumps(scene).encode("utf-8")),
+        "scene_sha256": assemblies.scene_sha256(scene),
         "frame": frame, "tool": kernel.tool(), "other": other_id,
         "parts": len(assets), "occurrences": len(solids.placed(scene)), "suppressed_left_out": suppressed,
         "same_assembly": check["same"], "unmatched_by_part": by_part, "check": check,

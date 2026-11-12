@@ -55,7 +55,7 @@ The commands, and where they live:
 | facts | `references/parts/*/facts.json` | `tools/step_facts.py`, run by FreeCADCmd |
 | build | `part.step`, `receipt.json`, `facts.json` of an authored part | `tools/build_part.py`, run by FreeCADCmd |
 | publication record | `vault.json` of an authored part, and the `publications` of `vault-lock.json` | `vault-cad-tools` (`vault-cad import-publish-result`) |
-| validate, check, flatten | nothing in the repository | `python3 -m mechanical_cad` |
+| validate, check, flatten, assemblies | nothing in the repository | `python3 -m mechanical_cad` |
 | whole-assembly STEP | `.cache/assemblies/`, which the project ignores | `tools/assembly_step.py`, run by FreeCADCmd |
 | step-info, normalise-header, visible-only | nothing in the repository | `python3 -m mechanical_cad` |
 
@@ -370,6 +370,46 @@ lists and the validator does not look into. They are never committed.
 OUT.json` runs the same match on a file something else wrote, in the
 assembly's own frame: the mirrored CAD system's export of its assembly
 document is an independent check of the recorded placements.
+
+Which assemblies there are to build is read from the project, not kept in a
+list: `python3 -m mechanical_cad assemblies PROJECT [--dir DIR] [--json FILE]`
+prints every assembly under `references/assemblies/` and
+`designs/assemblies/`, the ones no other assembly places first, each with its
+key, the name of its file, how many different parts and how many visible
+occurrences it holds, which assemblies place it, and the state of its built
+files in DIR (default `PROJECT/.cache/assemblies/`): `not built`, `current`
+(built from the records as they stand, and the STEP file is the one the
+report names) or `out of date`. Every assembly listed can be built; a key
+that is not one is refused with the list of those that are.
+
+## Short commands in a project
+
+A project may have a Makefile so that nobody has to compose the commands
+above. This repository's own Makefile runs them for a project named as
+`PROJECT=DIR` (`make` alone lists its targets), and a project hands its
+targets to it:
+
+```make
+# Where the mechanical-cad checkout is: beside this repository, or what local.mk (ignored) or the environment says.
+-include local.mk
+MECHANICAL_CAD ?= ../mechanical-cad
+MECHANICAL_CAD_MAKE = $(MAKE) --no-print-directory -C "$(MECHANICAL_CAD)" PROJECT="$(CURDIR)"
+
+.PHONY: validate assemblies assembly
+validate assemblies:
+	@$(MECHANICAL_CAD_MAKE) $@
+
+assembly:
+	@$(MECHANICAL_CAD_MAKE) assembly KEY="$(KEY)"
+```
+
+Inside the project, `make assemblies` then lists what can be built,
+`make assembly` builds the top-level assembly and `make assembly KEY=<key>`
+any other. `local.mk` holds what differs between machines (one line,
+`MECHANICAL_CAD = /path/to/mechanical-cad`) and is listed in the project's
+`.gitignore`. The Makefile is a convenience and not part of the layout: the
+validator does not look at it, and where there is no `make` the commands
+above do the same.
 
 ## What is not specified yet
 

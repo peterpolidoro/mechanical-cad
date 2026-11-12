@@ -36,6 +36,22 @@ def test_flatten_refuses_a_broken_project(project_copy, tmp_path):
     assert not (tmp_path / "out").exists()
 
 
+def test_assemblies_lists_what_can_be_built(fixture_dir, project_copy, tmp_path, capsys):
+    assert main(["assemblies", str(fixture_dir), "--json", str(tmp_path / "list.json")]) == 0
+    out = capsys.readouterr().out
+    assert "fixture-root         FIXTURE ROOT.iam" in out and "3 assemblies, 0 built and current." in out
+    assert f"Built files: {fixture_dir}/.cache/assemblies/KEY.step and KEY.FCStd" in out
+    listed = json.loads((tmp_path / "list.json").read_text())
+    assert [a["key"] for a in listed["assemblies"]] == ["fixture-with-spacer", "fixture-root", "pin-pair"]
+    assert listed["built_in"] == f"{fixture_dir}/.cache/assemblies"
+    assert main(["assemblies", str(fixture_dir), "--dir", str(tmp_path / "built")]) == 0
+    assert f"Built files: {tmp_path}/built/KEY.step" in capsys.readouterr().out
+    (project_copy / "references/parts/pin/part.step").write_text("broken")
+    assert main(["assemblies", str(project_copy)]) == 1
+    out = capsys.readouterr().out
+    assert "ERROR   references/parts/pin" in out and "does not validate" in out and "KEY" not in out
+
+
 def test_check(fixture_dir, project_copy, capsys):
     assert main(["check", str(fixture_dir)]) == 0
     assert "1 authored part(s), 4 check(s), 0 failure(s)" in capsys.readouterr().out

@@ -74,7 +74,8 @@ Run the suite before and after a change:
 `guix shell --pure -m manifest.scm -- python3 -B -m pytest -q tests`, and with
 `-m .guix/manifest-cad.scm` added when a script under `tools/` or the fixture
 changes (the tests of `tests/test_kernel_tools.py` need FreeCADCmd and are
-skipped without it). Add tests with
+skipped without it). `make test` and `make test-cad` are the same two
+commands where the host has `make`. Add tests with
 the code they cover. After regenerating `examples/layout-fixture/`, `git
 status` must show no change unless one was intended.
 

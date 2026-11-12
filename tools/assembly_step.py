@@ -12,7 +12,8 @@ only assembly no other assembly places) is flattened, each part file is read
 once, without the items it marks invisible, and every visible occurrence is a
 link to it inside one container per sub-assembly instance. The tree, and the
 product structure of the STEP file, are the assembly's hierarchy with its
-occurrence names.
+occurrence names. `python3 -m mechanical_cad assemblies PROJECT` lists the
+keys and says which are built.
 
 Written to DIR, by default PROJECT/.cache/assemblies/ (derived, so the project
 ignores it and it is never committed):
@@ -54,7 +55,7 @@ import FreeCAD as App  # noqa: E402
 import Import  # noqa: E402
 
 import kernel  # noqa: E402
-from mechanical_cad import flatten, jsonio, layout, solids, stepfile  # noqa: E402
+from mechanical_cad import assemblies, flatten, jsonio, layout, solids, stepfile  # noqa: E402
 from mechanical_cad import transforms as T  # noqa: E402
 
 REPORT_SCHEMA = 1
@@ -166,10 +167,10 @@ def main(argv):
         print(f"[assembly_step] {exc}")
         return 2
     key = top.key
-    out_dir = Path(opts["out"]) if opts["out"] else project_dir / ".cache" / "assemblies"
+    out_dir = Path(opts["out"]) if opts["out"] else assemblies.default_dir(project_dir)
     step_path, doc_path, report_path = (out_dir / f"{key}{ext}" for ext in (".step", ".FCStd", ".json"))
     inputs = {"schema_version": REPORT_SCHEMA, "key": key, "root": top.path,
-              "scene_sha256": stepfile.sha256_bytes(jsonio.dumps(scene).encode("utf-8")),
+              "scene_sha256": assemblies.scene_sha256(scene),
               "frame": opts["frame"], "tool": kernel.tool()}
 
     if not opts["force"] and report_path.exists() and step_path.exists() and doc_path.exists():
@@ -177,6 +178,7 @@ def main(argv):
         if (all(old.get(k) == v for k, v in inputs.items()) and old.get("check", {}).get("same")
                 and old.get("step", {}).get("sha256") == stepfile.sha256_file(step_path)):
             print(f"[assembly_step] {key}: already current ({step_path})")
+            print(f"[assembly_step] the same as a FreeCAD document: {doc_path}")
             return 0
 
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -218,6 +220,7 @@ def main(argv):
         return 1
     print(f"[assembly_step] read back: every solid is where the scene puts it, within "
           f"{check['worst_position_deviation_mm']:.2g} mm")
+    print(f"[assembly_step] the same as a FreeCAD document: {doc_path}")
     return 0
 
 

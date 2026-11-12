@@ -418,17 +418,55 @@ otherwise ([exporter-package.md](exporter-package.md)). Rewriting the camera
 would be the first change to a data section, and every identity recorded so
 far rests on the data section being the translator's.
 
+## Inventor's own export of the root assembly, 2026-11-12
+
+Until this day no record showed the recorded placements compared with a STEP
+file of the whole assembly written by Inventor. Asked of Windows on
+2026-11-11 and run read-only on 2026-11-12: Inventor exported the root
+assembly document as one AP242 file, from the acquired mirror, with all 44
+documents bound to the acquisition by hash, nothing saved and no Vault
+access. The file is evidence (`evidence/2026-11-12-windows-assembly-step-01/`
+in the shared directory; the comparison is in
+`evidence/2026-11-12-linux-windows-assembly-step-review-01/`) and is in no
+repository.
+
+1. **The recorded placements are the assembly Inventor exports.**
+   `tools/compare_assembly_step.py` on the converted enclosure and that file,
+   in the assembly's own frame: 479 of 479 solids are where the records put
+   them, the largest distance 6.4e-11 mm and the largest volume difference
+   1.3e-13 of the volume, and the file holds no other visible solid. Read
+   as if it had been turned to Z up, the same file matches none of the 479,
+   so the comparison does tell a wrong frame. The match covers the 44
+   occurrences below the two flexible instances, whose places come from
+   overrides derived on Linux.
+2. **The file has no single length unit.** Each product keeps its document's
+   unit: Windows counts 45 unit contexts, 29 in inches, 15 in millimetres and
+   one in centimetres. `stepfile.length_unit` reports that as a disagreement,
+   which stays right for a part file; FreeCAD reads the assembly in
+   millimetres, and every solid has the volume of its part file.
+3. **A hidden body is marked once, in its product.** The file has one
+   `INVISIBILITY`, for the three hidden solids of `MCMASTER 47065T245`, and
+   lists each of their styled items twice. `stepfile.visible_only` takes the
+   three items out, and with them the 24 hidden solids of the part's eight
+   occurrences (Windows counts 503 solid bodies in the file, 479 visible).
+4. **Inventor writes one product per document.** The file has 125 usages
+   where the exporter records 171 occurrences in context. Windows read the
+   text: each usage is the placement in context of every instance it stands
+   for, and the 44 usages that differ from their sub-assembly's own
+   definition are the 44 occurrences the snapshot marks as overridden. So
+   Inventor writes a flexible sub-assembly's product with the positions it
+   has in the assembly, which can hold only while a flexible document has
+   one instance, as both have here. The layout does not share that limit:
+   its overrides belong to the instance.
+5. The export took 25.6 s. The file is 21.7 MB; the 37 AP242 part files
+   together are 20.9 MB.
+
 ## Not verified
 
-- That the recorded placements are the assembly Inventor itself would export.
-  The placements were read from Inventor's occurrences and the manual drawn
-  from them is being built from, but no record shows them compared with a
-  STEP file of the whole assembly written by Inventor. Since 2026-11-11
-  `tools/assembly_step.py` derives such a file from the layout (the
-  enclosure: 479 solids, each read back within 0.002 mm of where the scene
-  puts it) and `tools/compare_assembly_step.py` compares another one with the
-  records; Inventor's export of the root assembly is asked of Windows, as
-  evidence only.
+- Inventor's assembly export where a flexible document has more than one
+  instance, or where an occurrence is suppressed, invisible or excluded. The
+  enclosure has none of these. One export was made; whether an assembly
+  export is the same bytes between sessions is not known.
 - How the FreeCAD document that `tools/assembly_step.py` writes looks when it
   is opened: it is made without a view, and whether the part definitions the
   instances link to open hidden has not been observed.

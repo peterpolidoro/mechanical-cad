@@ -2,6 +2,7 @@
 
 validate PROJECT            check a project repository against the layout
 flatten PROJECT --out DIR   write the flattened scene.json and its assets
+assemblies PROJECT          list the assemblies that can be built as one STEP file, and which are built
 check PROJECT               evaluate the checks of the authored parts against their facts
 lock PROJECT                print the index vault-lock.json must equal
 compare-scenes OLD NEW      are two flattened scenes the same assembly?
@@ -16,7 +17,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import compare, facts, flatten, jsonio, layout, stepfile
+from . import assemblies, compare, facts, flatten, jsonio, layout, stepfile
 
 
 def _validate(args):
@@ -46,6 +47,29 @@ def _flatten(args):
         print("ERROR  ", exc)
         return 1
     print(json.dumps(result, indent=2))
+    return 0
+
+
+def _assemblies(args):
+    project = layout.load(args.project)
+    built_in = Path(args.dir) if args.dir else assemblies.default_dir(project.dir)
+    try:
+        rows = assemblies.listing(project, built_in)
+    except flatten.FlattenError as exc:
+        for line in project.errors:
+            print("ERROR  ", line)
+        print(f"{args.project}: {exc}")
+        return 1
+    if args.json:
+        jsonio.write(args.json, {"schema_version": 1, "project": str(args.project), "built_in": str(built_in),
+                                 "assemblies": rows})
+    for line in assemblies.table(rows):
+        print(line)
+    built = sum(r["built"]["state"] == assemblies.CURRENT for r in rows)
+    stale = sum(r["built"]["state"] == assemblies.OUT_OF_DATE for r in rows)
+    print(f"{len(rows)} assembl{'y' if len(rows) == 1 else 'ies'}, {built} built and current"
+          + (f", {stale} out of date (built before the records changed)" if stale else "")
+          + f". Built files: {built_in}/KEY.step and KEY.FCStd")
     return 0
 
 
@@ -160,6 +184,12 @@ def main(argv=None):
     p.add_argument("--out", required=True, help="a new or empty directory")
     p.add_argument("--root", help="key of the assembly to flatten (default: the only unplaced assembly)")
     p.set_defaults(func=_flatten)
+
+    p = sub.add_parser("assemblies", help="list the assemblies that can be built as one STEP file, and which are built")
+    p.add_argument("project")
+    p.add_argument("--dir", help="where the built files are (default: PROJECT/.cache/assemblies)")
+    p.add_argument("--json", help="also write the list to this file")
+    p.set_defaults(func=_assemblies)
 
     p = sub.add_parser("check", help="evaluate the checks of the authored parts against their facts")
     p.add_argument("project")

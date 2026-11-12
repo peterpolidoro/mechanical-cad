@@ -7,7 +7,7 @@ open-source tools to check it, document it and add to it, with the
 free-standing tank enclosure as the test project. The full statement is
 docs/direction.md. Finished checkpoints are in .agents/HISTORY.md.
 
-## Current state (2026-11-11)
+## Current state (2026-11-12)
 
 On 2026-11-11 Peter decided the layout's three open choices: two roots and
 readable keys, which is what was built on 2026-11-10 while he assembled the
@@ -78,8 +78,36 @@ a second build gives the same bytes; 83 s. Not observed: the FreeCAD
 document opened in the GUI (an off-screen session had no graphics context),
 so whether the part definitions open hidden is unknown until Peter opens it.
 Asked of Windows the same day: Inventor's own STEP export of the root
-assembly, as evidence only, to compare with the records. No record shows
-that comparison was ever made.
+assembly, as evidence only, to compare with the records.
+
+That comparison was made on 2026-11-12. Windows exported the root assembly
+as one AP242 file, read-only (no Vault access, nothing saved, the 44
+documents bound to the acquisition by hash). `compare_assembly_step.py` on
+the converted enclosure and that file: 479 of 479 solids where the records
+put them, within 6.4e-11 mm, none unexpected; read in the wrong frame, as a
+control, none of the 479 matches. So the recorded placements, the 44 derived
+overrides of the two flexible instances among them, are the assembly
+Inventor exports. Found on the way: such a file keeps
+each document's length unit (inches, millimetres and centimetres in one
+file), which the kernel reads correctly; its one `INVISIBILITY` lists each
+styled item twice, which `stepfile.visible_only` handles; and Inventor
+writes a flexible sub-assembly's product with the positions it has in the
+assembly, which can hold only while that document has one instance. The
+detail is in docs/layout-proposal.md. Windows went on to the package task.
+
+On 2026-11-12 Peter asked that people and agents can find out which
+assemblies a project can build, and suggested short `make` commands in
+place of the long ones. Built: `python3 -m mechanical_cad assemblies PROJECT`
+lists every assembly with its key, its size, what it is part of and whether
+its built files are current (`mechanical_cad/assemblies.py`); an unknown key
+is refused with the list of keys; a `Makefile` here runs the commonest
+commands for a project given as `PROJECT=DIR`; and the enclosure's Makefile,
+on its branch, hands `validate`, `assemblies` and `assembly` to it, finding
+this checkout beside it or through an ignored `local.mk`. Run on the
+enclosure through `make`: the list (7 assemblies), `validate`, the camera
+frame built (16 parts, 36 occurrences, 124 solids, 25 s), an unknown key
+refused. docs/layout-specification.md, "Short commands in a project", has
+the lines a project's Makefile needs.
 
 The enclosure was converted that day on its branch `layout-conversion`, and
 the acceptance test passed there on the tracked tree (it had passed on a dry
@@ -99,9 +127,13 @@ What exists here:
   evaluates a part's `checks.json`; `stepfile.py` reads a STEP file's
   identities, header, unit and invisible items, normalises the header and
   writes the file without its invisible items; `solids.py` matches the solids
-  of a whole-assembly file with a scene; `cli.py` has `validate`,
-  `flatten`, `check`, `lock`, `compare-scenes`, `step-info`,
+  of a whole-assembly file with a scene; `assemblies.py` lists a project's
+  assemblies and the state of their built files; `cli.py` has `validate`,
+  `flatten`, `assemblies`, `check`, `lock`, `compare-scenes`, `step-info`,
   `normalise-header` and `visible-only`.
+- `Makefile`: short forms of the tests and of `validate`, `assemblies` and
+  `assembly` for a project given as `PROJECT=DIR`. It needs GNU make on the
+  host; the Guix manifests do not provide it, so no test runs it.
 - `tools/` (run by FreeCADCmd): `step_facts.py` writes `facts.json` for
   imported parts; `build_part.py` builds an authored part from `build.py` and
   `parameters.json`. `tools/conversion_acceptance.py` (plain Python) runs the
@@ -117,7 +149,7 @@ What exists here:
 - `examples/layout-fixture/`: a synthetic project with imported and authored
   parts, a flexible instance with an override, and its generator.
 - docs/layout-specification.md: the draft the code implements.
-- Tests: 126 pass in the base role and 8 more with FreeCAD (run 2026-11-11,
+- Tests: 131 pass in the base role and 8 more with FreeCAD (run 2026-11-12,
   Python 3.12.12, pytest 9.0.2, FreeCAD 1.1.3, OpenCASCADE 7.9.3).
 
 What was run against the enclosure (a dry run into the enclosure's ignored
@@ -236,18 +268,12 @@ Smaller ones:
    --other-export`, and `compare_step_exports.py` for the parts). The scene's
    part properties will differ where the exporter leaves out the names of
    people; that difference is expected and has to be read, not waved through.
-4. The comparison with Inventor's own export of the root assembly, when
-   Windows delivers it (asked 2026-11-11): `compare_assembly_step.py` on the
-   branch's project and that file, in the assembly's own frame. A part that
-   is reported in the wrong place is a finding about the recorded placements
-   or about how the overrides of flexible instances are derived, to be
-   settled before the package's review is.
-5. One full render of the manual from the re-exported project, in
+4. One full render of the manual from the re-exported project, in
    `mechanical-docs`, compared with today's by parts, quantities, steps and
    checks. Merge the branch.
-6. The first new part for the enclosure written as code, built and checked
+5. The first new part for the enclosure written as code, built and checked
    here, manufactured, then published to Vault.
-7. The Guix channel (`.guix-channel` pointing at `.guix/modules`, as
+6. The Guix channel (`.guix-channel` pointing at `.guix/modules`, as
    `orb-weaver-context` does), then OCP against Guix's `opencascade-occt`,
    build123d, CadQuery. Peter recorded this packaging as his own deferred work
    on 2026-10-23; confirm before starting it.

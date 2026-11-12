@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 from conftest import REPO, edit_json, invisible, replace_step, write_json
 
-from mechanical_cad import layout
+from mechanical_cad import assemblies, layout
 
 FREECAD = shutil.which("FreeCADCmd")
 pytestmark = pytest.mark.skipif(FREECAD is None, reason="FreeCADCmd is not on PATH (use the CAD role)")
@@ -143,12 +143,15 @@ def test_a_whole_assembly_is_built_once_and_matches_its_scene(project_copy, tmp_
     again = run("assembly_step.py", project_copy, "--", "--force")
     assert "unchanged" in again and "exit status 0" in again, again
     assert cache(project_copy) == before                             # built again: the same bytes, nothing rewritten
+    listed = {r["key"]: r["built"]["state"] for r in assemblies.listing(layout.load(project_copy))}
+    assert listed == {WHOLE: "current", "fixture-root": "not built", "pin-pair": "not built"}
 
     # a sub-assembly, in its own frame, somewhere else
     sub = run("assembly_step.py", project_copy, "fixture-root", "--", "--out", tmp_path / "sub", "--", "--frame", "own")
     assert "2 part(s), 5 occurrence(s), 5 solid(s)" in sub and "exit status 0" in sub, sub
     assert json.loads((tmp_path / "sub" / "fixture-root.json").read_text())["frame"] == "own"
-    assert "'nothing' is not an assembly of this project" in run("assembly_step.py", project_copy, "nothing")
+    refused = run("assembly_step.py", project_copy, "nothing")                 # and says which there are
+    assert "'nothing' is not an assembly of this project; its assemblies: fixture-root, fixture-with-spacer, pin-pair" in refused
 
     # a child that is not visible is left out and named
     manifest = project_copy / "designs/assemblies" / WHOLE / "assembly.json"
@@ -156,6 +159,8 @@ def test_a_whole_assembly_is_built_once_and_matches_its_scene(project_copy, tmp_
     hidden = run("assembly_step.py", project_copy)
     assert "5 occurrence(s), 5 solid(s)" in hidden and "written" in hidden, hidden
     assert json.loads(cache(project_copy)[".json"])["occurrences_not_visible_left_out"] == ["SPACER:1"]
+    edit_json(manifest, lambda d: d["children"][1].update(visible=True))        # the records change after the build
+    assert assemblies.listing(layout.load(project_copy))[0]["built"]["state"] == "out of date"
 
 
 def test_another_file_of_the_whole_assembly_is_compared_with_the_records(project_copy, tmp_path):

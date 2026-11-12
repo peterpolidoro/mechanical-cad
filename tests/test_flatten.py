@@ -82,7 +82,7 @@ def test_named_root_and_frame(fixture_dir):
     assert scene["source"]["root_master_id"] == "900004" and scene["source"]["export_run"] == "synthetic-export-0001"
     assert all(not isinstance(v, (dict, list)) for v in scene["source"].values())     # the loader takes scalars only
     assert scene["assemblies"][0] == {"id": "root", "parent_id": None, "transform": T.identity(), "document": "FIXTURE ROOT.iam"}
-    with pytest.raises(flatten.FlattenError, match="not an assembly"):
+    with pytest.raises(flatten.FlattenError, match="not an assembly of this project; its assemblies: fixture-root, fixture-with-spacer, pin-pair"):
         scene_of(fixture_dir, "pin")
 
 

@@ -29,7 +29,8 @@ def find_root(project, root=None):
     assemblies = {c.key: c for c in project.of(kind="assembly")}
     if root is not None:
         if root not in assemblies:
-            raise FlattenError(f"{root!r} is not an assembly of this project")
+            raise FlattenError(f"{root!r} is not an assembly of this project; its assemblies: "
+                               + (", ".join(sorted(assemblies)) or "none"))
         return assemblies[root]
     placed = {ch.component for c in assemblies.values() for ch in c.children}
     tops = sorted(k for k in assemblies if k not in placed)

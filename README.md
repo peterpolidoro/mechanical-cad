@@ -32,10 +32,25 @@ There is no Guix channel yet, and no package of OCP, build123d or CadQuery.
 
 ## Commands
 
+`make` alone lists short forms of the commonest ones:
+
+```sh
+make test                              # the tests that need no FreeCAD; make test-cad runs all of them
+make validate PROJECT=DIR              # check a project repository against the layout
+make assemblies PROJECT=DIR            # the project's assemblies, and which are built
+make assembly PROJECT=DIR [KEY=K]      # build one as a STEP file and a FreeCAD document
+```
+
+A project repository's own Makefile can hand these to this one, so that inside
+the project they need no parameter (`make assemblies`, `make assembly`); the
+lines are in [the specification](docs/layout-specification.md#short-commands-in-a-project).
+The commands in full follow.
+
 Nothing below needs a CAD kernel:
 
 ```sh
 guix shell --pure -m manifest.scm -- python3 -B -m mechanical_cad validate PROJECT
+guix shell --pure -m manifest.scm -- python3 -B -m mechanical_cad assemblies PROJECT
 guix shell --pure -m manifest.scm -- python3 -B -m mechanical_cad flatten PROJECT --out NEW_DIR [--root KEY]
 guix shell --pure -m manifest.scm -- python3 -B -m mechanical_cad check PROJECT
 guix shell --pure -m manifest.scm -- python3 -B -m mechanical_cad compare-scenes OLD/scene.json NEW/scene.json
@@ -47,6 +62,11 @@ guix shell --pure -m manifest.scm -- python3 -B -m pytest -q tests
 
 - `validate` checks a project repository against the layout and prints errors
   and findings.
+- `assemblies` lists every assembly of a project, the top-level one and the
+  sub-assemblies, with its key, its parts and occurrences, what it is part of
+  and whether its built files are current. Any of them can be built by
+  `assembly_step.py` below; this is how a person or an agent finds out which
+  there are. `--json FILE` writes the list for a program.
 - `flatten` composes the per-assembly manifests into the `scene.json` that
   `mechanical-docs` reads, with a copy of the STEP files it names.
 - `check` evaluates each authored part's `checks.json` against its measured
@@ -71,7 +91,8 @@ guix shell --pure -m manifest.scm -m .guix/manifest-cad.scm -- python3 -B -m pyt
   AP242 export of a part tracked as AP214, an export from another session) and
   says whether each is the same geometry as the tracked file.
 - `assembly_step.py` builds one STEP file and one FreeCAD document of a whole
-  assembly (KEY, or the only assembly nothing places) from the part files and
+  assembly (KEY, one of the keys `assemblies` lists, or the only assembly
+  nothing places) from the part files and
   the placements, into the project's ignored `.cache/assemblies/`: the way to
   look at an assembly in FreeCAD or hand it to someone. It reads its file back
   and checks every solid against the flattened scene. The files carry
