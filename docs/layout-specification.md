@@ -56,6 +56,7 @@ The commands, and where they live:
 | build | `part.step`, `receipt.json`, `facts.json` of an authored part | `tools/build_part.py`, run by FreeCADCmd |
 | publication record | `vault.json` of an authored part, and the `publications` of `vault-lock.json` | `vault-cad-tools` (`vault-cad import-publish-result`) |
 | validate, check, flatten | nothing in the repository | `python3 -m mechanical_cad` |
+| whole-assembly STEP | `.cache/assemblies/`, which the project ignores | `tools/assembly_step.py`, run by FreeCADCmd |
 | step-info, normalise-header, visible-only | nothing in the repository | `python3 -m mechanical_cad` |
 
 ## Keys
@@ -331,6 +332,44 @@ scene's size. A STEP file that differs is a difference. With `--other-export`
 it is listed and not counted: the new scene is then another export of the
 same Vault versions, whose files differ in every byte, and their geometry is
 compared with `tools/compare_step_exports.py`.
+
+## A STEP file of a whole assembly
+
+An assembly is stored as its parts' STEP files and its manifest, never as a
+STEP file of its own: such a file repeats the geometry of every part below
+it, and would be a second source that can disagree with the first. When one
+is wanted, to look at the assembly in FreeCAD or to hand it to someone, it is
+derived:
+
+    FreeCADCmd tools/assembly_step.py --pass PROJECT [KEY] [-- --out DIR] [-- --frame own] [-- --force]
+
+writes `KEY.step`, `KEY.FCStd` and `KEY.json` for the assembly KEY (any
+assembly of the project; by default the one the scene would be flattened
+from). They go to `PROJECT/.cache/assemblies/` unless `--out` names another
+directory. That default is a proposal (2026-11-11): beside what they derive
+from and kept between sessions, in a directory the project's `.gitignore`
+lists and the validator does not look into. They are never committed.
+
+- The file is the flattened scene of KEY: each part file read once, without
+  the items it marks invisible; one instance per visible occurrence; one
+  product per sub-assembly instance, named by its occurrence name. Geometry is
+  shared between the instances of a part.
+- `--frame z-up`, the default, applies the scene's turn to `+Z` up; `--frame
+  own` keeps the assembly's own frame.
+- The STEP header is normalised. Building the same scene again with the same
+  tool gives the same bytes, and nothing is built when `KEY.json` describes
+  the scene, the frame, the tool and the STEP file that is there.
+- Before the files are kept the STEP file is read back and every solid in it
+  is matched with where the scene puts it: the same volume within one part in
+  a thousand and the centre of mass within 0.01 mm
+  (`mechanical_cad/solids.py`). `KEY.json` holds that check.
+- The files hold positions and shapes. They hold no constraints or joints, no
+  features, and no colour (FreeCADCmd has no view).
+
+`FreeCADCmd tools/compare_assembly_step.py --pass PROJECT KEY OTHER.step
+OUT.json` runs the same match on a file something else wrote, in the
+assembly's own frame: the mirrored CAD system's export of its assembly
+document is an independent check of the recorded placements.
 
 ## What is not specified yet
 

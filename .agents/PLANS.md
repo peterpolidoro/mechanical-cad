@@ -62,6 +62,25 @@ without counting them. The detail is in docs/exporter-package.md. The
 Windows agent's review of the draft may still change the package (who derives
 the overrides of flexible instances is put to it), and the reader with it.
 
+Peter opened the question of assemblies that day: he wants to look at a
+whole assembly in FreeCAD, and asked whether the exporter should also write a
+STEP file per assembly. Decided by him: no, such files are generated from the
+part files and the manifests and not stored (docs/direction.md). Built for
+it: `tools/assembly_step.py` writes one STEP file and one FreeCAD document of
+any assembly of a project into the project's ignored `.cache/assemblies/`
+(that location is a proposal; he asked whether it should be a temporary
+directory instead), reads its file back and matches every solid with the
+flattened scene; `tools/compare_assembly_step.py` runs the same match on a
+file something else wrote. On the converted enclosure: 37 parts, 155
+occurrences, 479 solids, 102 solid definitions as in the part files (the
+geometry is shared), every solid within 0.0018 mm and 2.5e-4 of its volume;
+a second build gives the same bytes; 83 s. Not observed: the FreeCAD
+document opened in the GUI (an off-screen session had no graphics context),
+so whether the part definitions open hidden is unknown until Peter opens it.
+Asked of Windows the same day: Inventor's own STEP export of the root
+assembly, as evidence only, to compare with the records. No record shows
+that comparison was ever made.
+
 The enclosure was converted that day on its branch `layout-conversion`, and
 the acceptance test passed there on the tracked tree (it had passed on a dry
 run the day before). The conversion brought two things back here: a
@@ -79,7 +98,8 @@ What exists here:
   lists the STEP files that differ; `facts.py` compares measured geometry and
   evaluates a part's `checks.json`; `stepfile.py` reads a STEP file's
   identities, header, unit and invisible items, normalises the header and
-  writes the file without its invisible items; `cli.py` has `validate`,
+  writes the file without its invisible items; `solids.py` matches the solids
+  of a whole-assembly file with a scene; `cli.py` has `validate`,
   `flatten`, `check`, `lock`, `compare-scenes`, `step-info`,
   `normalise-header` and `visible-only`.
 - `tools/` (run by FreeCADCmd): `step_facts.py` writes `facts.json` for
@@ -87,7 +107,9 @@ What exists here:
   `parameters.json`. `tools/conversion_acceptance.py` (plain Python) runs the
   acceptance test of docs/layout-proposal.md. `tools/compare_step_exports.py`
   (FreeCADCmd) compares other exports of a project's parts with the tracked
-  files by fingerprint. `tools/update_shared_clone.py`
+  files by fingerprint. `tools/assembly_step.py` and
+  `tools/compare_assembly_step.py` (FreeCADCmd) build and compare a STEP file
+  of a whole assembly. `tools/update_shared_clone.py`
   (plain Python) fast-forwards a clone on the network share by file copies,
   because git cannot write safely on that mount.
 - The enclosure on its branch is the second project in the layout, after the
@@ -95,7 +117,7 @@ What exists here:
 - `examples/layout-fixture/`: a synthetic project with imported and authored
   parts, a flexible instance with an override, and its generator.
 - docs/layout-specification.md: the draft the code implements.
-- Tests: 119 pass in the base role and 6 more with FreeCAD (run 2026-11-11,
+- Tests: 126 pass in the base role and 8 more with FreeCAD (run 2026-11-11,
   Python 3.12.12, pytest 9.0.2, FreeCAD 1.1.3, OpenCASCADE 7.9.3).
 
 What was run against the enclosure (a dry run into the enclosure's ignored
@@ -145,13 +167,17 @@ docs/direction.md, "Decided". What is left:
    and the exporter refuses a document that has a view.
 2. Acceptance of docs/direction.md as a whole. Its "one authority per part"
    entry under "Decided" has no date; confirm it and date it.
+3. Where a generated whole-assembly STEP file goes. Built and proposed: the
+   project's ignored `.cache/assemblies/` (kept between sessions, beside what
+   it derives from, never committed); `--out` writes anywhere else. Peter
+   asked on 2026-11-11 whether a temporary directory is better.
 
 The four questions under "Not settled" in docs/direction.md:
 
-3. The Inventor requirement: the enclosure's brief asks for design work in
+4. The Inventor requirement: the enclosure's brief asks for design work in
    Inventor and records in Vault; the decision of 2026-10-23 is parts as code,
    referenced from Inventor as STEP. Not reconciled.
-4. Names in public files. Known places: all 37 STEP headers carry an
+5. Names in public files. Known places: all 37 STEP headers carry an
    account-like author name (four people, none of them Peter); the exporter's
    records and the lock carry Peter's Windows account in absolute paths and a
    host name; the enclosure's published `docs/manual/manual.json` and
@@ -160,18 +186,18 @@ The four questions under "Not settled" in docs/direction.md:
    name; the Vault folder path with the lab's name is in 57 tracked files of
    the enclosure. Removing them from new files is possible at the re-export;
    history and the published site are a separate matter.
-5. Whether supplier-originated models may be redistributed publicly, and the
+6. Whether supplier-originated models may be redistributed publicly, and the
    wording of the enclosure README's scope statement.
-6. Where on GitHub the repositories live. `origin` here is still Codeberg.
+7. Where on GitHub the repositories live. `origin` here is still Codeberg.
 
 Smaller ones:
 
-7. Whether the generated manual packages move out of the enclosure's tracked
+8. Whether the generated manual packages move out of the enclosure's tracked
    `docs/` (141 MB there).
-8. Whether hand-edited `parameters.json`, `checks.json` and authored
+9. Whether hand-edited `parameters.json`, `checks.json` and authored
    `assembly.json` become TOML, as this repository's rule for hand-edited
    files would have it.
-9. Which Vault files the enclosure project mirrors. Its folder holds a second
+10. Which Vault files the enclosure project mirrors. Its folder holds a second
    root assembly, `SLLB Enclosure.iam`, and four other native files that the
    snapshot does not hold; the snapshot holds 18 files from outside the
    folder. The snapshot follows one root assembly; the target workflow of
@@ -179,7 +205,7 @@ Smaller ones:
    2026-11-10: he does not know that assembly and wants to look at it in
    Inventor before giving an opinion. What the discovery recorded about it is
    in the enclosure's plan.
-10. The ten questions on the Vault side
+11. The ten questions on the Vault side
     (`vault-cad-tools/docs/native-checkin-adapter-design.md`, section 10) and
     the enclosure's own (its plan, "Open items").
 
@@ -210,12 +236,18 @@ Smaller ones:
    --other-export`, and `compare_step_exports.py` for the parts). The scene's
    part properties will differ where the exporter leaves out the names of
    people; that difference is expected and has to be read, not waved through.
-4. One full render of the manual from the re-exported project, in
+4. The comparison with Inventor's own export of the root assembly, when
+   Windows delivers it (asked 2026-11-11): `compare_assembly_step.py` on the
+   branch's project and that file, in the assembly's own frame. A part that
+   is reported in the wrong place is a finding about the recorded placements
+   or about how the overrides of flexible instances are derived, to be
+   settled before the package's review is.
+5. One full render of the manual from the re-exported project, in
    `mechanical-docs`, compared with today's by parts, quantities, steps and
    checks. Merge the branch.
-5. The first new part for the enclosure written as code, built and checked
+6. The first new part for the enclosure written as code, built and checked
    here, manufactured, then published to Vault.
-6. The Guix channel (`.guix-channel` pointing at `.guix/modules`, as
+7. The Guix channel (`.guix-channel` pointing at `.guix/modules`, as
    `orb-weaver-context` does), then OCP against Guix's `opencascade-occt`,
    build123d, CadQuery. Peter recorded this packaging as his own deferred work
    on 2026-10-23; confirm before starting it.
@@ -233,6 +265,11 @@ Smaller ones:
   build123d or CadQuery path.
 - The scene written by `flatten` copies every STEP file into its output
   directory, because the documentation loader resolves assets below the scene.
+- A whole-assembly STEP file is for reading. FreeCAD's writer does not give
+  back exactly what it read: over the enclosure's 102 solids the volume of a
+  solid moves by up to 2.5e-4 of itself and its centre of mass by up to
+  0.0018 mm (FreeCAD 1.1.3). It has no colour, and the FreeCAD document
+  beside it has not been seen in the GUI.
 - On Windows only `mechanical_cad/stepfile.py` has been run, read-only, to
   check the PowerShell port against it. The validator, the flatten step and the
   tools under `tools/` have not.

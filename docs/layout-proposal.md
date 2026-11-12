@@ -420,6 +420,18 @@ far rests on the data section being the translator's.
 
 ## Not verified
 
+- That the recorded placements are the assembly Inventor itself would export.
+  The placements were read from Inventor's occurrences and the manual drawn
+  from them is being built from, but no record shows them compared with a
+  STEP file of the whole assembly written by Inventor. Since 2026-11-11
+  `tools/assembly_step.py` derives such a file from the layout (the
+  enclosure: 479 solids, each read back within 0.002 mm of where the scene
+  puts it) and `tools/compare_assembly_step.py` compares another one with the
+  records; Inventor's export of the root assembly is asked of Windows, as
+  evidence only.
+- How the FreeCAD document that `tools/assembly_step.py` writes looks when it
+  is opened: it is made without a view, and whether the part definitions the
+  instances link to open hidden has not been observed.
 - Overrides more than one level below a flexible instance, and nested flexible
   instances, on real data. The enclosure has neither.
 - Header and data-section stability on another workstation, after a restart

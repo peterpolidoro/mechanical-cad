@@ -112,3 +112,70 @@ def test_another_export_is_compared_by_its_geometry(project_copy, tmp_path):
     assert "2 compared: 2 the same geometry, 0 different, 0 failed; 0 part(s) of the project not compared" in run(
         "compare_step_exports.py", project_copy, tmp_path / "all.json", tmp_path / "all-report.json")
     assert {p: p.read_bytes() for p in project_copy.rglob("*") if p.is_file()} == before          # nothing in the project is written
+
+
+WHOLE = "fixture-with-spacer"
+
+
+def cache(project_dir, key=WHOLE):
+    d = project_dir / ".cache" / "assemblies"
+    return {name: (d / f"{key}{name}").read_bytes() for name in (".step", ".FCStd", ".json")}
+
+
+def test_a_whole_assembly_is_built_once_and_matches_its_scene(project_copy, tmp_path):
+    tracked = {p: p.read_bytes() for p in project_copy.rglob("*") if p.is_file()}
+    out = run("assembly_step.py", project_copy)                      # the only assembly nothing places
+    assert "3 part(s), 6 occurrence(s), 6 solid(s)" in out and "every solid is where the scene puts it" in out, out
+    assert "[assembly_step] exit status 0" in out
+    report = json.loads(cache(project_copy)[".json"])
+    assert report["key"] == WHOLE and report["frame"] == "z-up" and report["assembly_nodes"] == 4
+    assert report["check"]["same"] and report["check"]["solids_matched"] == 6
+    # the four pins and both pin pairs share one definition each: the file holds each part's geometry once
+    assert report["step"]["solid_definitions"] == report["step"]["solids_in_the_part_files"] == 3
+    step = cache(project_copy)[".step"]
+    assert b"1970-01-01T00:00:00" in step and b"FIXTURE ROOT:1" in step and b"PIN PAIR:2" in step
+    # the project is as it was, and what was derived is where the validator does not look
+    assert {p: p.read_bytes() for p in tracked} == tracked and layout.load(project_copy).errors == []
+
+    before = cache(project_copy)
+    assert "already current" in run("assembly_step.py", project_copy, WHOLE)
+    assert cache(project_copy) == before
+    again = run("assembly_step.py", project_copy, "--", "--force")
+    assert "unchanged" in again and "exit status 0" in again, again
+    assert cache(project_copy) == before                             # built again: the same bytes, nothing rewritten
+
+    # a sub-assembly, in its own frame, somewhere else
+    sub = run("assembly_step.py", project_copy, "fixture-root", "--", "--out", tmp_path / "sub", "--", "--frame", "own")
+    assert "2 part(s), 5 occurrence(s), 5 solid(s)" in sub and "exit status 0" in sub, sub
+    assert json.loads((tmp_path / "sub" / "fixture-root.json").read_text())["frame"] == "own"
+    assert "'nothing' is not an assembly of this project" in run("assembly_step.py", project_copy, "nothing")
+
+    # a child that is not visible is left out and named
+    manifest = project_copy / "designs/assemblies" / WHOLE / "assembly.json"
+    edit_json(manifest, lambda d: d["children"][1].update(visible=False))
+    hidden = run("assembly_step.py", project_copy)
+    assert "5 occurrence(s), 5 solid(s)" in hidden and "written" in hidden, hidden
+    assert json.loads(cache(project_copy)[".json"])["occurrences_not_visible_left_out"] == ["SPACER:1"]
+
+
+def test_another_file_of_the_whole_assembly_is_compared_with_the_records(project_copy, tmp_path):
+    made = run("assembly_step.py", project_copy, "--", "--out", tmp_path / "own", "--", "--frame", "own")
+    assert "exit status 0" in made, made
+    other = tmp_path / "own" / f"{WHOLE}.step"
+    before = {p: p.read_bytes() for p in project_copy.rglob("*") if p.is_file()}
+    out = run("compare_assembly_step.py", project_copy, WHOLE, other, tmp_path / "same.json")
+    assert "the same assembly: 6 of 6 solid(s)" in out and "exit status 0" in out, out
+    assert "exists; choose a new file" in run("compare_assembly_step.py", project_copy, WHOLE, other, tmp_path / "same.json")
+    # read in the wrong frame nothing but what lies on the turn's axis is in place
+    turned = run("compare_assembly_step.py", project_copy, WHOLE, other, tmp_path / "turned.json", "--", "--frame", "z-up")
+    assert "DIFFERENT" in turned and "exit status 1" in turned, turned
+    assert {p: p.read_bytes() for p in project_copy.rglob("*") if p.is_file()} == before     # nothing in the project is written
+
+    # the records now put the spacer 5 mm from where the file has it
+    manifest = project_copy / "designs/assemblies" / WHOLE / "assembly.json"
+    edit_json(manifest, lambda d: d["children"][1]["transform"][0].__setitem__(3, -20.0))
+    moved = run("compare_assembly_step.py", project_copy, WHOLE, other, tmp_path / "moved.json")
+    assert "DIFFERENT: 1 of 6 solid(s) are not where the records put them; 1 solid(s) of the file are not expected" in moved, moved
+    report = json.loads((tmp_path / "moved.json").read_text())
+    assert not report["same_assembly"] and report["other"]["invisible_items_left_out"] == 0
+    assert report["unmatched_by_part"]["spacer"]["nearest_solid_of_this_volume_mm"] == [pytest.approx(5.0, abs=1e-6)]

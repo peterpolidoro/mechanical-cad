@@ -52,7 +52,9 @@ The free-standing tank enclosure is the test project for every stage.
   parameters, the STEP and a receipt are committed together. Inventor is not an
   authoring tool unless a collaborator insists. (2026-10-23)
 - An assembly is per-part STEP files plus a placement manifest, never a single
-  assembly STEP as the source. (2026-10-23)
+  assembly STEP as the source. (2026-10-23) A STEP file of a whole assembly,
+  for viewing and for documentation, is generated from them and not stored in
+  the repository. (2026-11-11)
 - Linux controls the workflow. Windows performs only the Vault and Inventor
   operations, through validated request and result files in a shared directory.
   Nothing writes to Vault without Peter's explicit request. (2026-10-23)

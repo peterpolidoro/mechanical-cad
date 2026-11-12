@@ -12,8 +12,8 @@ accepted. What exists has been tested on a fixture and on a dry-run conversion
 of a real project:
 
 - a validator and a flatten step for the layout, standard-library Python;
-- tools that measure a STEP file and build a part from a program, run by
-  FreeCAD;
+- tools that measure a STEP file, build a part from a program and build one
+  STEP file of a whole assembly for viewing, run by FreeCAD;
 - a synthetic fixture and a test suite;
 - a dry-run conversion of the first project, which passes the proposal's
   acceptance test (see `.agents/PLANS.md`).
@@ -62,12 +62,24 @@ These run in FreeCAD (`.guix/manifest-cad.scm`):
 guix shell --pure -m .guix/manifest-cad.scm -- FreeCADCmd tools/step_facts.py --pass PROJECT
 guix shell --pure -m .guix/manifest-cad.scm -- FreeCADCmd tools/build_part.py --pass PROJECT/designs/parts/KEY
 guix shell --pure -m .guix/manifest-cad.scm -- FreeCADCmd tools/compare_step_exports.py --pass PROJECT MAP.json NEW_REPORT.json
+guix shell --pure -m .guix/manifest-cad.scm -- FreeCADCmd tools/assembly_step.py --pass PROJECT [KEY]
+guix shell --pure -m .guix/manifest-cad.scm -- FreeCADCmd tools/compare_assembly_step.py --pass PROJECT KEY OTHER.step NEW_REPORT.json
 guix shell --pure -m manifest.scm -m .guix/manifest-cad.scm -- python3 -B -m pytest -q tests
 ```
 
 - `compare_step_exports.py` measures other exports of a project's parts (an
   AP242 export of a part tracked as AP214, an export from another session) and
   says whether each is the same geometry as the tracked file.
+- `assembly_step.py` builds one STEP file and one FreeCAD document of a whole
+  assembly (KEY, or the only assembly nothing places) from the part files and
+  the placements, into the project's ignored `.cache/assemblies/`: the way to
+  look at an assembly in FreeCAD or hand it to someone. It reads its file back
+  and checks every solid against the flattened scene. The files carry
+  positions and shapes, not constraints, features or colour; the part files
+  and manifests stay the source.
+- `compare_assembly_step.py` says whether another STEP file of a whole
+  assembly, such as the mirrored CAD system's own export of its assembly
+  document, holds every solid where the project's records put it.
 - `step_facts.py` measures every imported STEP file (validity, solids, volume,
   area, centre of mass, bounding box) and writes `facts.json` beside it.
 - `build_part.py` builds an authored part from its `build.py` and
