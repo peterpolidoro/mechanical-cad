@@ -290,12 +290,9 @@ Smaller ones:
 1. Peter's review of the enclosure's branch `layout-conversion` (done on
    2026-11-11 in a worktree beside the project checkout, at Peter's word; the
    project's plan on that branch has the state and what was checked).
-2. The merge of that branch, which is Peter's. `vault-cad-tools` reads the new
-   lock since 2026-11-11 (`status`, `prepare-publish` from
-   `designs/parts/<key>/part.step`, `import-publish-result` into the part's
-   `vault.json`), so nothing in the tools holds it back. The index is derived
-   in two places, here and there; they agree on the enclosure, and no test
-   compares them.
+2. The merge of that branch: done by Peter on 2026-11-12 (item 4). The
+   index is derived in two places, here and in `vault-cad-tools`; they agree
+   on the enclosure, and no test compares them.
 3. The exporter's package. Draft 3 is in docs/exporter-package.md
    (2026-11-12): Windows reviewed draft 2 against Inventor and wrote the
    package for the enclosure with a new script, read-only, twice; Linux
@@ -322,12 +319,25 @@ Smaller ones:
    tests). Its mesh script cannot be given `--max-triangles` under FreeCADCmd
    1.1.3, which takes a dashed option after `--pass` for its own; the default
    is the value the recipe asked for. Not done: a full-quality render.
-4. Merge the enclosure's branch into `main` (Peter's; he said on 2026-11-12
-   that the AP242 files can become `main` if they are ready, and the checks
-   of item 3 say they are). Then the shared clone of the enclosure moves,
-   and the Windows side has to follow the new layout: its scripts and tests
-   read `references/enclosure/` of the earlier layout. A full-quality render
-   of the manual waits for Peter's corrected instructions.
+4. Merged: Peter fast-forwarded the enclosure's `main` to the branch on
+   2026-11-12 (7a1af68), and the shared clones of this repository and of the
+   enclosure were brought level. Done on Linux that day, after the merge:
+   - What `main` gives is recorded for the Windows side in the shared
+     evidence `2026-11-12-linux-main-baseline-01`: `vault-cad status`,
+     `validate`, `assemblies`, and a repeat import of the same Vault versions
+     into a clone of `main`, which leaves all 44 directories untouched.
+   - The Windows task is written (`to-windows/20261112T181749Z-...`): check
+     out and read the new layout on Windows (`mechanical_cad` has not run
+     there), the six remarks on the exporter, `Export-Package.ps1` described
+     as the exporter, a list of what serves only the earlier package, one
+     run of the changed exporter, and Inventor reading the STEP file of the
+     whole enclosure that `tools/assembly_step.py` built here (AP214, +Z up,
+     479 solids, 19.8 MB). Peter starts the Windows agent.
+   - `vault-cad-tools` no longer reads the earlier layout: `import-step`,
+     the schema 1 lock and publishing from `step/` are removed with their
+     tests (102 pass), uncommitted there until Peter commits.
+   A full-quality render of the manual waits for Peter's corrected
+   instructions.
 5. The first new part for the enclosure written as code, built and checked
    here, manufactured, then published to Vault.
 6. The Guix channel (`.guix-channel` pointing at `.guix/modules`, as
