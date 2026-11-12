@@ -188,8 +188,9 @@ What exists here:
   of a whole assembly. `tools/update_shared_clone.py`
   (plain Python) fast-forwards a clone on the network share by file copies,
   because git cannot write safely on that mount.
-- The enclosure on its branch is the second project in the layout, after the
-  fixture, and the first with an authored part published to Vault.
+- The enclosure, on its `main` since 2026-11-12, is the second project in
+  the layout, after the fixture, and the first with an authored part
+  published to Vault.
 - `examples/layout-fixture/`: a synthetic project with imported and authored
   parts, a flexible instance with an override, and its generator.
 - docs/layout-specification.md: the draft the code implements.
@@ -236,7 +237,7 @@ prompts were rewritten.
 The layout's three choices were decided on 2026-11-11 and are in
 docs/direction.md, "Decided". What is left:
 
-1. The exporter's package, docs/exporter-package.md (draft 2). Its choices:
+1. The exporter's package, docs/exporter-package.md (draft 3). Its choices:
    no names of people and no workstation paths in any record; files named by
    master id and model state, keys assigned on Linux; a refresh replaces only
    what changed in Vault; the saved view is left as the translator wrote it,
@@ -253,15 +254,26 @@ The four questions under "Not settled" in docs/direction.md:
 4. The Inventor requirement: the enclosure's brief asks for design work in
    Inventor and records in Vault; the decision of 2026-10-23 is parts as code,
    referenced from Inventor as STEP. Not reconciled.
-5. Names in public files. Known places: all 37 STEP headers carry an
-   account-like author name (four people, none of them Peter); the exporter's
-   records and the lock carry Peter's Windows account in absolute paths and a
-   host name; the enclosure's published `docs/manual/manual.json` and
-   `SOURCE.json` carry the account and the share path; `vault-project.toml` and
-   eight tracked files of `vault-cad-tools` carry the server name and vault
-   name; the Vault folder path with the lab's name is in 57 tracked files of
-   the enclosure. Removing them from new files is possible at the re-export;
-   history and the published site are a separate matter.
+5. Names in public files. Before the re-export: all 37 STEP headers carried
+   an account-like author name (four people, none of them Peter); the
+   exporter's records and the lock carried Peter's Windows account in
+   absolute paths and a host name. Counted on the enclosure's `main` after
+   the re-export (8d15145, 347 tracked files, 2026-11-12): no STEP file of
+   the 38 has an author or an organisation in its header, and the 44
+   directories and the index hold no account, host or workstation path.
+   What is left in the tree: the earlier snapshot's records, kept byte for
+   byte under `references/receipts/legacy-snapshot-991056/` (four files with
+   the account in absolute paths, one of them with the host name); the
+   published `docs/manual/manual.json` (the account in paths) and
+   `docs/manual/SOURCE.json` (the share path); the server name in
+   `vault-project.toml` and one more file of the enclosure and in seven
+   tracked files of `vault-cad-tools`; none of these names in this
+   repository or in `mechanical-docs`; and the Vault folder path with the
+   lab's name in 116 tracked files of the enclosure
+   (the 44 `source.json`, 63 files under `docs/manual/`, five receipts and
+   four others). So the question is now about those receipts (keep, cut down
+   or leave out), the published manual, the folder path, and history, which
+   holds everything the earlier files did.
 6. Whether supplier-originated models may be redistributed publicly, and the
    wording of the enclosure README's scope statement.
 7. Where on GitHub the repositories live. `origin` here is still Codeberg.
@@ -335,7 +347,16 @@ Smaller ones:
      479 solids, 19.8 MB). Peter starts the Windows agent.
    - `vault-cad-tools` no longer reads the earlier layout: `import-step`,
      the schema 1 lock and publishing from `step/` are removed with their
-     tests (102 pass), uncommitted there until Peter commits.
+     tests (102 pass). Peter committed and pushed it the same day (e85c85e,
+     with the enclosure's 8d15145 and d9dd527 here); the tests and `status`
+     on the enclosure were run again on the pushed commits and give the same.
+   - Peter ran `make open` in the enclosure's main checkout after the merge:
+     the whole enclosure builds and opens.
+   - At 2026-11-12T19:42Z the share holds nothing from Windows for that
+     task: no reply, no evidence directory, its status file still the one of
+     15:41Z. The shared clones stay where the task names them
+     (`vault-cad-tools` a66ca5a, this repository 8737ae6, the enclosure
+     7a1af68) until the task is done, because its patch is against a66ca5a.
    A full-quality render of the manual waits for Peter's corrected
    instructions.
 5. The first new part for the enclosure written as code, built and checked
@@ -350,10 +371,15 @@ Smaller ones:
 - The validator has been run on two projects: the fixture and the converted
   enclosure. The tolerances for comparing geometry facts are provisional (one
   kernel version).
-- `import-snapshot` reads only the package the exporter wrote on 2026-10-21
-  and refuses suppressed or mirrored occurrences, an instance whose definition
-  disagrees with another instance's, and nested flexible instances that would
-  need an override on an outer level.
+- `import-snapshot` reads two packages: the one `Export-Package.ps1` writes
+  (`package.json`, `occurrences.json`, `files/`; draft 3), into a new
+  directory or an existing project, and the one the earlier exporter wrote on
+  2026-10-21, into a new directory only. The second reading is kept until
+  the Windows side has listed what still serves the earlier package. Both
+  refuse what the layout cannot record: suppressed or mirrored occurrences,
+  an instance whose definition disagrees with another instance's, and nested
+  flexible instances that would need an override on an outer level. One real
+  package has been imported, from one root assembly.
 - `build_part.py` takes a FreeCAD `Part.Shape` with one product. There is no
   build123d or CadQuery path.
 - The scene written by `flatten` copies every STEP file into its output
