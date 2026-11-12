@@ -91,6 +91,18 @@ def test_files_that_are_not_step():
 def test_protocol_names(schema, protocol):
     data = INVENTOR.replace(b"AUTOMOTIVE_DESIGN { 1 0 10303 214 3 1 1 }", schema.encode())
     assert S.header(data)["protocol"] == protocol
+    assert S.header(data)["schemas"] == [schema]
+
+
+def test_a_file_that_names_two_schemas_has_no_protocol():
+    """As Inventor's translator wrote it four times on 2026-11-12: a second name in front of the AP242 one."""
+    ap242 = "AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF { 1 0 10303 442 1 1 4 }"
+    data = INVENTOR.replace(b"('AUTOMOTIVE_DESIGN { 1 0 10303 214 3 1 1 }')",
+                            b"('AUTOMOTIVE_DESIGN { 1 0 10303 214 3 1 1 }','" + ap242.encode() + b"')")
+    head = S.header(data)
+    assert head["schemas"] == ["AUTOMOTIVE_DESIGN { 1 0 10303 214 3 1 1 }", ap242]
+    assert head["schema"] == "AUTOMOTIVE_DESIGN { 1 0 10303 214 3 1 1 }" and head["protocol"] is None
+    assert S.data_sha256(data) == S.data_sha256(INVENTOR)            # the data section is the usual one
 
 
 def test_fixture_files(fixture_dir):

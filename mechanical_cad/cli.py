@@ -3,6 +3,7 @@
 validate PROJECT            check a project repository against the layout
 flatten PROJECT --out DIR   write the flattened scene.json and its assets
 assemblies PROJECT          list the assemblies that can be built as one STEP file, and which are built
+built PROJECT [KEY]         print the path of an assembly's built FreeCAD document, if it is current
 check PROJECT               evaluate the checks of the authored parts against their facts
 lock PROJECT                print the index vault-lock.json must equal
 compare-scenes OLD NEW      are two flattened scenes the same assembly?
@@ -68,8 +69,28 @@ def _assemblies(args):
     built = sum(r["built"]["state"] == assemblies.CURRENT for r in rows)
     stale = sum(r["built"]["state"] == assemblies.OUT_OF_DATE for r in rows)
     print(f"{len(rows)} assembl{'y' if len(rows) == 1 else 'ies'}, {built} built and current"
-          + (f", {stale} out of date (built before the records changed)" if stale else "")
+          + (f", {stale} out of date (the records or the build changed since)" if stale else "")
           + f". Built files: {built_in}/KEY.step and KEY.FCStd")
+    return 0
+
+
+def _built(args):
+    """The path alone goes to standard output, so that a script can take it; anything else to standard error."""
+    project = layout.load(args.project)
+    built_in = Path(args.dir) if args.dir else assemblies.default_dir(project.dir)
+    try:
+        top = flatten.find_root(project, args.key)
+        scene = flatten.flatten(project, top.key)[0]
+    except flatten.FlattenError as exc:
+        for line in project.errors:
+            print("ERROR  ", line, file=sys.stderr)
+        print(f"{args.project}: {exc}", file=sys.stderr)
+        return 1
+    found = assemblies.built(built_in, top.key, assemblies.scene_sha256(scene))
+    if found["state"] != assemblies.CURRENT:
+        print(f"{top.key}: {found['state']} in {built_in}; tools/assembly_step.py builds it", file=sys.stderr)
+        return 1
+    print(found["step"] if args.step else found["document"])
     return 0
 
 
@@ -190,6 +211,13 @@ def main(argv=None):
     p.add_argument("--dir", help="where the built files are (default: PROJECT/.cache/assemblies)")
     p.add_argument("--json", help="also write the list to this file")
     p.set_defaults(func=_assemblies)
+
+    p = sub.add_parser("built", help="print the path of an assembly's built FreeCAD document, if it is current")
+    p.add_argument("project")
+    p.add_argument("key", nargs="?", help="key of the assembly (default: the only unplaced assembly)")
+    p.add_argument("--step", action="store_true", help="print the path of the STEP file instead")
+    p.add_argument("--dir", help="where the built files are (default: PROJECT/.cache/assemblies)")
+    p.set_defaults(func=_built)
 
     p = sub.add_parser("check", help="evaluate the checks of the authored parts against their facts")
     p.add_argument("project")

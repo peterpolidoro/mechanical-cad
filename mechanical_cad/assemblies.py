@@ -12,6 +12,9 @@ from pathlib import Path
 from . import flatten, jsonio, solids, stepfile
 
 BUILT_DIR = (".cache", "assemblies")
+# The version of what tools/assembly_step.py writes. 2: the FreeCAD document carries view data, so that it
+# opens with the assembly shown; files of an earlier version are out of date.
+BUILD_SCHEMA = 2
 NOT_BUILT, OUT_OF_DATE, CURRENT = "not built", "out of date", "current"
 
 
@@ -28,9 +31,9 @@ def scene_sha256(scene):
 def built(out_dir, key, scene_hash):
     """The state of the built files of one assembly, and where they are.
 
-    "current": the files were built from the records as they stand and the
-    STEP file is the one its report names. "out of date": files are there, but
-    not those. The frame and the tool they were built with are not judged here;
+    "current": the files were built from the records as they stand, by this
+    version of the build, and the STEP file is the one its report names. "out
+    of date": files are there, but not those. The frame and the tool they were built with are not judged here;
     the build is, by tools/assembly_step.py, which rebuilds when they differ.
     """
     out_dir = Path(out_dir)
@@ -42,7 +45,8 @@ def built(out_dir, key, scene_hash):
         old = jsonio.load(report)
     except (jsonio.JsonError, OSError):
         return out
-    if (isinstance(old, dict) and old.get("scene_sha256") == scene_hash and (old.get("check") or {}).get("same") is True
+    if (isinstance(old, dict) and old.get("schema_version") == BUILD_SCHEMA and old.get("scene_sha256") == scene_hash
+            and (old.get("check") or {}).get("same") is True
             and (old.get("step") or {}).get("sha256") == stepfile.sha256_file(step)):
         out["state"] = CURRENT
         out["frame"] = old.get("frame")

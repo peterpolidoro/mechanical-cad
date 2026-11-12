@@ -31,8 +31,12 @@ it (mechanical_cad/solids.py). If the report describes the same scene, frame
 and tool and the files are the ones it names, nothing is built and no file
 changes; --force builds again.
 
+The FreeCAD document opens with the assembly shown and the part files it links
+to hidden, in a group of their own (mechanical_cad/fcstd.py writes that into
+it; FreeCADCmd has no window and would leave everything hidden).
+
 What the files are not: they carry positions, not constraints or joints, and
-shapes, not features. FreeCADCmd has no view, so they carry no colour either.
+shapes, not features. They carry no colour either.
 The part files and the manifests stay the source; these are for reading.
 
 FreeCADCmd prints an uncaught exception and still exits 0, so this script
@@ -53,12 +57,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import FreeCAD as App  # noqa: E402
 import Import  # noqa: E402
+import Part  # noqa: E402
 
 import kernel  # noqa: E402
-from mechanical_cad import assemblies, flatten, jsonio, layout, solids, stepfile  # noqa: E402
+from mechanical_cad import assemblies, fcstd, flatten, jsonio, layout, solids, stepfile  # noqa: E402
 from mechanical_cad import transforms as T  # noqa: E402
 
-REPORT_SCHEMA = 1
+REPORT_SCHEMA = assemblies.BUILD_SCHEMA
 _SOLID = re.compile(rb"=\s*(?:MANIFOLD_SOLID_BREP|BREP_WITH_VOIDS)\s*\(")
 
 
@@ -71,7 +76,9 @@ def leaf(path):
 
 
 def build(scene, assets, frame):
-    """Return (document, object to export, {part id: its solids}, {part id: invisible items left out})."""
+    """Return (document, object to export, {part id: its solids}, {part id: invisible items left out},
+    number of containers, view): view is ({object name: shown in the window?}, names of the open tree nodes,
+    a camera that has the assembly in view)."""
     doc = App.newDocument("assembly")
     definitions = doc.addObject("App::DocumentObjectGroup", "definitions")
     definitions.Label = "Part files (the assembly links to these)"
@@ -123,14 +130,23 @@ def build(scene, assets, frame):
         top.Label = scene["title"]
         top.addObject(containers["root"])
 
+    shown = {}
     for i, o in enumerate(occurrences):
         link = doc.addObject("App::Link", "occ_%04d" % i)
         link.LinkedObject = features[o["part_id"]]
         link.Label = leaf(o["id"])
         link.Placement = placement(o["transform"])
         containers[o["parent_id"]].addObject(link)
+        shown[link.Name] = True
     doc.recompute()
-    return doc, top, part_solids, hidden, len(containers)
+    # In the window: the part files hidden, the assembly shown, its first level open in the tree.
+    shown[definitions.Name] = False
+    shown.update({f.Name: False for f in features.values()})
+    shown.update({c.Name: True for c in containers.values()})
+    shown[top.Name] = True
+    box = Part.getShape(top).BoundBox
+    camera = fcstd.isometric_camera((box.XMin, box.YMin, box.ZMin, box.XMax, box.YMax, box.ZMax))
+    return doc, top, part_solids, hidden, len(containers), (shown, {top.Name, containers["root"].Name}, camera)
 
 
 def options(argv):
@@ -173,8 +189,15 @@ def main(argv):
               "scene_sha256": assemblies.scene_sha256(scene),
               "frame": opts["frame"], "tool": kernel.tool()}
 
-    if not opts["force"] and report_path.exists() and step_path.exists() and doc_path.exists():
-        old = jsonio.load(report_path)
+    old = {}
+    if report_path.exists():
+        try:
+            old = jsonio.load(report_path)
+        except jsonio.JsonError:
+            pass
+        if not isinstance(old, dict):
+            old = {}
+    if not opts["force"] and old and step_path.exists() and doc_path.exists():
         if (all(old.get(k) == v for k, v in inputs.items()) and old.get("check", {}).get("same")
                 and old.get("step", {}).get("sha256") == stepfile.sha256_file(step_path)):
             print(f"[assembly_step] {key}: already current ({step_path})")
@@ -182,7 +205,7 @@ def main(argv):
             return 0
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    doc, export, part_solids, hidden, containers = build(scene, assets, opts["frame"])
+    doc, export, part_solids, hidden, containers, view = build(scene, assets, opts["frame"])
     placed = solids.placed(scene)
     with tempfile.TemporaryDirectory(dir=out_dir, prefix=".building-") as tmp:
         tmp_step, tmp_doc = Path(tmp) / f"{key}.step", Path(tmp) / f"{key}.FCStd"
@@ -192,10 +215,12 @@ def main(argv):
         check = solids.match(solids.expected(scene, part_solids, opts["frame"]), kernel.solids(kernel.read_step(tmp_step)))
         doc.saveAs(str(tmp_doc))
         App.closeDocument(doc.Name)
+        fcstd.write_view(tmp_doc, *view)       # saved without a window, the document would open with nothing shown
         step_changed = not step_path.exists() or step_path.read_bytes() != data
         if step_changed:
             os.replace(tmp_step, step_path)
-        if step_changed or not doc_path.exists():
+        # The document is a zip archive with the time of its writing in it: it is replaced only when it has to be.
+        if step_changed or not doc_path.exists() or old.get("schema_version") != REPORT_SCHEMA:
             os.replace(tmp_doc, doc_path)
 
     visible = {o["id"] for o in placed}

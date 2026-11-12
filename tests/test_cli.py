@@ -52,6 +52,24 @@ def test_assemblies_lists_what_can_be_built(fixture_dir, project_copy, tmp_path,
     assert "ERROR   references/parts/pin" in out and "does not validate" in out and "KEY" not in out
 
 
+def test_built_prints_the_path_of_a_current_document_and_nothing_else(fixture_dir, tmp_path, capsys):
+    from test_assemblies import fake_build
+    assert main(["built", str(fixture_dir), "--dir", str(tmp_path)]) == 1            # the top-level one, not built
+    said = capsys.readouterr()
+    assert said.out == "" and "fixture-with-spacer: not built" in said.err
+    fake_build(tmp_path, "fixture-with-spacer", fixture_dir)
+    fake_build(tmp_path, "pin-pair", fixture_dir)
+    assert main(["built", str(fixture_dir), "--dir", str(tmp_path)]) == 0
+    assert capsys.readouterr().out == f"{tmp_path}/fixture-with-spacer.FCStd\n"
+    assert main(["built", str(fixture_dir), "pin-pair", "--dir", str(tmp_path), "--step"]) == 0
+    assert capsys.readouterr().out == f"{tmp_path}/pin-pair.step\n"
+    assert main(["built", str(fixture_dir), "fixture-root", "--dir", str(tmp_path)]) == 1
+    assert "fixture-root: not built" in capsys.readouterr().err
+    assert main(["built", str(fixture_dir), "nothing", "--dir", str(tmp_path)]) == 1
+    said = capsys.readouterr()
+    assert said.out == "" and "'nothing' is not an assembly of this project; its assemblies: fixture-root" in said.err
+
+
 def test_check(fixture_dir, project_copy, capsys):
     assert main(["check", str(fixture_dir)]) == 0
     assert "1 authored part(s), 4 check(s), 0 failure(s)" in capsys.readouterr().out

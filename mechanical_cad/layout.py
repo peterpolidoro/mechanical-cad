@@ -253,6 +253,9 @@ def _check_step(project, comp):
     except (stepfile.StepFileError, OSError) as exc:
         project.error(f"{comp.path}/part.step", f"not readable as a STEP file: {exc}")
         return
+    if len(comp._step_header["schemas"]) > 1:
+        project.error(f"{comp.path}/part.step", "FILE_SCHEMA names more than one schema: "
+                      + ", ".join(s.split()[0] for s in comp._step_header["schemas"]))
     try:
         comp.step_length_unit = stepfile.length_unit(data)
     except stepfile.StepFileError as exc:

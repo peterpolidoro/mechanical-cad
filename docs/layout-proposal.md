@@ -467,9 +467,10 @@ repository.
   instance, or where an occurrence is suppressed, invisible or excluded. The
   enclosure has none of these. One export was made; whether an assembly
   export is the same bytes between sessions is not known.
-- How the FreeCAD document that `tools/assembly_step.py` writes looks when it
-  is opened: it is made without a view, and whether the part definitions the
-  instances link to open hidden has not been observed.
+- The FreeCAD document that `tools/assembly_step.py` writes, in any FreeCAD
+  but 1.1.3 and in a window on Wayland. It was first opened in the window on
+  2026-11-12 and opened empty; since then the build writes the view data
+  into it, and it opens with the assembly shown and in view.
 - Overrides more than one level below a flexible instance, and nested flexible
   instances, on real data. The enclosure has neither.
 - Header and data-section stability on another workstation, after a restart

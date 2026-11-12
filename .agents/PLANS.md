@@ -74,9 +74,8 @@ flattened scene; `tools/compare_assembly_step.py` runs the same match on a
 file something else wrote. On the converted enclosure: 37 parts, 155
 occurrences, 479 solids, 102 solid definitions as in the part files (the
 geometry is shared), every solid within 0.0018 mm and 2.5e-4 of its volume;
-a second build gives the same bytes; 83 s. Not observed: the FreeCAD
-document opened in the GUI (an off-screen session had no graphics context),
-so whether the part definitions open hidden is unknown until Peter opens it.
+a second build gives the same bytes; 83 s. The FreeCAD document was first
+opened in the FreeCAD window on 2026-11-12 (below).
 Asked of Windows the same day: Inventor's own STEP export of the root
 assembly, as evidence only, to compare with the records.
 
@@ -109,6 +108,39 @@ frame built (16 parts, 36 occurrences, 124 solids, 25 s), an unknown key
 refused. docs/layout-specification.md, "Short commands in a project", has
 the lines a project's Makefile needs.
 
+The same day Peter asked for a `make` command that opens an assembly in
+FreeCAD through `guix shell`. Opening a built document in the FreeCAD window
+for the first time showed that it opened empty: FreeCAD hides every object
+while it restores a document and shows again only what the document's view
+data say, and a document saved by FreeCADCmd has none. This held for every
+document built until then. Fixed in the build: `mechanical_cad/fcstd.py`
+appends the view data to the document (the occurrences and their containers
+shown, the part files hidden, the top of the tree open, and an isometric
+camera that has the assembly in view), and the build version went to 2, so
+earlier built files are listed as out of date and rebuilt. Seen in the
+FreeCAD window (1.1.3, X11, a session with its own empty FreeCAD settings):
+the whole enclosure upright and in view as the document opens, 155 links
+and 18 containers shown, the 37 part files hidden, the document not marked
+as changed; the same for the caster assembly. `make open [KEY=K]` builds if
+need be and opens the document (`python3 -m mechanical_cad built PROJECT
+[KEY]` gives its path); run for the caster assembly, FreeCAD came up on the
+document and stayed until the test's time limit ended it. Not tried: the
+window on Wayland, and with Peter's own FreeCAD settings.
+
+The Windows agent delivered the exporter's package that day
+(`windows/Export-Package.ps1`, read-only, two runs that agree in every file
+but `package.json`). Its review of draft 2 changed the draft: the package
+states every occurrence in context (`occurrences.json`) and no override.
+Done on Linux: the run's 357 files verified against its checksums; the
+patch read by a second agent (nothing in it reaches Vault or a network or
+saves a document; findings on failure paths went back to Windows) and
+applied, uncommitted, in `vault-cad-tools`; the reader there derives the
+overrides and refuses what the layout cannot record (115 tests);
+`stepfile.header` gives every schema name and no protocol to a file that
+names two, and the validator refuses such a file; draft 3 written; the
+package imported into a copy of the enclosure's branch and checked (next
+work, item 3). Not done: the import into the branch itself.
+
 The enclosure was converted that day on its branch `layout-conversion`, and
 the acceptance test passed there on the tracked tree (it had passed on a dry
 run the day before). The conversion brought two things back here: a
@@ -128,11 +160,12 @@ What exists here:
   identities, header, unit and invisible items, normalises the header and
   writes the file without its invisible items; `solids.py` matches the solids
   of a whole-assembly file with a scene; `assemblies.py` lists a project's
-  assemblies and the state of their built files; `cli.py` has `validate`,
-  `flatten`, `assemblies`, `check`, `lock`, `compare-scenes`, `step-info`,
-  `normalise-header` and `visible-only`.
-- `Makefile`: short forms of the tests and of `validate`, `assemblies` and
-  `assembly` for a project given as `PROJECT=DIR`. It needs GNU make on the
+  assemblies and the state of their built files; `fcstd.py` writes into a
+  FreeCAD document what its window shows; `cli.py` has `validate`,
+  `flatten`, `assemblies`, `built`, `check`, `lock`, `compare-scenes`,
+  `step-info`, `normalise-header` and `visible-only`.
+- `Makefile`: short forms of the tests and of `validate`, `assemblies`,
+  `assembly` and `open` for a project given as `PROJECT=DIR`. It needs GNU make on the
   host; the Guix manifests do not provide it, so no test runs it.
 - `tools/` (run by FreeCADCmd): `step_facts.py` writes `facts.json` for
   imported parts; `build_part.py` builds an authored part from `build.py` and
@@ -149,7 +182,7 @@ What exists here:
 - `examples/layout-fixture/`: a synthetic project with imported and authored
   parts, a flexible instance with an override, and its generator.
 - docs/layout-specification.md: the draft the code implements.
-- Tests: 131 pass in the base role and 8 more with FreeCAD (run 2026-11-12,
+- Tests: 139 pass in the base role and 8 more with FreeCAD (run 2026-11-12,
   Python 3.12.12, pytest 9.0.2, FreeCAD 1.1.3, OpenCASCADE 7.9.3).
 
 What was run against the enclosure (a dry run into the enclosure's ignored
@@ -252,22 +285,19 @@ Smaller ones:
    `vault.json`), so nothing in the tools holds it back. The index is derived
    in two places, here and there; they agree on the enclosure, and no test
    compares them.
-3. The exporter's package. Draft 2 is in docs/exporter-package.md
-   (2026-11-11): one directory per Vault file and model state, identities and
-   no keys, no workstation paths or names of people, AP242 exported from
-   documents without a view, the header normalised, and what the import
-   command does with it. Asked of Windows on 2026-11-11, for when Peter
-   starts it: review the draft against what Inventor and Vault give, and
-   write the package as a new mode of the exporter that leaves today's
-   output unchanged, run read-only on the enclosure. On Linux, in
-   `vault-cad-tools`, `import-snapshot` reads the package into an existing
-   project, keeping keys (built 2026-11-11, tried on packages written on
-   Linux). When Windows reports: correct the draft and the reader where
-   Inventor disagrees with them, import its package into the branch, measure,
-   validate, and compare with the branch as it is (`compare-scenes
-   --other-export`, and `compare_step_exports.py` for the parts). The scene's
-   part properties will differ where the exporter leaves out the names of
-   people; that difference is expected and has to be read, not waved through.
+3. The exporter's package. Draft 3 is in docs/exporter-package.md
+   (2026-11-12): Windows reviewed draft 2 against Inventor and wrote the
+   package for the enclosure with a new script, read-only, twice; Linux
+   reviewed it the same day, taught `import-snapshot` in `vault-cad-tools` to
+   read it (the exporter writes every occurrence in context and the import
+   derives the overrides), and imported it into a copy of the branch: it
+   validates, its scene equals the branch's with no placement differing, and
+   it matches Inventor's own export of the root assembly. The details are in
+   the draft, "What the import command does with it". Left: the same import
+   into the enclosure's branch itself, which replaces every tracked STEP file
+   there and waits for Peter's word; then `assembly/documentation.json` there
+   is pinned to the new scene. Peter's review of the draft. The findings of
+   the Linux review on the exporter script are with the Windows agent.
 4. One full render of the manual from the re-exported project, in
    `mechanical-docs`, compared with today's by parts, quantities, steps and
    checks. Merge the branch.
@@ -294,8 +324,11 @@ Smaller ones:
 - A whole-assembly STEP file is for reading. FreeCAD's writer does not give
   back exactly what it read: over the enclosure's 102 solids the volume of a
   solid moves by up to 2.5e-4 of itself and its centre of mass by up to
-  0.0018 mm (FreeCAD 1.1.3). It has no colour, and the FreeCAD document
-  beside it has not been seen in the GUI.
+  0.0018 mm (FreeCAD 1.1.3). It has no colour. The FreeCAD document beside
+  it gets its view data written by this repository, not by FreeCAD: two
+  properties per object and a camera, in the form FreeCAD 1.1.3 reads.
+  Another FreeCAD version may read them differently; the document then opens
+  with its objects hidden, as it did before, and nothing else is lost.
 - On Windows only `mechanical_cad/stepfile.py` has been run, read-only, to
   check the PowerShell port against it. The validator, the flatten step and the
   tools under `tools/` have not.

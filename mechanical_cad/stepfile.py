@@ -181,10 +181,16 @@ def _first(v):
 
 
 def header(data):
-    """The header's fields as a dict. Missing fields are None."""
+    """The header's fields as a dict. Missing fields are None.
+
+    `schemas` is every name FILE_SCHEMA lists and `schema` the first. `protocol`
+    is given only when the file names one schema: Inventor's translator has
+    been seen to put a second name in front of the AP242 one for an unchanged
+    data section (2026-11-12), and such a file has no protocol to trust.
+    """
     ents = _header_entities(data)
     out = {"name": None, "time_stamp": None, "author": None, "organization": None, "preprocessor_version": None,
-           "originating_system": None, "authorisation": None, "schema": None, "protocol": None}
+           "originating_system": None, "authorisation": None, "schema": None, "schemas": [], "protocol": None}
     if "FILE_NAME" in ents:
         p = ents["FILE_NAME"][0] + [None] * 7
         out.update({"name": p[0], "time_stamp": p[1],
@@ -192,12 +198,15 @@ def header(data):
                     "organization": p[3] if isinstance(p[3], list) else [p[3]],
                     "preprocessor_version": p[4], "originating_system": p[5], "authorisation": p[6]})
     if "FILE_SCHEMA" in ents:
-        schema = _first(_first(ents["FILE_SCHEMA"][0]))
+        names = _first(ents["FILE_SCHEMA"][0])
+        out["schemas"] = [n for n in (names if isinstance(names, list) else [names]) if isinstance(n, str) and n]
+        schema = _first(names)
         out["schema"] = schema
-        for needle, name in PROTOCOLS:
-            if needle in schema.upper():
-                out["protocol"] = name
-                break
+        if len(out["schemas"]) == 1:
+            for needle, name in PROTOCOLS:
+                if needle in schema.upper():
+                    out["protocol"] = name
+                    break
     return out
 
 

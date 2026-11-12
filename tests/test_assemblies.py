@@ -13,7 +13,8 @@ def fake_build(out_dir, key, project_dir, step=b"ISO-10303-21; stands for a buil
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / f"{key}.step").write_bytes(step)
     (out_dir / f"{key}.FCStd").write_bytes(b"")
-    jsonio.write(out_dir / f"{key}.json", {"scene_sha256": assemblies.scene_sha256(scene), "frame": "z-up",
+    jsonio.write(out_dir / f"{key}.json", {"schema_version": assemblies.BUILD_SCHEMA,
+                                           "scene_sha256": assemblies.scene_sha256(scene), "frame": "z-up",
                                            "step": {"sha256": stepfile.sha256_bytes(step)}, "check": {"same": True}})
 
 
@@ -57,6 +58,9 @@ def test_built_files_are_current_until_the_records_or_the_files_change(project_c
 
     (built_in / f"{PAIR}.step").write_bytes(b"another file")                           # not the file the report names
     assert state(project_copy)["state"] == assemblies.OUT_OF_DATE
+    fake_build(built_in, PAIR, project_copy)
+    edit_json(built_in / f"{PAIR}.json", lambda d: d.update(schema_version=assemblies.BUILD_SCHEMA - 1))
+    assert state(project_copy)["state"] == assemblies.OUT_OF_DATE                      # written by an earlier build
     fake_build(built_in, PAIR, project_copy)
     (built_in / f"{PAIR}.json").write_text("not JSON")
     assert state(project_copy)["state"] == assemblies.OUT_OF_DATE

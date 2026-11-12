@@ -39,6 +39,7 @@ make test                              # the tests that need no FreeCAD; make te
 make validate PROJECT=DIR              # check a project repository against the layout
 make assemblies PROJECT=DIR            # the project's assemblies, and which are built
 make assembly PROJECT=DIR [KEY=K]      # build one as a STEP file and a FreeCAD document
+make open PROJECT=DIR [KEY=K]          # build it if need be, then open it in the FreeCAD window
 ```
 
 A project repository's own Makefile can hand these to this one, so that inside
@@ -51,6 +52,7 @@ Nothing below needs a CAD kernel:
 ```sh
 guix shell --pure -m manifest.scm -- python3 -B -m mechanical_cad validate PROJECT
 guix shell --pure -m manifest.scm -- python3 -B -m mechanical_cad assemblies PROJECT
+guix shell --pure -m manifest.scm -- python3 -B -m mechanical_cad built PROJECT [KEY]
 guix shell --pure -m manifest.scm -- python3 -B -m mechanical_cad flatten PROJECT --out NEW_DIR [--root KEY]
 guix shell --pure -m manifest.scm -- python3 -B -m mechanical_cad check PROJECT
 guix shell --pure -m manifest.scm -- python3 -B -m mechanical_cad compare-scenes OLD/scene.json NEW/scene.json
@@ -67,6 +69,9 @@ guix shell --pure -m manifest.scm -- python3 -B -m pytest -q tests
   and whether its built files are current. Any of them can be built by
   `assembly_step.py` below; this is how a person or an agent finds out which
   there are. `--json FILE` writes the list for a program.
+- `built` prints the path of an assembly's built FreeCAD document (`--step`:
+  of its STEP file) when it is current, and fails when it is not; `make open`
+  uses it.
 - `flatten` composes the per-assembly manifests into the `scene.json` that
   `mechanical-docs` reads, with a copy of the STEP files it names.
 - `check` evaluates each authored part's `checks.json` against its measured
@@ -95,9 +100,10 @@ guix shell --pure -m manifest.scm -m .guix/manifest-cad.scm -- python3 -B -m pyt
   nothing places) from the part files and
   the placements, into the project's ignored `.cache/assemblies/`: the way to
   look at an assembly in FreeCAD or hand it to someone. It reads its file back
-  and checks every solid against the flattened scene. The files carry
-  positions and shapes, not constraints, features or colour; the part files
-  and manifests stay the source.
+  and checks every solid against the flattened scene. The FreeCAD document
+  opens with the assembly shown and in view and the part files it links to
+  hidden. The files carry positions and shapes, not constraints, features or
+  colour; the part files and manifests stay the source.
 - `compare_assembly_step.py` says whether another STEP file of a whole
   assembly, such as the mirrored CAD system's own export of its assembly
   document, holds every solid where the project's records put it.

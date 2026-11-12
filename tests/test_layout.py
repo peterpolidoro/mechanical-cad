@@ -97,6 +97,15 @@ def test_step_record_fields(project_copy):
     assert has(e, "step.bytes is missing")
 
 
+def test_a_file_that_names_two_schemas_is_an_error(project_copy):
+    step = project_copy / PLATE / "part.step"
+    data = step.read_bytes()
+    at = data.index(b"FILE_SCHEMA")
+    start, end = data.index(b"'", at), data.index(b"'", data.index(b"'", at) + 1) + 1
+    step.write_bytes(data[:start] + b"'PROCESS_PLANNING_SCHEMA'," + data[start:end] + data[end:])   # the data section stays
+    assert has(errors(project_copy), PLATE, "FILE_SCHEMA names more than one schema: PROCESS_PLANNING_SCHEMA,")
+
+
 def test_a_file_that_is_not_step(project_copy):
     (project_copy / PIN / "part.step").write_text("not a step file")
     assert has(errors(project_copy), PIN + "/part.step", "not readable as a STEP file")

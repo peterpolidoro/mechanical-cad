@@ -6,12 +6,13 @@ import json
 import re
 import shutil
 import subprocess
+import zipfile
 from pathlib import Path
 
 import pytest
 from conftest import REPO, edit_json, invisible, replace_step, write_json
 
-from mechanical_cad import assemblies, layout
+from mechanical_cad import assemblies, fcstd, layout
 
 FREECAD = shutil.which("FreeCADCmd")
 pytestmark = pytest.mark.skipif(FREECAD is None, reason="FreeCADCmd is not on PATH (use the CAD role)")
@@ -143,6 +144,13 @@ def test_a_whole_assembly_is_built_once_and_matches_its_scene(project_copy, tmp_
     again = run("assembly_step.py", project_copy, "--", "--force")
     assert "unchanged" in again and "exit status 0" in again, again
     assert cache(project_copy) == before                             # built again: the same bytes, nothing rewritten
+    # the FreeCAD document says what its window shows: the six occurrences and their containers, not the part files
+    view = fcstd.read_view(project_copy / ".cache" / "assemblies" / f"{WHOLE}.FCStd")
+    assert sum(view.values()) == 6 + 5 and {k for k, v in view.items() if not v} == {"definitions", "part_000", "part_001",
+                                                                                 "part_002"}
+    with zipfile.ZipFile(project_copy / ".cache" / "assemblies" / f"{WHOLE}.FCStd") as archive:
+        assert archive.namelist()[0] == "Document.xml" and archive.namelist()[-1] == "GuiDocument.xml"
+        assert b'<Camera settings="OrthographicCamera {' in archive.read("GuiDocument.xml")
     listed = {r["key"]: r["built"]["state"] for r in assemblies.listing(layout.load(project_copy))}
     assert listed == {WHOLE: "current", "fixture-root": "not built", "pin-pair": "not built"}
 

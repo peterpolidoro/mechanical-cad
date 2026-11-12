@@ -285,7 +285,10 @@ translator's description option empty, because that text goes into
 records which one a file is. Files exported from Inventor are AP242 (Peter,
 2026-11-11; the reasons on both sides are in layout-proposal.md, "Open
 choices"). The files of a project exported earlier stay what they are until it
-is exported again.
+is exported again. A file names one schema in `FILE_SCHEMA`: one that names
+more is an error, and has no protocol (Inventor's translator has been seen to
+put a second, unrelated name in front of the AP242 one; the exporter does not
+deliver such a file).
 
 **Saved view.** An AP242 file exported from Inventor carries a camera
 (`CAMERA_MODEL_D3` and what it reaches). From a document that has no view it
@@ -364,7 +367,16 @@ lists and the validator does not look into. They are never committed.
   a thousand and the centre of mass within 0.01 mm
   (`mechanical_cad/solids.py`). `KEY.json` holds that check.
 - The files hold positions and shapes. They hold no constraints or joints, no
-  features, and no colour (FreeCADCmd has no view).
+  features, and no colour.
+- `KEY.FCStd` opens in the FreeCAD window with the assembly shown, upright
+  and in view, the first level of its tree open, and the part files the
+  occurrences link to hidden in a group of their own. FreeCADCmd has no
+  window and saves no view data, and a document without them opens with
+  every object hidden, so the build appends them (`mechanical_cad/fcstd.py`;
+  observed with FreeCAD 1.1.3).
+- `python3 -m mechanical_cad built PROJECT [KEY] [--step] [--dir DIR]` prints
+  the path of the document (or of the STEP file) when it is current, and
+  fails when it is not.
 
 `FreeCADCmd tools/compare_assembly_step.py --pass PROJECT KEY OTHER.step
 OUT.json` runs the same match on a file something else wrote, in the
@@ -395,17 +407,21 @@ targets to it:
 MECHANICAL_CAD ?= ../mechanical-cad
 MECHANICAL_CAD_MAKE = $(MAKE) --no-print-directory -C "$(MECHANICAL_CAD)" PROJECT="$(CURDIR)"
 
-.PHONY: validate assemblies assembly
+.PHONY: validate assemblies assembly open
 validate assemblies:
 	@$(MECHANICAL_CAD_MAKE) $@
 
-assembly:
-	@$(MECHANICAL_CAD_MAKE) assembly KEY="$(KEY)"
+assembly open:
+	@$(MECHANICAL_CAD_MAKE) $@ KEY="$(KEY)"
 ```
 
 Inside the project, `make assemblies` then lists what can be built,
 `make assembly` builds the top-level assembly and `make assembly KEY=<key>`
-any other. `local.mk` holds what differs between machines (one line,
+any other. `make open`, with or without a key, builds the assembly if its
+files are not current and opens the FreeCAD document in the FreeCAD window
+that `guix shell` provides; FreeCAD stays in the foreground and the command
+returns when the window is closed, so it is a command for a person at the
+machine, not for an agent. `local.mk` holds what differs between machines (one line,
 `MECHANICAL_CAD = /path/to/mechanical-cad`) and is listed in the project's
 `.gitignore`. The Makefile is a convenience and not part of the layout: the
 validator does not look at it, and where there is no `make` the commands
