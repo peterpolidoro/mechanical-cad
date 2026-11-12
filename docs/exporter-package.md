@@ -94,7 +94,11 @@ the same double. The import also reads a file with a byte-order mark and CRLF.
 
 The package is complete only when `package.json` exists; the exporter writes
 it last, after it has checked the rest of the package against itself, and
-checks once more with it. A run that fails leaves no `package.json`.
+checks once more with it. A run that fails leaves no `package.json`, and
+neither does a run in which the exporter's watchdog had to dismiss a dialog
+of Inventor: what was dismissed is only in the exporter's receipt, which
+stays on the workstation, and a package that says it is complete must not
+rest on something its reader cannot check.
 
 The translator's file carries the time of the export in its header, so its
 hash changes with every run. That is why it is here and not in `source.json`.

@@ -124,8 +124,10 @@ and 18 containers shown, the 37 part files hidden, the document not marked
 as changed; the same for the caster assembly. `make open [KEY=K]` builds if
 need be and opens the document (`python3 -m mechanical_cad built PROJECT
 [KEY]` gives its path); run for the caster assembly, FreeCAD came up on the
-document and stayed until the test's time limit ended it. Not tried: the
-window on Wayland, and with Peter's own FreeCAD settings.
+document and stayed until the test's time limit ended it. Peter ran
+`make open` on the whole enclosure the same day, with his own FreeCAD
+settings: the assembly opens, he sees all the parts and can hide them. Not
+tried: the window on Wayland.
 
 The Windows agent delivered the exporter's package that day
 (`windows/Export-Package.ps1`, read-only, two runs that agree in every file
@@ -140,6 +142,15 @@ overrides and refuses what the layout cannot record (115 tests);
 names two, and the validator refuses such a file; draft 3 written; the
 package imported into a copy of the enclosure's branch and checked (next
 work, item 3). Not done: the import into the branch itself.
+
+Later that day Windows corrected the six findings and ran the exporter
+again: its package is the first one in every file but `package.json`. On
+Linux the corrections were read by a second agent and applied, uncommitted,
+in `vault-cad-tools` (115 tests). Agreed with Windows: a run in which a
+dialog of Inventor was dismissed delivers no package (now in the draft), and
+the seven older Windows scripts that start Inventor before their `try` stay
+as they are until each is next changed. Six smaller remarks went back for
+the next change of the script. The Windows agent has no task.
 
 The enclosure was converted that day on its branch `layout-conversion`, and
 the acceptance test passed there on the tracked tree (it had passed on a dry
