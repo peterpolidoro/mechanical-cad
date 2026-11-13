@@ -15,9 +15,10 @@ BUILT_DIR = (".cache", "assemblies")
 # The version of what tools/assembly_step.py writes. 2: the FreeCAD document carries view data, so that it
 # opens with the assembly shown. 3: every usage in the STEP file has its occurrence's name as its id, and the
 # names FreeCAD numbered anew are the occurrences' own again. 4: instances of a sub-assembly that hold the same
-# parts in the same places share one product, named after the assembly's file. Files of an earlier version are
-# out of date.
-BUILD_SCHEMA = 4
+# parts in the same places share one product, named after the assembly's file. 5: that sharing is in the STEP
+# file only; the FreeCAD document has a container for every instance again, so that one can be hidden without
+# the others. Files of an earlier version are out of date.
+BUILD_SCHEMA = 5
 NOT_BUILT, OUT_OF_DATE, CURRENT = "not built", "out of date", "current"
 
 

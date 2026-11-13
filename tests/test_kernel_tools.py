@@ -119,9 +119,9 @@ def test_instances_that_hold_the_same_share_one_product(project_copy, tmp_path):
     assert all(i == n for i, n, _ in usages) and len(usages) == 8
     assert by_name[b"PIN PAIR:1"] == by_name[b"PIN PAIR:2"]             # both usages are of the one product
     assert sorted(n for _, n, _ in usages).count(b"PIN:1") == 1         # and its two pins are in the file once
-    # in the window: the second pair is a link, shown; four occurrences and three containers are objects
+    # the FreeCAD document has a container for each pair all the same, so that one can be hidden by itself
     view = fcstd.read_view(project_copy / ".cache" / "assemblies" / f"{WHOLE}.FCStd")
-    assert view["asm_link_000"] is True and sum(view.values()) == 4 + 4 + 1
+    assert not any(name.startswith("asm_link") for name in view) and sum(view.values()) == 6 + 5
 
 
 def test_facts_are_kept_when_current_and_reproduced_when_forced(project_copy):

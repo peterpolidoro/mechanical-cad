@@ -106,8 +106,9 @@ is in the environment ("Guix packages" below).
   nothing places) from the part files and
   the placements, into the project's ignored `.cache/assemblies/`: the way to
   look at an assembly in FreeCAD or hand it to someone. Instances of a
-  sub-assembly that are alike are one product in the file, named after the
-  assembly's file, and every usage carries its occurrence's name. It reads
+  sub-assembly that are alike are one product in the STEP file, named after
+  the assembly's file, and every usage carries its occurrence's name; in the
+  FreeCAD document each instance can be hidden by itself. It reads
   its file back and checks every solid against the flattened scene. The FreeCAD document
   opens with the assembly shown and in view and the part files it links to
   hidden. The files carry positions and shapes, not constraints, features or

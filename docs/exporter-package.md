@@ -128,6 +128,13 @@ import command adds. In particular:
   by one export.
 - `native`, for a part: the document's length unit, `extent_mm`, `volume_mm3`
   and `bodies` (`solid_bodies`, `visible_solid_bodies`, `surface_bodies`), and
+  the lists below. `volume_mm3` is what Inventor says of the document, a
+  claim and not a measure: the volume at whatever accuracy the document
+  has, hidden bodies included. Inventor leaves a body out of it, without a
+  message, when it cannot compute that body at the accuracy asked; in the
+  first project it is short by one body for one part and by two for another
+  (Windows, 2026-11-13). The measure is `facts.json`, of the STEP file. What
+  the exporter should record instead, if anything, is not decided.
   - `parameters`: name, kind (`model`, `reference`, `user`, `other`),
     expression, units, value, value_text, comment, is_key,
     exposed_as_property. `value` is in Inventor's database units (centimetre,

@@ -402,7 +402,10 @@ lists and the validator does not look into. They are never committed.
   it that holds the same parts in the same places is a usage of that product,
   as the mirrored CAD system has one document for them. An instance that
   differs, because a flexible assembly places something in it differently,
-  has a product of its own, named after the file with a number.
+  has a product of its own, named after the file with a number. That is the
+  STEP file. In `KEY.FCStd` every instance is a container of its own: in
+  FreeCAD what is hidden inside a container is hidden in every link to it,
+  and one instance could not be hidden or looked into without the others.
 - `--frame z-up`, the default, applies the scene's turn to `+Z` up; `--frame
   own` keeps the assembly's own frame.
 - The STEP header is normalised. Building the same scene again with the same
@@ -425,9 +428,10 @@ lists and the validator does not look into. They are never committed.
 - Inventor 2025 opens such a file as an assembly in millimetres with every
   occurrence where the manifests put it (2026-11-13, the first project: 171
   occurrences within 7e-10 mm, 479 solid bodies). It makes one assembly
-  document per product. That read was of a file with one product per
-  sub-assembly instance and numbers as usage ids; a file as described above
-  has not been read by Inventor yet.
+  document per product, and shows the names of the usages (a second read
+  that day: all 171 paths are the exporter's). Both reads were of files with
+  one product per sub-assembly instance; a file with shared products has not
+  been read by Inventor yet.
 - `KEY.FCStd` opens in the FreeCAD window with the assembly shown, upright
   and in view, the first level of its tree open, and the part files the
   occurrences link to hidden in a group of their own. FreeCADCmd has no

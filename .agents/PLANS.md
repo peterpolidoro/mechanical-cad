@@ -433,9 +433,34 @@ Smaller ones:
        the enclosure all 16 sub-assembly instances are of 6 kinds, one per
        native file: 45 products where there were 55, 126 usages where there
        were 172, and all 479 solids read back where the scene puts them.
-       Two things not seen: Inventor reading that file, and the FreeCAD
-       window showing the document, whose repeated sub-assemblies are links
-       now (no window can be opened from the agent's shell; `make open`).
+       Peter opened the document that day and found that hiding one panel
+       assembly hid all four: in FreeCAD what is hidden inside a container
+       is hidden in every link to it. So the sharing is in the STEP file
+       only (report schema 5): the tool builds two documents from the part
+       files read once, one with shared containers, from which the STEP file
+       is written, and one with a container for every instance, which is
+       kept. The STEP file is the same bytes as before that change. Not
+       seen: Inventor reading the file, and the window with the document as
+       it is now (no window can be opened from the agent's shell).
+     - Windows read the file with the names on 2026-11-13 (shared evidence
+       `2026-11-13-windows-step-names-01`, 144 files checked): none of
+       Inventor's 172 occurrence names is a number, it changed none, and all
+       171 paths below the added level are paths of the package's
+       `occurrences.json`; placements and volumes as in the read before.
+     - Volumes, settled between the two sides on 2026-11-13. Inventor
+       cannot compute one body of `MCMASTER 5537T429` at its finer
+       accuracies and then leaves it out of the document's volume without
+       saying so; its default accuracy has all eleven and agrees with
+       `facts.json`. The package's `native.volume_mm3` is the native
+       document's volume at whatever accuracy the document has, and is short
+       for two parts of the enclosure for that reason (docs/exporter-
+       package.md says so now). **And `facts.json` is 0.8 % low for one
+       part, the spring `MCMASTER 9293K121`**: FreeCAD's `Volume` is
+       OpenCASCADE's plain integration, 18 270.7 mm3, where its adaptive
+       integration gives 18 422.2 (through `python-ocp`), a fine mesh 18
+       420.3, Inventor 18 418 to 18 426 and the native document 18 422.5.
+       For the two framing parts the two integrations agree within 1e-5.
+       Nothing is changed for it yet; see "Known limits".
      - One part's volume differs in Inventor by 11 % between its two
        accuracies (`MCMASTER 5537T429`, 11 bodies). `facts.json` is right
        about the file: a fine mesh of each solid gives the B-rep volume (29
@@ -518,10 +543,16 @@ Smaller ones:
    - The inputs of `python-ocp` pruned to what the build uses (`glew`,
      `libx11` and `zlib` were added with `freetype` and `mesa` and not tried
      without), and a build type without debugging symbols.
-   Next, in order: a first real part written with build123d (item 5); then,
-   if wanted, CadQuery 2.8.0 (it needs `casadi` and `runtype`, which Guix
-   lacks, a newer `multimethod`, and VTK's Python modules), and a kernel
-   module on OCP that measures and writes without FreeCADCmd.
+   The first part of a project written with build123d is the enclosure's
+   monitor envelope, rewritten on 2026-11-13 at Peter's word and built with
+   `tools/build_part.py`: every measured fact is the same to the last digit
+   as from FreeCAD's `Part` module, its four checks pass, and `part.step`
+   differs in 14 of 187 lines, each only in the sign of a zero. The project
+   validates as before.
+   Next, in order: a part that is not a box (item 5); then, if wanted,
+   CadQuery 2.8.0 (it needs `casadi` and `runtype`, which Guix lacks, a newer
+   `multimethod`, and VTK's Python modules), and a kernel module on OCP that
+   measures and writes without FreeCADCmd.
 
    Which library, packaging aside (Peter asked on 2026-11-13; build123d's
    source was read at v0.12.0 and CadQuery's documentation, change log and
@@ -558,6 +589,16 @@ Smaller ones:
 - The validator has been run on two projects: the fixture and the converted
   enclosure. The tolerances for comparing geometry facts are provisional (one
   kernel version).
+- The volume in `facts.json` is FreeCAD's `Shape.Volume`, OpenCASCADE's plain
+  integration over the faces. It is 0.8 % low for one of the enclosure's 37
+  parts, a spring whose surface is a B-spline spiral (found on 2026-11-13
+  against Inventor, a fine mesh and OpenCASCADE's adaptive integration). The
+  facts of two exports of one part still agree, because both carry the same
+  error; a volume from another system does not. Proposed, not built: measure
+  with the adaptive integration (`BRepGProp.VolumeProperties_s` with a
+  tolerance, through the OCP bindings in the build123d environment), and
+  measure every part again. That changes every `facts.json` a little and
+  makes the facts tool need that environment; Peter's to decide.
 - `import-snapshot` reads the package `Export-Package.ps1` writes
   (`package.json`, `occurrences.json`, `files/`; draft 3), into a new
   directory or an existing project. The reading of the earlier exporter's
@@ -568,8 +609,9 @@ Smaller ones:
   flexible instances that would need an override on an outer level. One real
   package has been imported, from one root assembly.
 - `build_part.py` takes a FreeCAD `Part.Shape` or a build123d shape, with one
-  product. One part has been built from a build123d program, the fixture's
-  spacer in a test; none in a project. There is no CadQuery path.
+  product. Two parts have been built from a build123d program, the fixture's
+  spacer in a test and the enclosure's monitor envelope, both simple solids.
+  There is no CadQuery path.
 - The scene written by `flatten` copies every STEP file into its output
   directory, because the documentation loader resolves assets below the scene.
 - A whole-assembly STEP file is for reading. FreeCAD's writer does not give

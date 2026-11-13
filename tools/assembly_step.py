@@ -10,11 +10,12 @@ assembly.json, never as a STEP file of its own. This derives that file for
 looking at the assembly, in FreeCAD or any other CAD system: KEY (default: the
 only assembly no other assembly places) is flattened, each part file is read
 once, without the items it marks invisible, and every visible occurrence is a
-link to it inside the container of its sub-assembly. Instances of a
-sub-assembly that hold the same parts in the same places are one container
-and links to it, so the STEP file has one product for them, named after the
-assembly's file, as the mirrored CAD system has one document; an instance
-that differs has a container and a product of its own. The tree, and the
+link to it inside the container of its sub-assembly. In the STEP file,
+instances of a sub-assembly that hold the same parts in the same places are
+usages of one product, named after the assembly's file, as the mirrored CAD
+system has one document for them; an instance that differs has a product of
+its own. In the FreeCAD document every instance is a container of its own, so
+that one can be hidden or looked into without the others. The tree, and the
 product structure of the STEP file, are the assembly's hierarchy with its
 occurrence names. In the STEP file every usage carries that name as its id as
 well, because Inventor shows the id, and a name FreeCAD numbered anew, as it
@@ -27,7 +28,7 @@ ignores it and it is never committed):
 
     KEY.step    the whole assembly; geometry shared between the instances of a part, structure between the
                 instances of a sub-assembly; normalised header
-    KEY.FCStd   the same as a FreeCAD document, which opens faster than the STEP file imports
+    KEY.FCStd   the same assembly as a FreeCAD document, which opens faster than the STEP file imports
     KEY.json    what was built from what, and the check below; no timestamp
 
 --frame z-up (the default) turns an assembly whose frame is +Y up so that it
@@ -118,28 +119,42 @@ def contents(scene, occurrences, needed):
     return out
 
 
-def build(scene, assets, frame):
-    """Return (document, object to export, {part id: its solids}, {part id: invisible items left out},
-    counts, view, renamed, products): counts is (assembly instances, containers); view is ({object name:
-    shown in the window?}, names of the open tree nodes, a camera that has the assembly in view); renamed is
-    {the label FreeCAD gave an occurrence or a sub-assembly instance: the name it was to have} where the two
-    differ; products is {the label of a sub-assembly's container: the name its product is to have}."""
-    doc = App.newDocument("assembly")
+def read_parts(assets):
+    """Every part file read once, without the items it marks invisible:
+    ({part id: shape}, {part id: its solids}, {part id: invisible items left out})."""
+    shapes, part_solids, hidden = {}, {}, {}
+    for key, path in assets:
+        shapes[key], left_out = kernel.read_step_visible(path)
+        part_solids[key] = kernel.solids(shapes[key])
+        if left_out:
+            hidden[key] = left_out
+    return shapes, part_solids, hidden
+
+
+def build(scene, assets, shapes, frame, share):
+    """One FreeCAD document of the scene. Return (document, its top object, counts, view, renamed, products).
+
+    share: whether instances of a sub-assembly that hold the same are one container and links to it. The STEP
+    file is written from a document built that way, so that it has one product for them. The document that
+    is kept is built with a container for every instance: in FreeCAD what is hidden inside a container is
+    hidden in every link to it, and one instance could not be hidden or looked into without the others.
+
+    counts is (assembly instances, containers); view is ({object name: shown in the window?}, names of the
+    open tree nodes, a camera that has the assembly in view); renamed is {the label FreeCAD gave an occurrence
+    or a sub-assembly instance: the name it was to have} where the two differ; products is {the label of a
+    sub-assembly's container: the name its product is to have}."""
+    doc = App.newDocument("assembly_step" if share else "assembly")
     definitions = doc.addObject("App::DocumentObjectGroup", "definitions")
     definitions.Label = "Part files (the assembly links to these)"
     names = {p["id"]: p["name"] for p in scene["parts"]}
-    features, part_solids, hidden = {}, {}, {}
-    for i, (key, path) in enumerate(assets):
-        shape, left_out = kernel.read_step_visible(path)
+    features = {}
+    for i, (key, _) in enumerate(assets):
         feature = doc.addObject("Part::Feature", "part_%03d" % i)
         feature.Label = names[key]
-        feature.Shape = shape
+        feature.Shape = shapes[key]
         feature.Visibility = False
         definitions.addObject(feature)
         features[key] = feature
-        part_solids[key] = kernel.solids(shape)
-        if left_out:
-            hidden[key] = left_out
     definitions.Visibility = False
 
     occurrences = solids.placed(scene)
@@ -170,7 +185,7 @@ def build(scene, assets, frame):
         if a["parent_id"] in shown_by_a_link:       # inside an instance that is a link: the container it
             shown_by_a_link.add(a["id"])            # links to holds this one already
             continue
-        if a["parent_id"] is not None and holds[a["id"]] in first:
+        if share and a["parent_id"] is not None and holds[a["id"]] in first:
             link = doc.addObject("App::Link", "asm_link_%03d" % len(instance_links))
             link.LinkedObject = first[holds[a["id"]]]
             label(link, leaf(a["id"]))
@@ -187,7 +202,8 @@ def build(scene, assets, frame):
             label(c, leaf(a["id"]))
             c.Placement = placement(a["transform"])
             containers[a["parent_id"]].addObject(c)
-            first[holds[a["id"]]] = c
+            if share:
+                first[holds[a["id"]]] = c
             # its product is named after the assembly's file; a second, different instance of that file,
             # or a part of that name, gets a number
             wanted, n = stem(a["document"]), 1
@@ -224,8 +240,8 @@ def build(scene, assets, frame):
     shown[top.Name] = True
     box = Part.getShape(top).BoundBox
     camera = fcstd.isometric_camera((box.XMin, box.YMin, box.ZMin, box.XMax, box.YMax, box.ZMax))
-    return (doc, top, part_solids, hidden, (len(needed), len(containers)),
-            (shown, {top.Name, containers["root"].Name}, camera), renamed, products)
+    return (doc, top, (len(needed), len(containers)), (shown, {top.Name, containers["root"].Name}, camera),
+            renamed, products)
 
 
 def options(argv):
@@ -284,16 +300,19 @@ def main(argv):
             return 0
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    doc, export, part_solids, hidden, counts, view, renamed, products = build(scene, assets, opts["frame"])
+    shapes, part_solids, hidden = read_parts(assets)
     placed = solids.placed(scene)
     with tempfile.TemporaryDirectory(dir=out_dir, prefix=".building-") as tmp:
         tmp_step, tmp_doc = Path(tmp) / f"{key}.step", Path(tmp) / f"{key}.FCStd"
+        doc, export, counts, _, renamed, products = build(scene, assets, shapes, opts["frame"], share=True)
         Import.export([export], str(tmp_step))
+        App.closeDocument(doc.Name)
         data = stepfile.normalise_header(tmp_step.read_bytes(), name=f"{key}.step")
         data, named, restored = stepfile.name_usages(data, renamed)
         data, renamed_products = stepfile.name_products(data, products)
         tmp_step.write_bytes(data)
         check = solids.match(solids.expected(scene, part_solids, opts["frame"]), kernel.solids(kernel.read_step(tmp_step)))
+        doc, _, _, view, _, _ = build(scene, assets, shapes, opts["frame"], share=False)
         doc.saveAs(str(tmp_doc))
         App.closeDocument(doc.Name)
         fcstd.write_view(tmp_doc, *view)       # saved without a window, the document would open with nothing shown
