@@ -58,7 +58,11 @@ def main(argv):
         argv = argv[:argv.index("--only")]
     project_dir = Path([a for a in argv if not a.startswith("--")][0])
     project = layout.load(project_dir)
-    tool = kernel.tool()
+    try:
+        tool = kernel.measuring_tool()
+    except kernel.MeasureError as exc:
+        print(f"[step_facts] {exc}")
+        return 2
     parts = sorted(project.of(root="references", kind="part"), key=lambda c: c.key)
     if only:
         missing = only - {c.key for c in parts}

@@ -194,10 +194,10 @@ What exists here:
 - `examples/layout-fixture/`: a synthetic project with imported and authored
   parts, a flexible instance with an override, and its generator.
 - docs/layout-specification.md: the draft the code implements.
-- Tests: 143 pass in the base role, 152 with FreeCAD and 153 with FreeCAD and
-  build123d (run 2026-11-13, after the usage names, the shared sub-assembly
-  products and the build123d path of `build_part.py`; Python 3.12.12, pytest
-  9.0.2, FreeCAD 1.1.3, OpenCASCADE 7.9.3).
+- Tests: 144 pass in the base role, 148 with FreeCAD alone (what measures is
+  skipped there) and 154 with FreeCAD, the OCP bindings and build123d (run
+  2026-11-13, after the adaptive integration; Python 3.12.12, pytest 9.0.2,
+  FreeCAD 1.1.3, OpenCASCADE 7.9.3).
 
 What was run against the enclosure (a dry run into the enclosure's ignored
 `.cache/layout-dry-run-01/`; nothing tracked there changed):
@@ -460,7 +460,26 @@ Smaller ones:
        integration gives 18 422.2 (through `python-ocp`), a fine mesh 18
        420.3, Inventor 18 418 to 18 426 and the native document 18 422.5.
        For the two framing parts the two integrations agree within 1e-5.
-       Nothing is changed for it yet; see "Known limits".
+       Changed the same day at Peter's word: what is recorded of a shape is
+       measured with the adaptive integration (below).
+     - The measure, since 2026-11-13. `tools/kernel.py` `measure` hands the
+       shape FreeCAD read to the OCP bindings as BREP and integrates volume,
+       area and centre of mass adaptively (relative tolerance 1e-7);
+       FreeCAD's interface has no such option. `facts.json` and a receipt
+       name it in `tool.integration`, a note says when a solid did not reach
+       the tolerance, the validator points out facts measured the plain
+       way, and `step_facts.py` measures those again. So `step_facts.py`,
+       `build_part.py` and `compare_step_exports.py` need the environment
+       of `.guix/manifest-build123d.scm`; without the bindings they say so
+       and write nothing. `assembly_step.py` and `compare_assembly_step.py`
+       compare what one run reads with what it reads back, keep FreeCAD's
+       plain integration and need FreeCAD alone, so `make open` is as it
+       was. The enclosure's 38 parts were measured again in 40 s: the
+       spring's volume is 18 422.2 mm3 (+0.83 %) and its centre of mass 4.0
+       mm from where it was recorded; no other volume changes by more than
+       5e-5; counts, boxes and validity are the same for all 38. One part,
+       the toggle clamp, carries the note (2.3e-5 reached). The enclosure
+       validates as before, and its built assembly is still current.
      - One part's volume differs in Inventor by 11 % between its two
        accuracies (`MCMASTER 5537T429`, 11 bodies). `facts.json` is right
        about the file: a fine mesh of each solid gives the B-rep volume (29
@@ -589,16 +608,11 @@ Smaller ones:
 - The validator has been run on two projects: the fixture and the converted
   enclosure. The tolerances for comparing geometry facts are provisional (one
   kernel version).
-- The volume in `facts.json` is FreeCAD's `Shape.Volume`, OpenCASCADE's plain
-  integration over the faces. It is 0.8 % low for one of the enclosure's 37
-  parts, a spring whose surface is a B-spline spiral (found on 2026-11-13
-  against Inventor, a fine mesh and OpenCASCADE's adaptive integration). The
-  facts of two exports of one part still agree, because both carry the same
-  error; a volume from another system does not. Proposed, not built: measure
-  with the adaptive integration (`BRepGProp.VolumeProperties_s` with a
-  tolerance, through the OCP bindings in the build123d environment), and
-  measure every part again. That changes every `facts.json` a little and
-  makes the facts tool need that environment; Peter's to decide.
+- Measuring needs the OCP bindings since 2026-11-13, which nothing builds
+  for anyone: about twenty minutes after each update of Guix that changes
+  what they depend on. The fingerprint's tolerances (1e-6) are tighter than
+  the integration reaches for one part of the enclosure (2.3e-5), and have
+  not been tried between two exports of a part since the change.
 - `import-snapshot` reads the package `Export-Package.ps1` writes
   (`package.json`, `occurrences.json`, `files/`; draft 3), into a new
   directory or an existing project. The reading of the earlier exporter's

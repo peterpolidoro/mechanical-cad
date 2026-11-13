@@ -84,19 +84,26 @@ guix shell --pure -m manifest.scm -- python3 -B -m pytest -q tests
   it with `compare_step_exports.py` when a project was exported again in
   another protocol.
 
-These run in FreeCAD (`.guix/manifest-cad.scm`):
+These run in FreeCAD. The three that record a measurement need the OCP
+bindings beside it (`.guix/manifest-build123d.scm`, "Guix packages" below);
+the two about whole assemblies need FreeCAD alone (`.guix/manifest-cad.scm`):
 
 ```sh
-guix shell --pure -m .guix/manifest-cad.scm -- FreeCADCmd tools/step_facts.py --pass PROJECT
-guix shell --pure -m .guix/manifest-cad.scm -- FreeCADCmd tools/build_part.py --pass PROJECT/designs/parts/KEY
-guix shell --pure -m .guix/manifest-cad.scm -- FreeCADCmd tools/compare_step_exports.py --pass PROJECT MAP.json NEW_REPORT.json
+B3D="guix shell --pure -L .guix/modules -m manifest.scm -m .guix/manifest-build123d.scm --"
+$B3D FreeCADCmd tools/step_facts.py --pass PROJECT
+$B3D FreeCADCmd tools/build_part.py --pass PROJECT/designs/parts/KEY
+$B3D FreeCADCmd tools/compare_step_exports.py --pass PROJECT MAP.json NEW_REPORT.json
+$B3D python3 -B -m pytest -q tests
 guix shell --pure -m .guix/manifest-cad.scm -- FreeCADCmd tools/assembly_step.py --pass PROJECT [KEY]
 guix shell --pure -m .guix/manifest-cad.scm -- FreeCADCmd tools/compare_assembly_step.py --pass PROJECT KEY OTHER.step NEW_REPORT.json
 guix shell --pure -m manifest.scm -m .guix/manifest-cad.scm -- python3 -B -m pytest -q tests
 ```
 
-One test builds a part written with build123d and is skipped unless build123d
-is in the environment ("Guix packages" below).
+Volumes, areas and centres of mass that are recorded are measured with
+OpenCASCADE's adaptive integration, through the bindings. FreeCAD's own
+`Volume` is the kernel's plain integration, which was 0.8 % low for one part
+of the first project. Without the bindings the measuring tools say so and
+write nothing, and the tests of them are skipped.
 
 - `compare_step_exports.py` measures other exports of a project's parts (an
   AP242 export of a part tracked as AP214, an export from another session) and
@@ -117,7 +124,8 @@ is in the environment ("Guix packages" below).
   assembly, such as the mirrored CAD system's own export of its assembly
   document, holds every solid where the project's records put it.
 - `step_facts.py` measures every imported STEP file (validity, solids, volume,
-  area, centre of mass, bounding box) and writes `facts.json` beside it.
+  area, centre of mass, bounding box) and writes `facts.json` beside it. A
+  file measured with another tool, or another integration, is measured again.
 - `build_part.py` builds an authored part from its `build.py` and
   `parameters.json`: the STEP file, a receipt and the facts. Building an
   unchanged part again changes no file. `build.py` returns a `Part.Shape` of

@@ -475,6 +475,9 @@ def _check_facts(project, comp):
     tool = data.get("tool")
     if not isinstance(tool, dict) or not all(isinstance(tool.get(f), str) and tool.get(f) for f in ("name", "version", "kernel", "kernel_version")):
         project.error(where, "tool must record name, version, kernel and kernel_version")
+    elif not isinstance(tool.get("integration"), dict):
+        project.finding(comp.path, "facts.json was measured with the kernel's plain integration, which can be about "
+                                   "1 % off in volume for a solid with free-form surfaces; measure it again")
     if data.get("valid") is not True:
         project.error(where, "the kernel did not find the geometry valid")
     solids = data.get("solids")

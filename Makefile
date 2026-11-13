@@ -19,8 +19,8 @@ project = $(if $(PROJECT),$(abspath $(PROJECT)),$(error name the project reposit
 
 help:
 	@echo "make test                        the tests that need no FreeCAD"
-	@echo "make test-cad                    all the tests, with FreeCAD"
-	@echo "make test-build123d              all the tests, with FreeCAD and build123d"
+	@echo "make test-cad                    with FreeCAD: the assembly tools; what measures is skipped"
+	@echo "make test-build123d              all the tests, with FreeCAD, the OCP bindings and build123d"
 	@echo "make validate PROJECT=DIR        check a project repository against the layout"
 	@echo "make assemblies PROJECT=DIR      list the project's assemblies, and which are built"
 	@echo "make assembly PROJECT=DIR        build its top-level assembly as one STEP file and one FreeCAD document"

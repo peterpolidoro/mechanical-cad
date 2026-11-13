@@ -52,8 +52,8 @@ The commands, and where they live:
 | Command | Writes | Where |
 | --- | --- | --- |
 | import | `references/`, `vault-lock.json` | `vault-cad-tools` (`vault-cad import-snapshot`, provisional) |
-| facts | `references/parts/*/facts.json` | `tools/step_facts.py`, run by FreeCADCmd |
-| build | `part.step`, `receipt.json`, `facts.json` of an authored part | `tools/build_part.py`, run by FreeCADCmd |
+| facts | `references/parts/*/facts.json` | `tools/step_facts.py`, run by FreeCADCmd with the OCP bindings |
+| build | `part.step`, `receipt.json`, `facts.json` of an authored part | `tools/build_part.py`, run by FreeCADCmd with the OCP bindings |
 | publication record | `vault.json` of an authored part, and the `publications` of `vault-lock.json` | `vault-cad-tools` (`vault-cad import-publish-result`) |
 | validate, check, flatten, assemblies | nothing in the repository | `python3 -m mechanical_cad` |
 | whole-assembly STEP | `.cache/assemblies/`, which the project ignores | `tools/assembly_step.py`, run by FreeCADCmd |
@@ -174,11 +174,23 @@ one holds.
 What a geometry kernel measured of `part.step`, in millimetres.
 
 `schema_version`, `key`, `step` (`sha256` and `data_sha256` of the file
-measured), `tool` (`name`, `version`, `kernel`, `kernel_version`), `valid`,
-`length_unit_declared`, `solids`, `shells`, `faces`, `volume_mm3`, `area_mm2`,
-`center_of_mass_mm`, `bounding_box_mm` (`min`, `max`), `invisible_items` when
-the file marks items invisible, and `notes` when the tool has something to
-say.
+measured), `tool` (`name`, `version`, `kernel`, `kernel_version`,
+`integration`), `valid`, `length_unit_declared`, `solids`, `shells`, `faces`,
+`volume_mm3`, `area_mm2`, `center_of_mass_mm`, `bounding_box_mm` (`min`,
+`max`), `invisible_items` when the file marks items invisible, and `notes`
+when the tool has something to say.
+
+**Volume, area and centre of mass are by the kernel's adaptive integration**,
+asked for a relative tolerance of 1e-7; `tool.integration` says so (`method`,
+`relative_tolerance`, `bindings`, `bindings_version`), and a note says when a
+solid did not reach the tolerance. FreeCAD reads the file and counts, and
+hands the shape to the OCP bindings of the same kernel for the integration,
+because its own `Volume` is the kernel's plain integration over the faces.
+That one was 0.8 % low in volume, and 4 mm off in the centre of mass, for a
+spring whose surface is a B-spline spiral (the first project, 2026-11-13,
+against Inventor and a fine mesh); for its other 36 parts the two agree
+within 5e-5. Facts without `tool.integration` were measured the plain way;
+the validator points them out, and the facts command measures them again.
 
 **Invisible items are not measured.** An AP242 file exported from Inventor
 holds the bodies that are hidden in the native part and lists them in an
@@ -199,7 +211,9 @@ and `bounding_box_mm`. Two fingerprints are the same geometry when the solid
 counts are equal, volume and area agree within a relative 1e-6, and centre of
 mass and box corners agree within 1e-6 mm plus 1e-6 of the part's size. These
 tolerances are provisional: they have held between a shape and its own STEP
-export on one kernel version, and nothing else has been tried.
+export on one kernel version, and nothing else has been tried. One part of
+the first project reaches a relative error of 2e-5 in the integration, not
+the 1e-7 asked; two exports of such a part may differ by more than 1e-6.
 
 ## An authored part
 

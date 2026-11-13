@@ -231,6 +231,13 @@ def test_an_old_lock_is_not_the_index(project_copy):
     assert has(errors(project_copy), "vault-lock.json", "schema_version must be 2")
 
 
+def test_facts_measured_with_the_plain_integration_are_pointed_out(project_copy):
+    assert layout.load(project_copy).findings == [f for f in layout.load(project_copy).findings if "plain integration" not in f]
+    edit_json(project_copy / PLATE / "facts.json", lambda d: d["tool"].pop("integration"))
+    project = layout.load(project_copy)
+    assert project.errors == [] and has(project.findings, PLATE, "plain integration", "measure it again")
+
+
 def test_facts(project_copy):
     def change(d):
         d["valid"] = False

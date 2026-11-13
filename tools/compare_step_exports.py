@@ -70,7 +70,7 @@ def compare(project, mapping):
                                                                   "DIFFERENT: " + "; ".join(rec["differences"]))
         print(f"[compare_step_exports] {key}: {state}", flush=True)
     not_compared = sorted(set(parts) - set(mapping))
-    return {"schema_version": 1, "tool": kernel.tool(), "tolerances": {"relative": facts.RELATIVE_TOL, "length_mm": facts.LENGTH_TOL_MM},
+    return {"schema_version": 1, "tool": kernel.measuring_tool(), "tolerances": {"relative": facts.RELATIVE_TOL, "length_mm": facts.LENGTH_TOL_MM},
             "summary": dict(counts, compared=len(mapping), parts_in_project=len(parts), not_compared=not_compared),
             "parts": records}
 

@@ -1,7 +1,15 @@
-"""Shared by the kernel-backed tools: measure a shape with FreeCAD's OpenCASCADE.
+"""Shared by the kernel-backed tools: read, write and measure a shape with FreeCAD's OpenCASCADE.
 
 A part's program may build its shape with FreeCAD's Part module or with
 build123d; as_shape brings either to the Part.Shape everything here works on.
+
+Volumes and areas that are recorded (facts.json, a receipt's re-import check)
+are measured with OpenCASCADE's adaptive integration, which FreeCAD's Python
+interface does not offer: `measure` hands the shape to the OCP bindings as
+BREP for that. FreeCAD's own `Volume` is the kernel's plain integration over
+the faces, and was 0.8 % low for a solid whose surface is a B-spline spiral
+(2026-11-13). `solids`, which only compares what one run reads with what the
+same run reads back, keeps the plain integration and needs no bindings.
 
 Import only inside FreeCADCmd. FreeCAD reads every STEP file into millimetres
 whatever unit the file declares, so everything here is in millimetres.
@@ -17,9 +25,33 @@ import Part
 from mechanical_cad import stepfile
 
 
+INTEGRATION_TOLERANCE = 1e-7        # relative, asked of the adaptive integration
+
+
+class MeasureError(RuntimeError):
+    """A shape cannot be measured here."""
+
+
 def tool():
     return {"name": "FreeCAD", "version": ".".join(str(v) for v in App.Version()[:3]),
             "kernel": "OpenCASCADE", "kernel_version": str(Part.OCC_VERSION)}
+
+
+def _bindings_version():
+    from importlib import metadata, util
+    if util.find_spec("OCP") is None:
+        raise MeasureError("measuring needs the OCP bindings of OpenCASCADE beside FreeCAD: run in the environment "
+                           "of .guix/manifest-build123d.scm (README.md, \"Guix packages\")")
+    try:
+        return metadata.version("cadquery-ocp")
+    except metadata.PackageNotFoundError:
+        return "unknown"
+
+
+def measuring_tool():
+    """What `measure` measures with: `tool()` and how volumes and areas are integrated."""
+    return dict(tool(), integration={"method": "adaptive", "relative_tolerance": INTEGRATION_TOLERANCE,
+                                     "bindings": "OCP", "bindings_version": _bindings_version()})
 
 
 def as_shape(result):
@@ -90,27 +122,65 @@ def measure_step(path, data=None):
 
 
 def solids(shape):
-    """[(volume in mm3, [x, y, z] of the centre of mass)] of the solids of a shape, in its own frame."""
+    """[(volume in mm3, [x, y, z] of the centre of mass)] of the solids of a shape, in its own frame, by
+    FreeCAD's plain integration: for matching what one run reads against what it reads back, not for records."""
     return [(s.Volume, [s.CenterOfMass.x, s.CenterOfMass.y, s.CenterOfMass.z]) for s in shape.Solids]
 
 
+def _integrate(shape):
+    """([(volume, [x, y, z] of the centre of mass)] of the solids, area, worst relative error reached), by
+    OpenCASCADE's adaptive integration, through the OCP bindings."""
+    _bindings_version()
+    import io
+
+    from OCP.BRep import BRep_Builder
+    from OCP.BRepGProp import BRepGProp
+    from OCP.BRepTools import BRepTools
+    from OCP.GProp import GProp_GProps
+    from OCP.TopAbs import TopAbs_SOLID
+    from OCP.TopExp import TopExp_Explorer
+    from OCP.TopoDS import TopoDS_Shape
+
+    handed = TopoDS_Shape()                 # FreeCAD and OCP share no object: BREP is the kernel's exact format
+    BRepTools.Read_s(handed, io.BytesIO(shape.exportBrepToString().encode("ascii")), BRep_Builder())
+    solids, worst = [], 0.0
+    explorer = TopExp_Explorer(handed, TopAbs_SOLID)
+    while explorer.More():
+        properties = GProp_GProps()
+        worst = max(worst, abs(BRepGProp.VolumeProperties_s(explorer.Current(), properties, INTEGRATION_TOLERANCE)))
+        centre = properties.CentreOfMass()
+        solids.append((properties.Mass(), [centre.X(), centre.Y(), centre.Z()]))
+        explorer.Next()
+    surface = GProp_GProps()
+    worst = max(worst, abs(BRepGProp.SurfaceProperties_s(handed, surface, INTEGRATION_TOLERANCE)))
+    return solids, surface.Mass(), worst
+
+
 def measure(shape):
-    """The facts of one shape: validity, counts, volume, area, centre of mass, bounding box."""
+    """The facts of one shape: validity, counts, volume, area, centre of mass, bounding box.
+
+    Volume, area and centre of mass are by the kernel's adaptive integration (see the head of this file);
+    the rest is FreeCAD's. Raises MeasureError where the OCP bindings are not to be had.
+    """
     notes = []
-    solids = shape.Solids
-    volume = sum(s.Volume for s in solids)
+    solids, area, worst = _integrate(shape)
+    if len(solids) != len(shape.Solids):
+        raise MeasureError(f"the shape has {len(shape.Solids)} solid(s) in FreeCAD and {len(solids)} as handed over")
+    volume = sum(v for v, _ in solids)
     if solids and volume > 0:
-        com = [sum(getattr(s.CenterOfMass, axis) * s.Volume for s in solids) / volume for axis in ("x", "y", "z")]
+        com = [sum(c[axis] * v for v, c in solids) / volume for axis in range(3)]
     else:
         com = [0.0, 0.0, 0.0]
         notes.append("no solid with a positive volume; the centre of mass is not defined")
-    if any(s.Volume <= 0 for s in solids):
+    if any(v <= 0 for v, _ in solids):
         notes.append("a solid has a non-positive volume")
+    if worst > 10 * INTEGRATION_TOLERANCE:
+        notes.append(f"the integration reached a relative error of {worst:.1e}, not the {INTEGRATION_TOLERANCE:.0e} asked")
     bb = shape.optimalBoundingBox(True, False)
     return {
         "valid": bool(shape.isValid()),
         "solids": len(solids), "shells": len(shape.Shells), "faces": len(shape.Faces),
-        "volume_mm3": volume, "area_mm2": shape.Area, "center_of_mass_mm": com,
+        "volume_mm3": volume, "area_mm2": area, "center_of_mass_mm": com,
         "bounding_box_mm": {"min": [bb.XMin, bb.YMin, bb.ZMin], "max": [bb.XMax, bb.YMax, bb.ZMax]},
         "notes": notes,
     }

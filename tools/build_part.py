@@ -71,7 +71,7 @@ def build(part_dir):
 
     back = kernel.measure(kernel.read_step(part_dir / "part.step"))
     same, diffs = facts.compare(built, back, REIMPORT_RELATIVE, REIMPORT_LENGTH_MM)
-    tool = kernel.tool()
+    tool = kernel.measuring_tool()
     unit = stepfile.length_unit(data)
     step = {"sha256": stepfile.sha256_bytes(data), "data_sha256": stepfile.data_sha256(data), "bytes": len(data),
             "length_unit": unit, "header_normalised": True}

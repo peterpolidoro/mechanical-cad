@@ -1,6 +1,8 @@
 """Regenerate the layout fixture's derived files.
 
-    guix shell --pure -m .guix/manifest-cad.scm -- FreeCADCmd examples/layout-fixture/generate_fixture.py
+    guix shell --pure -L .guix/modules -m manifest.scm -m .guix/manifest-build123d.scm -- FreeCADCmd examples/layout-fixture/generate_fixture.py
+
+(the environment with the OCP bindings, which measuring needs)
 
 Everything under references/, vault-lock.json and the spacer's part.step,
 receipt.json and facts.json are written by this script. The hand-written

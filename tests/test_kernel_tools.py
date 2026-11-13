@@ -18,6 +18,9 @@ from mechanical_cad import assemblies, fcstd, layout
 FREECAD = shutil.which("FreeCADCmd")
 pytestmark = pytest.mark.skipif(FREECAD is None, reason="FreeCADCmd is not on PATH (use the CAD role)")
 SPACER = "designs/parts/spacer"
+# What is recorded of a shape is measured with the kernel's adaptive integration, through the OCP bindings.
+measures = pytest.mark.skipif(importlib.util.find_spec("OCP") is None,
+                              reason="the OCP bindings are not in this environment (make test-build123d)")
 
 
 def run(tool, *args):
@@ -29,6 +32,7 @@ def derived(part_dir):
     return {name: (Path(part_dir) / name).read_bytes() for name in ("part.step", "receipt.json", "facts.json")}
 
 
+@measures
 def test_building_an_unchanged_part_changes_no_file(project_copy):
     before = derived(project_copy / SPACER)
     out = run("build_part.py", project_copy / SPACER)
@@ -37,6 +41,7 @@ def test_building_an_unchanged_part_changes_no_file(project_copy):
     assert layout.load(project_copy).errors == []
 
 
+@measures
 def test_a_changed_parameter_rebuilds_and_fails_its_check(project_copy):
     edit_json(project_copy / SPACER / "parameters.json", lambda d: d.update(height_mm=6.0))
     assert any("parameters.json has changed" in e for e in layout.load(project_copy).errors)
@@ -47,6 +52,7 @@ def test_a_changed_parameter_rebuilds_and_fails_its_check(project_copy):
     assert project.components["spacer"].facts["bounding_box_mm"]["max"][2] == pytest.approx(6.0)
 
 
+@measures
 def test_a_program_that_fails_is_reported(project_copy):
     edit_json(project_copy / SPACER / "parameters.json", lambda d: d.update(inner_diameter_mm=30.0))
     out = run("build_part.py", project_copy / SPACER)
@@ -85,7 +91,7 @@ def test_a_part_written_with_build123d_is_built_by_the_same_tool(project_copy):
     library = receipt["tool"]["library"]
     assert library["name"] == "build123d" and library["version"] and library["bindings"] == "OCP", library
     facts = json.loads((part / "facts.json").read_text())
-    assert "library" not in facts["tool"]
+    assert "library" not in facts["tool"] and facts["tool"]["integration"]["method"] == "adaptive"
     # the same ring as FreeCAD's Part module builds from the same parameters
     assert facts["solids"] == with_freecad["solids"] == 1
     assert facts["volume_mm3"] == pytest.approx(with_freecad["volume_mm3"], rel=1e-9)
@@ -96,6 +102,16 @@ def test_a_part_written_with_build123d_is_built_by_the_same_tool(project_copy):
     before = derived(part)
     assert "[build_part] exit status 0" in run("build_part.py", part)
     assert derived(part) == before
+
+
+@pytest.mark.skipif(importlib.util.find_spec("OCP") is not None, reason="the OCP bindings are here")
+def test_without_the_bindings_nothing_is_measured_and_the_tool_says_why(project_copy):
+    before = derived(project_copy / SPACER)
+    out = run("step_facts.py", project_copy, "--", "--force")
+    assert "measuring needs the OCP bindings" in out and "[step_facts] exit status 2" in out, out
+    out = run("build_part.py", project_copy / SPACER)
+    assert "measuring needs the OCP bindings" in out and "[build_part] exit status 1" in out, out
+    assert derived(project_copy / SPACER) == before          # and nothing was written
 
 
 def test_instances_that_hold_the_same_share_one_product(project_copy, tmp_path):
@@ -124,6 +140,7 @@ def test_instances_that_hold_the_same_share_one_product(project_copy, tmp_path):
     assert not any(name.startswith("asm_link") for name in view) and sum(view.values()) == 6 + 5
 
 
+@measures
 def test_facts_are_kept_when_current_and_reproduced_when_forced(project_copy):
     plate = project_copy / "references/parts/base-plate/facts.json"
     before = plate.read_bytes()
@@ -146,6 +163,7 @@ Part.makeCompound([Part.makeBox(10, 10, 10), small]).exportStep(sys.argv[-1])
 """
 
 
+@measures
 def test_a_body_the_file_marks_invisible_is_not_measured(project_copy, tmp_path):
     plate = "references/parts/base-plate"
     (tmp_path / "two.py").write_text(TWO_SOLIDS)
@@ -165,6 +183,7 @@ def test_a_body_the_file_marks_invisible_is_not_measured(project_copy, tmp_path)
     assert "0 measured, 1 already current" in run("step_facts.py", project_copy, "--", "--only", "base-plate")
 
 
+@measures
 def test_another_export_is_compared_by_its_geometry(project_copy, tmp_path):
     plate = project_copy / "references/parts/base-plate/part.step"
     pin = project_copy / "references/parts/pin/part.step"
