@@ -18,7 +18,10 @@ of a real project:
 - a dry-run conversion of the first project, which passes the proposal's
   acceptance test (see `.agents/PLANS.md`).
 
-There is no Guix channel yet, and no package of OCP, build123d or CadQuery.
+The repository is also a Guix channel, with packages of the OCP bindings of
+OpenCASCADE and of build123d, so that a part's program can be written with
+build123d as well as with FreeCAD's `Part` module ("Guix packages" below).
+CadQuery is not packaged.
 
 ## Start here
 
@@ -92,6 +95,9 @@ guix shell --pure -m .guix/manifest-cad.scm -- FreeCADCmd tools/compare_assembly
 guix shell --pure -m manifest.scm -m .guix/manifest-cad.scm -- python3 -B -m pytest -q tests
 ```
 
+One test builds a part written with build123d and is skipped unless build123d
+is in the environment ("Guix packages" below).
+
 - `compare_step_exports.py` measures other exports of a project's parts (an
   AP242 export of a part tracked as AP214, an export from another session) and
   says whether each is the same geometry as the tracked file.
@@ -111,7 +117,10 @@ guix shell --pure -m manifest.scm -m .guix/manifest-cad.scm -- python3 -B -m pyt
   area, centre of mass, bounding box) and writes `facts.json` beside it.
 - `build_part.py` builds an authored part from its `build.py` and
   `parameters.json`: the STEP file, a receipt and the facts. Building an
-  unchanged part again changes no file.
+  unchanged part again changes no file. `build.py` returns a `Part.Shape` of
+  FreeCAD or a shape of build123d; for the second, run the tool in the
+  environment of "Guix packages" below. FreeCAD writes and measures the file
+  either way, and the receipt names the library that built the shape.
 
 FreeCADCmd reads dashed options itself, even after `--pass`; put a bare `--`
 before a script's own options (`--pass PROJECT -- --force`). It also exits 0
@@ -124,6 +133,35 @@ exporter's package into the layout.
 clone that lives on a filesystem where git cannot write safely (the network
 share the Windows agent fetches from) to the commit of a clean, pushed local
 checkout, by copying a pack, the refs, the changed files and the index.
+
+## Guix packages
+
+`.guix-channel` makes this repository a Guix channel whose package module is
+`.guix/modules/orb-weaver/mechanical-cad/packages.scm`. It fits the Guix the
+repository is used with: OpenCASCADE 7.9.3 and Python 3.12.
+
+| Package | What it is |
+| --- | --- |
+| `python-ocp` 7.9.3.1 | The OCP bindings of OpenCASCADE, compiled from the binding sources upstream generates for each release, with the type stubs. Its check builds a box, measures it and sends it through a STEP file |
+| `python-build123d` 0.12.0 | build123d, the last release for OpenCASCADE 7.9. Its own tests run in the build |
+| `python-ocpsvg`, `python-ocp-gordon`, `python-svgpathtools`, `python-trianglesolver`, `python-bd-materials`, `python-threejs-materials`, `python-pygltflib`, `python-dataclasses-json`, `python-lib3mf` | What build123d needs and Guix does not have |
+
+Nothing builds these for you: the first use compiles the bindings, about
+twenty minutes on sixteen cores, and an update of Guix that changes Python,
+OpenCASCADE, VTK or pybind11 compiles them again.
+
+Without adding the channel:
+
+```sh
+guix shell --pure -L .guix/modules python python-build123d -- python3 PROGRAM.py
+guix shell --pure -L .guix/modules -m manifest.scm -m .guix/manifest-build123d.scm -- FreeCADCmd tools/build_part.py --pass PROJECT/designs/parts/KEY
+guix shell --pure -L .guix/modules -m manifest.scm -m .guix/manifest-build123d.scm -- python3 -B -m pytest -q tests
+```
+
+`.guix/manifest-build123d.scm` is the FreeCAD role with build123d added;
+`make test-build123d` runs the last line. What each definition changes
+against its upstream, and why, is written beside the change. They are not
+yet fit for Guix itself; `.agents/PLANS.md` lists what is missing.
 
 ## Related repositories
 

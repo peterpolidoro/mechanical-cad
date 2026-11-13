@@ -1,5 +1,8 @@
 """Shared by the kernel-backed tools: measure a shape with FreeCAD's OpenCASCADE.
 
+A part's program may build its shape with FreeCAD's Part module or with
+build123d; as_shape brings either to the Part.Shape everything here works on.
+
 Import only inside FreeCADCmd. FreeCAD reads every STEP file into millimetres
 whatever unit the file declares, so everything here is in millimetres.
 """
@@ -17,6 +20,43 @@ from mechanical_cad import stepfile
 def tool():
     return {"name": "FreeCAD", "version": ".".join(str(v) for v in App.Version()[:3]),
             "kernel": "OpenCASCADE", "kernel_version": str(Part.OCC_VERSION)}
+
+
+def as_shape(result):
+    """What a part's build() returned, as (Part.Shape, library).
+
+    A Part.Shape comes back as it is, with None. A shape of build123d, or
+    anything else that wraps a TopoDS_Shape of the OCP bindings in `wrapped`,
+    or such a TopoDS_Shape itself, is handed over as BREP, the kernel's own
+    exact format: FreeCAD and OCP wrap the same OpenCASCADE and share no
+    object. `library` then names what built it, for the receipt.
+    """
+    if isinstance(result, Part.Shape):
+        return result, None
+    wrapped = getattr(result, "wrapped", result)
+    if type(wrapped).__module__.split(".")[0] != "OCP":
+        raise TypeError(f"build() returned a {type(result).__module__}.{type(result).__name__}; expected a "
+                        "Part.Shape of FreeCAD or a shape of build123d")
+    import io
+    from importlib import metadata
+
+    from OCP.BRepTools import BRepTools
+
+    stream = io.BytesIO()
+    BRepTools.Write_s(wrapped, stream)
+    shape = Part.Shape()
+    shape.importBrepFromString(stream.getvalue().decode("ascii"))
+
+    def version(distribution):
+        try:
+            return metadata.version(distribution)
+        except metadata.PackageNotFoundError:
+            return None
+
+    name, bindings = type(result).__module__.split(".")[0], version("cadquery-ocp")
+    if name == "OCP":
+        return shape, {"name": "OCP", "version": bindings}
+    return shape, {"name": name, "version": version(name), "bindings": "OCP", "bindings_version": bindings}
 
 
 def read_step(path):

@@ -259,6 +259,45 @@ def set_product_name(data, name):
     return data[:start] + _PRODUCT.sub(lambda m: m.group(1) + quoted + m.group(2) + quoted, data[start:], count=1)
 
 
+_USAGE = re.compile(rb"(#\d+\s*=\s*NEXT_ASSEMBLY_USAGE_OCCURRENCE\s*\(\s*)('(?:[^']|'')*')(\s*,\s*)('(?:[^']|'')*')"
+                    rb"(\s*,\s*(?:'(?:[^']|'')*'|\$)\s*,\s*#(\d+))")
+
+
+def name_usages(data, names=None):
+    """The same file with every usage of a component carrying its occurrence's name as its id too.
+
+    OpenCASCADE numbers the usages (NEXT_ASSEMBLY_USAGE_OCCURRENCE) in their
+    first attribute, the id, and writes the occurrence's name into the second.
+    Inventor names an occurrence after the id, so its user sees `37` where the
+    file says `CAMERA FRAME:1` (Inventor 2025, 2026-11-13).
+
+    `names` maps a name the file has to the name the occurrence should have:
+    FreeCAD numbers a label anew when another object of its document has it,
+    and an occurrence's name need only be its own among its parent's
+    children. The file's name is kept where the other one is not plain
+    printable ASCII without a backslash (it would need an encoding), or where
+    another usage of the same parent already has it.
+
+    Returns (data, usages given their name as id, names put back).
+    """
+    names = names or {}
+    _, _, start = sections(data)
+    taken, done = set(), [0, 0]
+
+    def put(m):
+        raw, parent = m.group(4), m.group(6)
+        wanted = names.get(_unquote(raw))
+        if (wanted is not None and wanted.isascii() and wanted.isprintable() and "\\" not in wanted
+                and (parent, wanted) not in taken):
+            raw = _quote(wanted).encode("ascii")
+            done[1] += 1
+        taken.add((parent, _unquote(raw)))
+        done[0] += 1
+        return m.group(1) + raw + m.group(3) + raw + m.group(5)
+
+    return data[:start] + _USAGE.sub(put, data[start:]), done[0], done[1]
+
+
 def is_normalised(data, name="part.step"):
     h = header(data)
     return (h["name"] == name and h["time_stamp"] == NORMALISED_TIMESTAMP and h["author"] == [""]

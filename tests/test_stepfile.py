@@ -130,6 +130,32 @@ def test_product_name_is_set_without_touching_anything_else():
         S.set_product_name(data.replace(b"PRODUCT(", b"PRODUKT("), "x")
 
 
+def test_a_usage_carries_its_name_as_its_id_and_a_renumbered_name_is_put_back():
+    usages = (b"#20 = NEXT_ASSEMBLY_USAGE_OCCURRENCE('1','PAIR:1','',#5,#6,$);\r\n"
+              b"#21 = NEXT_ASSEMBLY_USAGE_OCCURRENCE('2',\r\n  'PIN:1','',#6,#7,$);\r\n"
+              b"#22 = NEXT_ASSEMBLY_USAGE_OCCURRENCE('3','PAIR:2','',#5,#8,$);\r\n"
+              b"#23 = NEXT_ASSEMBLY_USAGE_OCCURRENCE('4','PIN:001','',#8,#7,$);\r\n"
+              b"#24 = NEXT_ASSEMBLY_USAGE_OCCURRENCE('5','it''s:001','',#8,#7,$);\r\n"
+              b"#25 = NEXT_ASSEMBLY_USAGE_OCCURRENCE('6','PIN:002','',#8,#7,$);\r\n")
+    data = INVENTOR.replace(b"ENDSEC;\r\nEND-ISO", usages + b"ENDSEC;\r\nEND-ISO")
+    assert usages in data
+    out, named, restored = S.name_usages(data, {"PIN:001": "PIN:1", "it's:001": "it's:1", "PIN:002": "PIN:1"})
+    assert (named, restored) == (6, 2)
+    assert b"OCCURRENCE('PAIR:1','PAIR:1','',#5,#6,$)" in out
+    assert b"OCCURRENCE('PIN:1',\r\n  'PIN:1','',#6,#7,$)" in out            # the line break stays where it was
+    assert b"#23 = NEXT_ASSEMBLY_USAGE_OCCURRENCE('PIN:1','PIN:1','',#8,#7,$)" in out
+    assert b"OCCURRENCE('it''s:1','it''s:1','',#8,#7,$)" in out
+    # a name its parent already has is not given a second time: the file's own name stays
+    assert b"#25 = NEXT_ASSEMBLY_USAGE_OCCURRENCE('PIN:002','PIN:002','',#8,#7,$)" in out
+    assert S.name_usages(out) == (out, 6, 0)                                      # nothing left to do
+    assert S.data_sha256(out) != S.data_sha256(data) and S.header(out) == S.header(data)
+    # a name that would need an encoding is left as the file has it
+    kept, named, restored = S.name_usages(data, {"PIN:001": "Stütze:1", "PIN:002": "a\\b"})
+    assert (named, restored) == (6, 0) and b"('PIN:001','PIN:001'," in kept and b"('PIN:002','PIN:002'," in kept
+    # a file without usages is returned as it is
+    assert S.name_usages(INVENTOR, {"x": "y"}) == (INVENTOR, 0, 0)
+
+
 # the entities Inventor's AP242 translator writes for a part with three bodies of which two are hidden
 HIDDEN = (b"ISO-10303-21;\r\nHEADER;\r\nFILE_DESCRIPTION((''),'2;1');\r\n"
           b"FILE_NAME('p.step','2026-01-01T00:00:00',(''),(''),'','','');\r\n"

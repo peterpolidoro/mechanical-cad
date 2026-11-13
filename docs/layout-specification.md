@@ -204,7 +204,10 @@ export on one kernel version, and nothing else has been tried.
 ## An authored part
 
 - `build.py` defines `build(parameters)`, a pure function that returns the
-  shape and reads and writes no file. Today the shape is a FreeCAD `Part.Shape`.
+  shape and reads and writes no file. The shape is a FreeCAD `Part.Shape`, or
+  a shape of build123d (anything whose `wrapped` is a `TopoDS_Shape` of the
+  OCP bindings, or such a shape itself). The build command hands the second
+  kind to FreeCAD as BREP, so one kernel writes and measures every part.
 - `parameters.json` is the object passed to `build`. A `name` in it is the
   part's display name.
 - `checks.json` states what the geometry must satisfy:
@@ -229,8 +232,10 @@ export on one kernel version, and nothing else has been tried.
 - `receipt.json`: `schema_version`, `key`, `name`, `step` (as above, without
   `protocol` and `received_sha256`), `program` and `parameters` (`file` and
   `sha256`), `tool`, `reimport` (whether the file read back agrees with the
-  shape that was built). A receipt whose program or parameters hash no longer
-  matches the file is an error: build the part again.
+  shape that was built). When the program built its shape with a library
+  other than the tool, `tool.library` names it: `name`, `version`,
+  `bindings` and `bindings_version`. A receipt whose program or parameters
+  hash no longer matches the file is an error: build the part again.
 - `vault.json`, once a publication is verified: `schema_version` and
   `publications`, each with `request_id`, `master_id`, `version_id`,
   `git_commit` and `step_sha256`. When `part.step` differs from the last
@@ -403,8 +408,20 @@ lists and the validator does not look into. They are never committed.
   is matched with where the scene puts it: the same volume within one part in
   a thousand and the centre of mass within 0.01 mm
   (`mechanical_cad/solids.py`). `KEY.json` holds that check.
+- Every usage of a component in the STEP file
+  (`NEXT_ASSEMBLY_USAGE_OCCURRENCE`) has its occurrence's name as its name
+  and as its id. Inventor shows the id as the occurrence's name, where
+  OpenCASCADE writes a running number; and FreeCAD numbers a label anew when
+  its document has it already, where an occurrence's name need only be its
+  own among its parent's children. The build puts both right in the file's
+  text (`mechanical_cad/stepfile.py`, `name_usages`). Product names stay as
+  FreeCAD wrote them: a CAD system names its documents after them.
 - The files hold positions and shapes. They hold no constraints or joints, no
   features, and no colour.
+- Inventor 2025 opens such a file as an assembly in millimetres with every
+  occurrence where the manifests put it (2026-11-13, the first project: 171
+  occurrences within 7e-10 mm, 479 solid bodies). It makes one assembly
+  document per product, so one per sub-assembly instance.
 - `KEY.FCStd` opens in the FreeCAD window with the assembly shown, upright
   and in view, the first level of its tree open, and the part files the
   occurrences link to hidden in a group of their own. FreeCADCmd has no

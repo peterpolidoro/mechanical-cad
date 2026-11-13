@@ -4,10 +4,13 @@
 
 The part directory holds `build.py` and `parameters.json`. `build.py` defines
 
-    def build(parameters): ...  ->  a Part.Shape
+    def build(parameters): ...  ->  a Part.Shape of FreeCAD, or a shape of build123d
 
 a pure function: it takes the parsed parameters and returns the shape; it
-reads and writes no file. This tool does the rest and is the only writer of
+reads and writes no file. A build123d shape needs build123d in the same
+environment as FreeCAD (README.md, "Guix"); it is handed to FreeCAD as BREP,
+and the receipt names the library and its version beside the tool.
+This tool does the rest and is the only writer of
 the three files it produces:
 
     part.step      the shape as STEP, with a normalised header and its product
@@ -53,7 +56,7 @@ def build(part_dir):
     exec(compile(program.read_text(encoding="utf-8"), str(program), "exec"), namespace)
     if not callable(namespace.get("build")):
         raise ValueError(f"{program}: no build(parameters) function")
-    shape = namespace["build"](parameters)
+    shape, library = kernel.as_shape(namespace["build"](parameters))
     built = kernel.measure(shape)
     if not built["valid"] or built["solids"] < 1:
         raise ValueError(f"{key}: build() returned a shape that is not valid or has no solid")
@@ -77,7 +80,7 @@ def build(part_dir):
         "schema_version": layout.SCHEMA_VERSION, "key": key, "name": name, "step": step,
         "program": {"file": "build.py", "sha256": stepfile.sha256_file(program)},
         "parameters": {"file": "parameters.json", "sha256": stepfile.sha256_file(params_file)},
-        "tool": tool,
+        "tool": dict(tool, library=library) if library else tool,
         "reimport": {"passed": same, "differences": diffs,
                      "tolerance": {"relative": REIMPORT_RELATIVE, "length_mm": REIMPORT_LENGTH_MM}},
     }

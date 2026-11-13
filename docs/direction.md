@@ -50,7 +50,10 @@ The free-standing tank enclosure is the test project for every stage.
 - New parts are parametric Python programs that produce B-rep STEP: FreeCAD
   scripting today, build123d or CadQuery once packaged. The program, its
   parameters, the STEP and a receipt are committed together. Inventor is not an
-  authoring tool unless a collaborator insists. (2026-10-23)
+  authoring tool unless a collaborator insists. (2026-10-23) build123d is
+  packaged first, with the OCP bindings, in a Guix channel in this
+  repository; CadQuery may follow once build123d works, to give agents and
+  people more options. (2026-11-13)
 - An assembly is per-part STEP files plus a placement manifest, never a single
   assembly STEP as the source. (2026-10-23) A STEP file of a whole assembly,
   for viewing and for documentation, is generated from them and not stored in
@@ -138,7 +141,8 @@ enclosure has been converted and re-exported under it.
    it with today's. Merge the branch.
 6. Build the first code-authored part with the tools here and publish it to
    Vault.
-7. Package OCP, build123d and CadQuery in the channel.
+7. Package OCP and build123d in the channel (begun 2026-11-13), CadQuery
+   possibly after them.
 
 ## Not settled
 

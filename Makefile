@@ -7,16 +7,20 @@
 GUIX      = guix shell --pure -m manifest.scm
 GUIX_CAD  = guix shell --pure -m .guix/manifest-cad.scm
 GUIX_BOTH = guix shell --pure -m manifest.scm -m .guix/manifest-cad.scm
+# With build123d and the OCP bindings as well, from the channel module in this repository. The first use builds
+# them; the bindings take about twenty minutes on sixteen cores.
+GUIX_B3D  = guix shell --pure -L .guix/modules -m manifest.scm -m .guix/manifest-build123d.scm
 
 # The project repository, as an absolute path; a command that needs one stops without it.
 project = $(if $(PROJECT),$(abspath $(PROJECT)),$(error name the project repository: make $@ PROJECT=/path/to/project))
 
 .DEFAULT_GOAL := help
-.PHONY: help test test-cad validate assemblies assembly open
+.PHONY: help test test-cad test-build123d validate assemblies assembly open
 
 help:
 	@echo "make test                        the tests that need no FreeCAD"
 	@echo "make test-cad                    all the tests, with FreeCAD"
+	@echo "make test-build123d              all the tests, with FreeCAD and build123d"
 	@echo "make validate PROJECT=DIR        check a project repository against the layout"
 	@echo "make assemblies PROJECT=DIR      list the project's assemblies, and which are built"
 	@echo "make assembly PROJECT=DIR        build its top-level assembly as one STEP file and one FreeCAD document"
@@ -29,6 +33,9 @@ test:
 
 test-cad:
 	$(GUIX_BOTH) -- python3 -B -m pytest -q tests
+
+test-build123d:
+	$(GUIX_B3D) -- python3 -B -m pytest -q tests
 
 validate:
 	@$(GUIX) -- python3 -B -m mechanical_cad validate "$(project)"

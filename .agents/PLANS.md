@@ -7,7 +7,7 @@ open-source tools to check it, document it and add to it, with the
 free-standing tank enclosure as the test project. The full statement is
 docs/direction.md. Finished checkpoints are in .agents/HISTORY.md.
 
-## Current state (2026-11-12)
+## Current state (2026-11-13)
 
 On 2026-11-11 Peter decided the layout's three open choices: two roots and
 readable keys, which is what was built on 2026-11-10 while he assembled the
@@ -296,6 +296,18 @@ Smaller ones:
 11. The ten questions on the Vault side
     (`vault-cad-tools/docs/native-checkin-adapter-design.md`, section 10) and
     the enclosure's own (its plan, "Open items").
+12. Whether sub-assembly instances that are alike share one product in the
+    STEP file of a whole assembly. Today each instance has its own, so
+    Inventor makes 18 assembly documents for the enclosure's 7 assembly files
+    (Windows, 2026-11-13). Instances a flexible assembly places differently
+    would keep their own.
+13. The licence of the Guix package module. Guix takes definitions under
+    GPL-3.0-or-later; this repository is 3-clause BSD, and its README says
+    only that definitions adapted from Guix's own carry Guix's licence. The
+    ones here are written new. They cannot be submitted before this is
+    settled.
+14. The eight Windows scripts that serve only the earlier export formats
+    (`vault-cad-tools/.agents/PLANS.md` has the list and what to weigh).
 
 ## Next work, in order
 
@@ -380,17 +392,159 @@ Smaller ones:
    - The reply to Windows and its next prompt are written
      (`to-windows/20261113T144207Z-...`): the checkout first if the change has
      reached the shared clones, then Inventor reading the STEP file built
-     here, then the scripts. The shared clones still hold `vault-cad-tools`
-     a66ca5a, this repository 8737ae6 and the enclosure 7a1af68; they are
-     brought level after Peter's commit, on his word.
+     here, then the scripts. Peter committed the correction (a18ad6a here,
+     d4e5ef3 in the enclosure) and the shared clones were brought level on
+     2026-11-13.
+   - Windows delivered all of it on 2026-11-13 (shared evidence
+     `2026-11-13-windows-new-layout-02`, 178 files checked against their
+     checksums here; the review is `2026-11-13-linux-windows-new-layout-02-
+     review-01/REVIEW.md`):
+     - The checkout is right on Windows once every tracked file is written
+       again: no file stored with LF and written with CRLF, and `validate`,
+       `assemblies`, the fixture, `status` and the tests give what Linux
+       gets. `mechanical_cad` has now run on Windows.
+     - **Inventor 2025 opens the STEP file of the whole enclosure that
+       `tools/assembly_step.py` built**: an assembly in mm, in 47 s, the
+       translator says `Successful`, no dialog. 155 part occurrences, 479
+       solid bodies, 37 part documents. All 171 occurrences are where the
+       package's `occurrences.json` puts them, within 7e-10 mm, the 44 that
+       a flexible instance places differently among them. The volume is
+       FreeCAD's within 6e-5. Inventor also writes it out as native
+       documents (18 `.iam`, 37 `.ipt`, 74 s). No colour, constraint or
+       feature arrives, as the tool says.
+     - What an Inventor user saw that was ours to correct: the occurrences
+       were named with numbers, because Inventor shows the id of a usage and
+       OpenCASCADE writes a running number there; and 47 of the 171 names
+       were numbered anew by FreeCAD, which keeps the labels of a document
+       distinct. Both corrected here on 2026-11-13 (`stepfile.name_usages`,
+       used by `tools/assembly_step.py`; the build report is schema 3, so
+       built files are built again): every usage has its occurrence's name
+       as name and as id, and the 47 are the occurrences' own. On the
+       enclosure: 172 usages, no id twice under one parent, and the file is
+       the earlier one in every other byte. Inventor has not read it yet;
+       that is the next Windows task (`to-windows/20261113T165633Z-...`).
+     - Not corrected, for Peter to weigh: the file has one product per
+       sub-assembly instance, so Inventor makes 18 assembly documents where
+       the native design has 7 files. Instances that are alike could share a
+       product; the ones a flexible instance places differently could not.
+     - One part's volume differs in Inventor by 11 % between its two
+       accuracies (`MCMASTER 5537T429`, 11 bodies). `facts.json` is right
+       about the file: a fine mesh of each solid gives the B-rep volume (29
+       035 against 29 037 mm3), and the solid with a void is the difference
+       of its two shells. Inventor's lower number is short by the volume of
+       one body. Nothing changes in the project.
+     - The Windows patch (the six remarks on the exporter, each with an
+       offline case; a new probe that reads a STEP file in Inventor) is
+       applied in `vault-cad-tools`, uncommitted, with its README and plan.
+       Windows listed eight scripts that serve only the earlier formats;
+       the list is in that plan for Peter, and nothing is removed.
    A full-quality render of the manual waits for Peter's corrected
    instructions.
 5. The first new part for the enclosure written as code, built and checked
    here, manufactured, then published to Vault.
-6. The Guix channel (`.guix-channel` pointing at `.guix/modules`, as
-   `orb-weaver-context` does), then OCP against Guix's `opencascade-occt`,
-   build123d, CadQuery. Peter recorded this packaging as his own deferred work
-   on 2026-10-23; confirm before starting it.
+6. The Guix channel and the packages for writing parts as programs. Peter
+   recorded this packaging as his own deferred work on 2026-10-23 and took it
+   up on 2026-11-13: build123d first, the channel and the OCP package to go
+   ahead, and CadQuery possibly later, once build123d works, to give agents
+   and people more options. Built that day with Guix 64d4de2, all in
+   `.guix/modules/orb-weaver/mechanical-cad/packages.scm` (`.guix-channel`
+   points at `.guix/modules`, as `orb-weaver-context` does):
+   - `python-ocp` 7.9.3.1, the release for Guix's OpenCASCADE 7.9.3, from the
+     release's `OCP_src_stubs_Linux.zip` (the bindings as upstream's pywrap
+     generated them, 639 `.cpp`, and the type stubs). It compiles in 22
+     minutes on 16 cores and its check passes: a box, its volume, a STEP file
+     written and read back. The generated sources fit Guix's OpenCASCADE as
+     they are. Beyond the release's build file it needed MPI found before VTK
+     (Guix's VTK is built with MPI), the libraries VTK's CMake files look
+     for, and rapidjson for OpenCASCADE's glTF headers. Built with VTK, as
+     Guix's OpenCASCADE is, so the one package serves CadQuery too. The
+     module is 148 MB.
+   - `python-build123d` 0.12.0, the last release for OpenCASCADE 7.9. In the
+     build 2436 of its tests pass and 10 are deselected: nine whose set-up
+     downloads a model, one that wants lib3mf 2.3.1. Changed against
+     upstream, each with its reason in the file: the names and bounds of four
+     requirements, `Sentinel` of typing_extensions 4.15 where 4.16 has
+     `sentinel`, and the font and script it ships named as package data.
+   - Nine packages build123d needs and Guix lacks: `python-ocpsvg` 0.6.0 (232
+     tests pass) and `python-ocp-gordon` 0.2.2 (97), both the last for OCP
+     7.9; `python-svgpathtools` 1.8.0; `python-trianglesolver` 1.2;
+     `python-bd-materials` 0.2.6 (786); `python-threejs-materials` 1.2.5
+     (294; one file left out, it needs MaterialX); `python-pygltflib` 1.16.5
+     and `python-dataclasses-json` 0.6.7 (tests not run); `python-lib3mf`,
+     the binding generated with Guix's lib3mf 2.2.0, laid out as PyPI's
+     package is, with one name Python 3 refuses corrected as later releases
+     have it.
+   - Here: `tools/build_part.py` takes a build123d shape as well as a
+     `Part.Shape` (`kernel.as_shape` hands it to FreeCAD as BREP; FreeCAD
+     still writes and measures, and the receipt's `tool.library` names
+     build123d and the bindings). A test builds the fixture's spacer from a
+     build123d program: the same volume and box as FreeCAD's, the project
+     validates, a second build changes no file. `.guix/manifest-
+     build123d.scm` and `make test-build123d` give the environment. 151
+     tests pass there, 150 with FreeCAD alone, 142 without it.
+   What was found on the way, 2026-11-13 (the web pages were read by a
+   second agent):
+   - Guix has no OCP, CadQuery, build123d or pythonocc, and no patch or
+     channel for them was found. Peter's Guix checkout `~/guix` (master,
+     built; cff8eaaf48c of 2026-11-13) has the same OpenCASCADE 7.9.3 and the
+     same typing_extensions 4.15.0 and lib3mf 2.2.0.
+   - The newest releases that fit OpenCASCADE 7.9 are these and CadQuery
+     2.8.0. build123d 0.13.0 and OCP 8.0.x need OpenCASCADE 8.0. They move
+     together when Guix moves its OpenCASCADE.
+   - Open Cascade SAS opened an issue on OCP's licence compliance on
+     2026-11-12 (the kernel's headers and comments copied into generated
+     sources). To watch before anything is submitted to Guix.
+   - On this workstation the first build that has the daemon download a new
+     source ends with a permission error after the download; the same
+     command again goes on (`.agents/handoff.local.md`).
+   Not done, and needed before these can go to Guix itself:
+   - The bindings generated in the build, from OCP's repository and the
+     headers of `opencascade-occt`, with pywrap and libclang 20 or 21. Guix
+     has those compilers but defines the Python bindings of clang for
+     version 13 only (`clang-python-bindings`). Debian and Arch do this and
+     both report trouble with the clang version.
+   - lib3mf 2.4.1 in Guix, which build123d asks for; `python-anytree` in
+     Guix gives its version as 0.0.0; the tests of `python-dataclasses-json`
+     and `python-pygltflib`.
+   - The inputs of `python-ocp` pruned to what the build uses (`glew`,
+     `libx11` and `zlib` were added with `freetype` and `mesa` and not tried
+     without), and a build type without debugging symbols.
+   - The licence: Guix takes package definitions under GPL-3.0-or-later, and
+     this repository is 3-clause BSD. Peter's to settle (open decision 13).
+   Next, in order: a first real part written with build123d (item 5); then,
+   if wanted, CadQuery 2.8.0 (it needs `casadi` and `runtype`, which Guix
+   lacks, a newer `multimethod`, and VTK's Python modules), and a kernel
+   module on OCP that measures and writes without FreeCADCmd.
+
+   Which library, packaging aside (Peter asked on 2026-11-13; build123d's
+   source was read at v0.12.0 and CadQuery's documentation, change log and
+   `setup.py` at master, by a second agent, before either was built here).
+   Peter decided on 2026-11-13: build123d first. What weighed:
+   - Both wrap the same OCP shape, so a tool that takes the wrapped
+     `TopoDS_Shape` serves both, and a part written in one converts to the
+     other in a line. The choice is a convention for `build.py`, not a
+     format.
+   - For build123d: shapes are plain Python values with no hidden state, so
+     `build(parameters)` returns one and every intermediate can be measured;
+     selection is Python (`filter_by`, `sort_by`, `group_by`) instead of
+     CadQuery's selector strings; `export_step` writes labels, colours and
+     the tree, sets no author or organisation, and takes a `timestamp`;
+     SVG and DXF export, and (from memory, not read that day) projection and
+     dimension lines, for the manual.
+   - For CadQuery: a stable interface, with no breaking change listed in its
+     releases 2.6.0 to 2.8.0 (build123d is 0.x and renames things between
+     releases, which also makes an agent's memory of it less reliable;
+     mitigated by a pinned version and by running every build); more public
+     code and, from memory, most published work on language models writing
+     CAD; a constraint solver for assemblies and sketches; more STEP metadata
+     (layers, materials since 2.7.0, names of sub-shapes since 2.8.0); OCP is
+     maintained in CadQuery's organisation. Its free-function interface (no
+     hidden state, no longer experimental in 2.8.0) answers the main
+     objection to its fluent one, but most of its examples are fluent.
+   - Not deciding here: the layout owns assemblies (`assembly.json`,
+     placements), so neither library's assembly model is in the contract.
+     build123d's `import_step` rewrites spaces, dots and parentheses in names
+     to underscores; a kernel tool on OCP should read names itself.
 
 ## Known limits of what was built
 
@@ -406,8 +560,9 @@ Smaller ones:
   an instance whose definition disagrees with another instance's, and nested
   flexible instances that would need an override on an outer level. One real
   package has been imported, from one root assembly.
-- `build_part.py` takes a FreeCAD `Part.Shape` with one product. There is no
-  build123d or CadQuery path.
+- `build_part.py` takes a FreeCAD `Part.Shape` or a build123d shape, with one
+  product. One part has been built from a build123d program, the fixture's
+  spacer in a test; none in a project. There is no CadQuery path.
 - The scene written by `flatten` copies every STEP file into its output
   directory, because the documentation loader resolves assets below the scene.
 - A whole-assembly STEP file is for reading. FreeCAD's writer does not give

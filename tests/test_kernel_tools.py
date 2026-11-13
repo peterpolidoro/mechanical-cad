@@ -2,6 +2,7 @@
 
     guix shell --pure -m manifest.scm -m .guix/manifest-cad.scm -- python3 -B -m pytest -q tests/test_kernel_tools.py
 """
+import importlib.util
 import json
 import re
 import shutil
@@ -50,6 +51,51 @@ def test_a_program_that_fails_is_reported(project_copy):
     edit_json(project_copy / SPACER / "parameters.json", lambda d: d.update(inner_diameter_mm=30.0))
     out = run("build_part.py", project_copy / SPACER)
     assert "need 0 < inner diameter < outer diameter" in out and "[build_part] exit status 1" in out
+
+
+RING_WITH_BUILD123D = '''"""The fixture's spacer ring, written with build123d."""
+
+
+def build(parameters):
+    from build123d import Align, Cylinder
+
+    outer = parameters["outer_diameter_mm"] / 2.0
+    inner = parameters["inner_diameter_mm"] / 2.0
+    height = parameters["height_mm"]
+    if not 0 < inner < outer or height <= 0:
+        raise ValueError("need 0 < inner diameter < outer diameter and a positive height")
+    on_z0 = (Align.CENTER, Align.CENTER, Align.MIN)        # axis along Z, bottom face on Z = 0
+    return Cylinder(outer, height, align=on_z0) - Cylinder(inner, height, align=on_z0)
+'''
+
+
+@pytest.mark.skipif(importlib.util.find_spec("build123d") is None,
+                    reason="build123d is not in this environment (make test-build123d)")
+def test_a_part_written_with_build123d_is_built_by_the_same_tool(project_copy):
+    part = project_copy / SPACER
+    with_freecad = json.loads((part / "facts.json").read_text())
+    (part / "build.py").write_text(RING_WITH_BUILD123D, encoding="utf-8")
+    assert any("build.py has changed" in e for e in layout.load(project_copy).errors)
+    out = run("build_part.py", part)
+    assert "re-import ok" in out and "4 check(s)" in out and "FAILED" not in out, out
+    assert "[build_part] exit status 0" in out, out
+    receipt = json.loads((part / "receipt.json").read_text())
+    # FreeCAD still writes and measures the file; the receipt says what built the shape
+    assert receipt["tool"]["name"] == "FreeCAD"
+    library = receipt["tool"]["library"]
+    assert library["name"] == "build123d" and library["version"] and library["bindings"] == "OCP", library
+    facts = json.loads((part / "facts.json").read_text())
+    assert "library" not in facts["tool"]
+    # the same ring as FreeCAD's Part module builds from the same parameters
+    assert facts["solids"] == with_freecad["solids"] == 1
+    assert facts["volume_mm3"] == pytest.approx(with_freecad["volume_mm3"], rel=1e-9)
+    assert facts["bounding_box_mm"]["min"] == pytest.approx(with_freecad["bounding_box_mm"]["min"], abs=1e-6)
+    assert facts["bounding_box_mm"]["max"] == pytest.approx(with_freecad["bounding_box_mm"]["max"], abs=1e-6)
+    assert layout.load(project_copy).errors == []
+    # and a second build changes no file
+    before = derived(part)
+    assert "[build_part] exit status 0" in run("build_part.py", part)
+    assert derived(part) == before
 
 
 def test_facts_are_kept_when_current_and_reproduced_when_forced(project_copy):
@@ -135,6 +181,13 @@ def test_a_whole_assembly_is_built_once_and_matches_its_scene(project_copy, tmp_
     assert report["step"]["solid_definitions"] == report["step"]["solids_in_the_part_files"] == 3
     step = cache(project_copy)[".step"]
     assert b"1970-01-01T00:00:00" in step and b"FIXTURE ROOT:1" in step and b"PIN PAIR:2" in step
+    # every usage has its occurrence's name as its id, which is what Inventor shows, and the names FreeCAD
+    # numbered anew (the second pair's pins) are the occurrences' own again
+    usages = re.findall(rb"NEXT_ASSEMBLY_USAGE_OCCURRENCE\s*\(\s*'([^']*)'\s*,\s*'([^']*)'", step)
+    assert len(usages) == report["step"]["usages"] == report["step"]["usages_with_their_name_as_id"] > 6
+    assert all(i == n and not i.isdigit() for i, n in usages), usages
+    assert report["step"]["names_put_back"] >= 2 and sorted(n for _, n in usages).count(b"PIN:1") == 2
+    assert not any(re.search(rb":0\d\d$", n) for _, n in usages), usages
     # the project is as it was, and what was derived is where the validator does not look
     assert {p: p.read_bytes() for p in tracked} == tracked and layout.load(project_copy).errors == []
 
