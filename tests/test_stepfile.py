@@ -156,6 +156,23 @@ def test_a_usage_carries_its_name_as_its_id_and_a_renumbered_name_is_put_back():
     assert S.name_usages(INVENTOR, {"x": "y"}) == (INVENTOR, 0, 0)
 
 
+def test_products_are_renamed_only_to_names_no_other_product_has():
+    products = (b"#30 = PRODUCT('PAIR:1','PAIR:1','',(#8));\r\n"
+                b"#31 = PRODUCT('PAIR:2',\r\n  'PAIR:2','',(#8));\r\n"
+                b"#32 = PRODUCT('PIN','PIN','',(#8));\r\n")
+    data = INVENTOR.replace(b"ENDSEC;\r\nEND-ISO", products + b"ENDSEC;\r\nEND-ISO")
+    out, renamed = S.name_products(data, {"PAIR:1": "PAIR", "PAIR:2": "PAIR (2)"})
+    assert renamed == 2
+    assert b"#30 = PRODUCT('PAIR','PAIR','',(#8));" in out and b"#31 = PRODUCT('PAIR (2)',\r\n  'PAIR (2)','',(#8));" in out
+    assert b"#32 = PRODUCT('PIN','PIN','',(#8));" in out and S.header(out) == S.header(data)
+    # a name another product has, or takes in the same pass, is not given; nor one that needs an encoding
+    kept, renamed = S.name_products(data, {"PAIR:1": "PIN", "PAIR:2": "Stütze"})
+    assert renamed == 0 and kept == data
+    twice, renamed = S.name_products(data, {"PAIR:1": "PAIR", "PAIR:2": "PAIR"})
+    assert renamed == 1 and b"PRODUCT('PAIR','PAIR'" in twice and b"'PAIR:2','',(#8)" in twice
+    assert S.name_products(out, {"PAIR:1": "PAIR"}) == (out, 0)
+
+
 # the entities Inventor's AP242 translator writes for a part with three bodies of which two are hidden
 HIDDEN = (b"ISO-10303-21;\r\nHEADER;\r\nFILE_DESCRIPTION((''),'2;1');\r\n"
           b"FILE_NAME('p.step','2026-01-01T00:00:00',(''),(''),'','','');\r\n"

@@ -14,8 +14,10 @@ from . import flatten, jsonio, solids, stepfile
 BUILT_DIR = (".cache", "assemblies")
 # The version of what tools/assembly_step.py writes. 2: the FreeCAD document carries view data, so that it
 # opens with the assembly shown. 3: every usage in the STEP file has its occurrence's name as its id, and the
-# names FreeCAD numbered anew are the occurrences' own again. Files of an earlier version are out of date.
-BUILD_SCHEMA = 3
+# names FreeCAD numbered anew are the occurrences' own again. 4: instances of a sub-assembly that hold the same
+# parts in the same places share one product, named after the assembly's file. Files of an earlier version are
+# out of date.
+BUILD_SCHEMA = 4
 NOT_BUILT, OUT_OF_DATE, CURRENT = "not built", "out of date", "current"
 
 

@@ -298,6 +298,38 @@ def name_usages(data, names=None):
     return data[:start] + _USAGE.sub(put, data[start:]), done[0], done[1]
 
 
+_NAMED_PRODUCT = re.compile(rb"(#\d+\s*=\s*PRODUCT\s*\(\s*)('(?:[^']|'')*')(\s*,\s*)('(?:[^']|'')*')")
+
+
+def name_products(data, names):
+    """The same file with the products `names` lists given another id and name.
+
+    `names` maps the name a product has in the file to the one it should have.
+    A CAD system that reads the file names its documents after the products,
+    and the tool that wrote the file names an assembly's product after the
+    first of its occurrences. A name that is not plain printable ASCII without
+    a backslash, or that another product of the file has, is not put in.
+
+    Returns (data, products renamed).
+    """
+    _, _, start = sections(data)
+    body = data[start:]
+    taken = {_unquote(m.group(4)) for m in _NAMED_PRODUCT.finditer(body)}
+    done = [0]
+
+    def put(m):
+        wanted = names.get(_unquote(m.group(4)))
+        if (wanted is None or wanted in taken or not (wanted.isascii() and wanted.isprintable())
+                or "\\" in wanted):
+            return m.group(0)
+        taken.add(wanted)
+        done[0] += 1
+        raw = _quote(wanted).encode("ascii")
+        return m.group(1) + raw + m.group(3) + raw
+
+    return data[:start] + _NAMED_PRODUCT.sub(put, body), done[0]
+
+
 def is_normalised(data, name="part.step"):
     h = header(data)
     return (h["name"] == name and h["time_stamp"] == NORMALISED_TIMESTAMP and h["author"] == [""]

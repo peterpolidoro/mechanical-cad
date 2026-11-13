@@ -105,8 +105,10 @@ is in the environment ("Guix packages" below).
   assembly (KEY, one of the keys `assemblies` lists, or the only assembly
   nothing places) from the part files and
   the placements, into the project's ignored `.cache/assemblies/`: the way to
-  look at an assembly in FreeCAD or hand it to someone. It reads its file back
-  and checks every solid against the flattened scene. The FreeCAD document
+  look at an assembly in FreeCAD or hand it to someone. Instances of a
+  sub-assembly that are alike are one product in the file, named after the
+  assembly's file, and every usage carries its occurrence's name. It reads
+  its file back and checks every solid against the flattened scene. The FreeCAD document
   opens with the assembly shown and in view and the part files it links to
   hidden. The files carry positions and shapes, not constraints, features or
   colour; the part files and manifests stay the source.
@@ -172,6 +174,16 @@ yet fit for Guix itself; `.agents/PLANS.md` lists what is missing.
 
 ## Licence
 
-3-clause BSD, copyright Howard Hughes Medical Institute; see [LICENSE](LICENSE).
-Guix package definitions adapted from Guix's own will carry Guix's licence,
-GPL-3.0-or-later, and be marked as such.
+Copyright © 2026 Howard Hughes Medical Institute.
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version. It is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE. See [LICENSE](LICENSE) for the licence.
+
+The repository was under the 3-clause BSD licence until 2026-11-13. GPL-3.0-or-later
+is the licence of Guix, so the package definitions here can be offered to it.
+The related repositories keep their own licences; they run this one's
+programs and copy none of its code.

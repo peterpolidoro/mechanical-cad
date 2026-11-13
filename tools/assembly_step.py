@@ -10,7 +10,11 @@ assembly.json, never as a STEP file of its own. This derives that file for
 looking at the assembly, in FreeCAD or any other CAD system: KEY (default: the
 only assembly no other assembly places) is flattened, each part file is read
 once, without the items it marks invisible, and every visible occurrence is a
-link to it inside one container per sub-assembly instance. The tree, and the
+link to it inside the container of its sub-assembly. Instances of a
+sub-assembly that hold the same parts in the same places are one container
+and links to it, so the STEP file has one product for them, named after the
+assembly's file, as the mirrored CAD system has one document; an instance
+that differs has a container and a product of its own. The tree, and the
 product structure of the STEP file, are the assembly's hierarchy with its
 occurrence names. In the STEP file every usage carries that name as its id as
 well, because Inventor shows the id, and a name FreeCAD numbered anew, as it
@@ -21,7 +25,8 @@ assemblies PROJECT` lists the keys and says which are built.
 Written to DIR, by default PROJECT/.cache/assemblies/ (derived, so the project
 ignores it and it is never committed):
 
-    KEY.step    the whole assembly; geometry shared between the instances of a part; normalised header
+    KEY.step    the whole assembly; geometry shared between the instances of a part, structure between the
+                instances of a sub-assembly; normalised header
     KEY.FCStd   the same as a FreeCAD document, which opens faster than the STEP file imports
     KEY.json    what was built from what, and the check below; no timestamp
 
@@ -69,6 +74,7 @@ from mechanical_cad import transforms as T  # noqa: E402
 REPORT_SCHEMA = assemblies.BUILD_SCHEMA
 _SOLID = re.compile(rb"=\s*(?:MANIFOLD_SOLID_BREP|BREP_WITH_VOIDS)\s*\(")
 _USAGE = re.compile(rb"=\s*NEXT_ASSEMBLY_USAGE_OCCURRENCE\s*\(")
+_PRODUCT = re.compile(rb"=\s*PRODUCT\s*\(")
 
 
 def placement(rows):
@@ -79,11 +85,45 @@ def leaf(path):
     return path.rsplit("/", 1)[-1]
 
 
+def stem(document):
+    """The name of an assembly's file without its extension: what its product is called."""
+    return document.rsplit(".", 1)[0] if "." in document.strip(".") else document
+
+
+def contents(scene, occurrences, needed):
+    """{assembly id: what that instance holds}: its document, and the visible occurrences and the
+    sub-assemblies below it with the placements they have in it. Two instances with equal contents are the
+    same assembly; one whose flexible parent places something differently is not."""
+    parts, subs, out = {}, {}, {}
+    for o in occurrences:
+        parts.setdefault(o["parent_id"], []).append(o)
+    for a in scene["assemblies"]:
+        if a["parent_id"] is not None and a["id"] in needed:
+            subs.setdefault(a["parent_id"], []).append(a)
+
+    def cells(rows):
+        return tuple(float(v) for row in rows for v in row)
+
+    def content(a):
+        if a["id"] not in out:
+            out[a["id"]] = (
+                a["document"],
+                tuple(sorted((leaf(o["id"]), o["part_id"], cells(o["transform"])) for o in parts.get(a["id"], ()))),
+                tuple(sorted((leaf(c["id"]), content(c), cells(c["transform"])) for c in subs.get(a["id"], ()))))
+        return out[a["id"]]
+
+    for a in scene["assemblies"]:
+        if a["id"] in needed:
+            content(a)
+    return out
+
+
 def build(scene, assets, frame):
     """Return (document, object to export, {part id: its solids}, {part id: invisible items left out},
-    number of containers, view, renamed): view is ({object name: shown in the window?}, names of the open
-    tree nodes, a camera that has the assembly in view); renamed is {the label FreeCAD gave an occurrence or
-    a sub-assembly instance: the name it was to have} where the two differ."""
+    counts, view, renamed, products): counts is (assembly instances, containers); view is ({object name:
+    shown in the window?}, names of the open tree nodes, a camera that has the assembly in view); renamed is
+    {the label FreeCAD gave an occurrence or a sub-assembly instance: the name it was to have} where the two
+    differ; products is {the label of a sub-assembly's container: the name its product is to have}."""
     doc = App.newDocument("assembly")
     definitions = doc.addObject("App::DocumentObjectGroup", "definitions")
     definitions.Label = "Part files (the assembly links to these)"
@@ -114,7 +154,10 @@ def build(scene, assets, frame):
 
     to_frame = solids.frame_matrix(scene, frame)
     turned = to_frame != T.identity()
-    containers, renamed = {}, {}
+    containers, renamed, products = {}, {}, {}
+    holds = contents(scene, occurrences, needed)
+    first, shown_by_a_link, instance_links = {}, set(), []
+    product_names = set(names.values()) | {scene["title"]}
 
     def label(obj, name):
         # FreeCAD keeps the labels of a document distinct: it numbers a label anew when another object has it.
@@ -124,6 +167,18 @@ def build(scene, assets, frame):
     for a in scene["assemblies"]:          # in the order of the walk: a parent comes before its children
         if a["id"] not in needed:
             continue
+        if a["parent_id"] in shown_by_a_link:       # inside an instance that is a link: the container it
+            shown_by_a_link.add(a["id"])            # links to holds this one already
+            continue
+        if a["parent_id"] is not None and holds[a["id"]] in first:
+            link = doc.addObject("App::Link", "asm_link_%03d" % len(instance_links))
+            link.LinkedObject = first[holds[a["id"]]]
+            label(link, leaf(a["id"]))
+            link.Placement = placement(a["transform"])
+            containers[a["parent_id"]].addObject(link)
+            instance_links.append(link)
+            shown_by_a_link.add(a["id"])
+            continue
         c = doc.addObject("App::Part", "asm_%03d" % len(containers))
         if a["parent_id"] is None:
             c.Label = f"{a['document']} (turned to Z up)" if turned else scene["title"]
@@ -132,6 +187,15 @@ def build(scene, assets, frame):
             label(c, leaf(a["id"]))
             c.Placement = placement(a["transform"])
             containers[a["parent_id"]].addObject(c)
+            first[holds[a["id"]]] = c
+            # its product is named after the assembly's file; a second, different instance of that file,
+            # or a part of that name, gets a number
+            wanted, n = stem(a["document"]), 1
+            while wanted in product_names:
+                n += 1
+                wanted = f"{stem(a['document'])} ({n})"
+            product_names.add(wanted)
+            products[c.Label] = wanted
         containers[a["id"]] = c
     top = containers["root"]
     if turned:
@@ -143,6 +207,8 @@ def build(scene, assets, frame):
 
     shown = {}
     for i, o in enumerate(occurrences):
+        if o["parent_id"] in shown_by_a_link:
+            continue
         link = doc.addObject("App::Link", "occ_%04d" % i)
         link.LinkedObject = features[o["part_id"]]
         label(link, leaf(o["id"]))
@@ -154,11 +220,12 @@ def build(scene, assets, frame):
     shown[definitions.Name] = False
     shown.update({f.Name: False for f in features.values()})
     shown.update({c.Name: True for c in containers.values()})
+    shown.update({link.Name: True for link in instance_links})
     shown[top.Name] = True
     box = Part.getShape(top).BoundBox
     camera = fcstd.isometric_camera((box.XMin, box.YMin, box.ZMin, box.XMax, box.YMax, box.ZMax))
-    return (doc, top, part_solids, hidden, len(containers), (shown, {top.Name, containers["root"].Name}, camera),
-            renamed)
+    return (doc, top, part_solids, hidden, (len(needed), len(containers)),
+            (shown, {top.Name, containers["root"].Name}, camera), renamed, products)
 
 
 def options(argv):
@@ -217,13 +284,14 @@ def main(argv):
             return 0
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    doc, export, part_solids, hidden, containers, view, renamed = build(scene, assets, opts["frame"])
+    doc, export, part_solids, hidden, counts, view, renamed, products = build(scene, assets, opts["frame"])
     placed = solids.placed(scene)
     with tempfile.TemporaryDirectory(dir=out_dir, prefix=".building-") as tmp:
         tmp_step, tmp_doc = Path(tmp) / f"{key}.step", Path(tmp) / f"{key}.FCStd"
         Import.export([export], str(tmp_step))
         data = stepfile.normalise_header(tmp_step.read_bytes(), name=f"{key}.step")
         data, named, restored = stepfile.name_usages(data, renamed)
+        data, renamed_products = stepfile.name_products(data, products)
         tmp_step.write_bytes(data)
         check = solids.match(solids.expected(scene, part_solids, opts["frame"]), kernel.solids(kernel.read_step(tmp_step)))
         doc.saveAs(str(tmp_doc))
@@ -239,12 +307,14 @@ def main(argv):
     visible = {o["id"] for o in placed}
     report = dict(inputs)
     report.update({
-        "parts": len(assets), "assembly_nodes": containers, "occurrences": len(placed),
+        "parts": len(assets), "assembly_nodes": counts[0], "assembly_containers": counts[1],
+        "occurrences": len(placed),
         "occurrences_not_visible_left_out": [o["id"] for o in scene["occurrences"] if o["id"] not in visible],
         "suppressed_left_out": suppressed, "invisible_items_left_out": hidden,
         "step": {"file": step_path.name, "sha256": stepfile.sha256_bytes(data), "bytes": len(data),
                  "usages": len(_USAGE.findall(data)), "usages_with_their_name_as_id": named,
                  "names_put_back": restored,
+                 "products": len(_PRODUCT.findall(data)), "assembly_products_named_after_their_file": renamed_products,
                  "solid_definitions": len(_SOLID.findall(data)),
                  "solids_in_the_part_files": sum(len(v) for v in part_solids.values())},
         "document": doc_path.name,

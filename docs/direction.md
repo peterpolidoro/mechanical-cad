@@ -63,7 +63,9 @@ The free-standing tank enclosure is the test project for every stage.
   Nothing writes to Vault without Peter's explicit request. (2026-10-23)
 - What CAD says about quantities and materials is recorded as a claim and
   curated by the project; it is never silently trusted. (2026-10-22, 2026-10-23)
-- Licence: 3-clause BSD, copyright Howard Hughes Medical Institute. (2026-11-10)
+- Licence: 3-clause BSD, copyright Howard Hughes Medical Institute.
+  (2026-11-10) This repository alone is GPL-3.0-or-later since 2026-11-13,
+  the licence of Guix, so that its package definitions can be offered there.
 - Hosting: GitHub. (2026-11-10)
 - `mechanical-cad` holds the tools for writing and checking parts and doubles as
   the Guix channel for the mechanical CAD packages. (2026-11-10)

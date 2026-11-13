@@ -98,6 +98,32 @@ def test_a_part_written_with_build123d_is_built_by_the_same_tool(project_copy):
     assert derived(part) == before
 
 
+def test_instances_that_hold_the_same_share_one_product(project_copy, tmp_path):
+    def unflex(assembly):
+        pair = next(child for child in assembly["children"] if child["name"] == "PIN PAIR:2")
+        pair["flexible"] = False
+        del pair["overrides"]
+    edit_json(project_copy / "references/assemblies/fixture-root/assembly.json", unflex)
+    assert layout.load(project_copy).errors == []
+    out = run("assembly_step.py", project_copy)
+    assert "6 occurrence(s), 6 solid(s)" in out and "every solid is where the scene puts it" in out, out
+    report = json.loads(cache(project_copy)[".json"])
+    # four instances of an assembly in the scene; the two pin pairs are one container and a link to it
+    assert report["assembly_nodes"] == 4 and report["assembly_containers"] == 3
+    assert report["check"]["same"] and report["check"]["solids_matched"] == 6
+    step = cache(project_copy)[".step"]
+    names = re.findall(rb"PRODUCT\s*\(\s*'([^']*)'", step)
+    assert names.count(b"PIN PAIR") == 1 and b"PIN PAIR (2)" not in names and len(names) == 7
+    usages = re.findall(rb"NEXT_ASSEMBLY_USAGE_OCCURRENCE\s*\(\s*'([^']*)'\s*,\s*'([^']*)'\s*,\s*'[^']*'\s*,\s*#\d+\s*,\s*(#\d+)", step)
+    by_name = {n: used for i, n, used in usages}
+    assert all(i == n for i, n, _ in usages) and len(usages) == 8
+    assert by_name[b"PIN PAIR:1"] == by_name[b"PIN PAIR:2"]             # both usages are of the one product
+    assert sorted(n for _, n, _ in usages).count(b"PIN:1") == 1         # and its two pins are in the file once
+    # in the window: the second pair is a link, shown; four occurrences and three containers are objects
+    view = fcstd.read_view(project_copy / ".cache" / "assemblies" / f"{WHOLE}.FCStd")
+    assert view["asm_link_000"] is True and sum(view.values()) == 4 + 4 + 1
+
+
 def test_facts_are_kept_when_current_and_reproduced_when_forced(project_copy):
     plate = project_copy / "references/parts/base-plate/facts.json"
     before = plate.read_bytes()
@@ -188,6 +214,12 @@ def test_a_whole_assembly_is_built_once_and_matches_its_scene(project_copy, tmp_
     assert all(i == n and not i.isdigit() for i, n in usages), usages
     assert report["step"]["names_put_back"] >= 2 and sorted(n for _, n in usages).count(b"PIN:1") == 2
     assert not any(re.search(rb":0\d\d$", n) for _, n in usages), usages
+    # the second pin pair is flexible and places a pin differently, so it is an assembly of its own: two
+    # products for the two pairs, named after their file, where the occurrences are PIN PAIR:1 and :2
+    names = re.findall(rb"PRODUCT\s*\(\s*'([^']*)'", step)
+    assert report["assembly_containers"] == 4 and report["step"]["products"] == len(names) == 8
+    assert {b"FIXTURE ROOT", b"PIN PAIR", b"PIN PAIR (2)"} <= set(names) and b"PIN PAIR:1" not in names
+    assert report["step"]["assembly_products_named_after_their_file"] == 3
     # the project is as it was, and what was derived is where the validator does not look
     assert {p: p.read_bytes() for p in tracked} == tracked and layout.load(project_copy).errors == []
 

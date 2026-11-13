@@ -64,9 +64,11 @@ project repository).
 
 ## Licensing
 
-3-clause BSD, copyright Howard Hughes Medical Institute. A Guix package
-definition adapted from Guix's own is GPL-3.0-or-later: keep such files in the
-channel directory with that notice.
+GPL-3.0-or-later, copyright Howard Hughes Medical Institute (Peter,
+2026-11-13; 3-clause BSD before that). It is Guix's licence, so the package
+definitions in the channel directory can be offered to Guix. The other three
+repositories are 3-clause BSD: they run this repository's programs, and code
+is not copied from here into them.
 
 ## Verification
 

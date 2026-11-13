@@ -194,8 +194,10 @@ What exists here:
 - `examples/layout-fixture/`: a synthetic project with imported and authored
   parts, a flexible instance with an override, and its generator.
 - docs/layout-specification.md: the draft the code implements.
-- Tests: 141 pass in the base role and 8 more with FreeCAD (run 2026-11-13,
-  Python 3.12.12, pytest 9.0.2, FreeCAD 1.1.3, OpenCASCADE 7.9.3).
+- Tests: 143 pass in the base role, 152 with FreeCAD and 153 with FreeCAD and
+  build123d (run 2026-11-13, after the usage names, the shared sub-assembly
+  products and the build123d path of `build_part.py`; Python 3.12.12, pytest
+  9.0.2, FreeCAD 1.1.3, OpenCASCADE 7.9.3).
 
 What was run against the enclosure (a dry run into the enclosure's ignored
 `.cache/layout-dry-run-01/`; nothing tracked there changed):
@@ -296,18 +298,16 @@ Smaller ones:
 11. The ten questions on the Vault side
     (`vault-cad-tools/docs/native-checkin-adapter-design.md`, section 10) and
     the enclosure's own (its plan, "Open items").
-12. Whether sub-assembly instances that are alike share one product in the
-    STEP file of a whole assembly. Today each instance has its own, so
-    Inventor makes 18 assembly documents for the enclosure's 7 assembly files
-    (Windows, 2026-11-13). Instances a flexible assembly places differently
-    would keep their own.
-13. The licence of the Guix package module. Guix takes definitions under
-    GPL-3.0-or-later; this repository is 3-clause BSD, and its README says
-    only that definitions adapted from Guix's own carry Guix's licence. The
-    ones here are written new. They cannot be submitted before this is
-    settled.
-14. The eight Windows scripts that serve only the earlier export formats
-    (`vault-cad-tools/.agents/PLANS.md` has the list and what to weigh).
+12. Settled by Peter on 2026-11-13: instances of a sub-assembly that are
+    alike share one product in the STEP file of a whole assembly, if the
+    Linux role recommends it. It did, and built it that day (item 4).
+13. Settled by Peter on 2026-11-13: this repository is GPL-3.0-or-later
+    (`LICENSE`, README, `.agents/AGENTS.md`), so the package definitions can
+    be offered to Guix. He said "GPL-3.0"; "or later" is what Guix asks for
+    and what was written. The other repositories stay 3-clause BSD.
+14. Settled by Peter on 2026-11-13: the eight Windows scripts that served
+    only the earlier export formats are removed, and with them the reading
+    of the earlier package (`vault-cad-tools/.agents/PLANS.md`).
 
 ## Next work, in order
 
@@ -423,10 +423,19 @@ Smaller ones:
        enclosure: 172 usages, no id twice under one parent, and the file is
        the earlier one in every other byte. Inventor has not read it yet;
        that is the next Windows task (`to-windows/20261113T165633Z-...`).
-     - Not corrected, for Peter to weigh: the file has one product per
-       sub-assembly instance, so Inventor makes 18 assembly documents where
-       the native design has 7 files. Instances that are alike could share a
-       product; the ones a flexible instance places differently could not.
+     - Inventor made 18 assembly documents where the native design has 7
+       files, because the file had one product per sub-assembly instance.
+       Changed on 2026-11-13 at Peter's word (open decision 12): instances
+       that hold the same parts in the same places are one container in the
+       FreeCAD document and links to it, so one product in the file, named
+       after the assembly's file (`stepfile.name_products`); an instance that
+       differs keeps a product of its own. The build report is schema 4. On
+       the enclosure all 16 sub-assembly instances are of 6 kinds, one per
+       native file: 45 products where there were 55, 126 usages where there
+       were 172, and all 479 solids read back where the scene puts them.
+       Two things not seen: Inventor reading that file, and the FreeCAD
+       window showing the document, whose repeated sub-assemblies are links
+       now (no window can be opened from the agent's shell; `make open`).
      - One part's volume differs in Inventor by 11 % between its two
        accuracies (`MCMASTER 5537T429`, 11 bodies). `facts.json` is right
        about the file: a fine mesh of each solid gives the B-rep volume (29
@@ -480,8 +489,8 @@ Smaller ones:
      build123d and the bindings). A test builds the fixture's spacer from a
      build123d program: the same volume and box as FreeCAD's, the project
      validates, a second build changes no file. `.guix/manifest-
-     build123d.scm` and `make test-build123d` give the environment. 151
-     tests pass there, 150 with FreeCAD alone, 142 without it.
+     build123d.scm` and `make test-build123d` give the environment. 153
+     tests pass there, 152 with FreeCAD alone, 143 without it.
    What was found on the way, 2026-11-13 (the web pages were read by a
    second agent):
    - Guix has no OCP, CadQuery, build123d or pythonocc, and no patch or
@@ -509,8 +518,6 @@ Smaller ones:
    - The inputs of `python-ocp` pruned to what the build uses (`glew`,
      `libx11` and `zlib` were added with `freetype` and `mesa` and not tried
      without), and a build type without debugging symbols.
-   - The licence: Guix takes package definitions under GPL-3.0-or-later, and
-     this repository is 3-clause BSD. Peter's to settle (open decision 13).
    Next, in order: a first real part written with build123d (item 5); then,
    if wanted, CadQuery 2.8.0 (it needs `casadi` and `runtype`, which Guix
    lacks, a newer `multimethod`, and VTK's Python modules), and a kernel
@@ -551,12 +558,12 @@ Smaller ones:
 - The validator has been run on two projects: the fixture and the converted
   enclosure. The tolerances for comparing geometry facts are provisional (one
   kernel version).
-- `import-snapshot` reads two packages: the one `Export-Package.ps1` writes
+- `import-snapshot` reads the package `Export-Package.ps1` writes
   (`package.json`, `occurrences.json`, `files/`; draft 3), into a new
-  directory or an existing project, and the one the earlier exporter wrote on
-  2026-10-21, into a new directory only. The second reading is kept until
-  the Windows side has listed what still serves the earlier package. Both
-  refuse what the layout cannot record: suppressed or mirrored occurrences,
+  directory or an existing project. The reading of the earlier exporter's
+  package went on 2026-11-13 with that exporter (`vault-cad-tools`, at
+  Peter's word). It
+  refuses what the layout cannot record: suppressed or mirrored occurrences,
   an instance whose definition disagrees with another instance's, and nested
   flexible instances that would need an override on an outer level. One real
   package has been imported, from one root assembly.

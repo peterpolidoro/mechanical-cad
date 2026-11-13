@@ -396,9 +396,13 @@ from and kept between sessions, in a directory the project's `.gitignore`
 lists and the validator does not look into. They are never committed.
 
 - The file is the flattened scene of KEY: each part file read once, without
-  the items it marks invisible; one instance per visible occurrence; one
-  product per sub-assembly instance, named by its occurrence name. Geometry is
-  shared between the instances of a part.
+  the items it marks invisible; one instance per visible occurrence. Geometry
+  is shared between the instances of a part.
+- A sub-assembly is one product, named after its file, and every instance of
+  it that holds the same parts in the same places is a usage of that product,
+  as the mirrored CAD system has one document for them. An instance that
+  differs, because a flexible assembly places something in it differently,
+  has a product of its own, named after the file with a number.
 - `--frame z-up`, the default, applies the scene's turn to `+Z` up; `--frame
   own` keeps the assembly's own frame.
 - The STEP header is normalised. Building the same scene again with the same
@@ -414,14 +418,16 @@ lists and the validator does not look into. They are never committed.
   OpenCASCADE writes a running number; and FreeCAD numbers a label anew when
   its document has it already, where an occurrence's name need only be its
   own among its parent's children. The build puts both right in the file's
-  text (`mechanical_cad/stepfile.py`, `name_usages`). Product names stay as
-  FreeCAD wrote them: a CAD system names its documents after them.
+  text (`mechanical_cad/stepfile.py`, `name_usages`). A part's product is
+  named after the part; a CAD system names its documents after the products.
 - The files hold positions and shapes. They hold no constraints or joints, no
   features, and no colour.
 - Inventor 2025 opens such a file as an assembly in millimetres with every
   occurrence where the manifests put it (2026-11-13, the first project: 171
   occurrences within 7e-10 mm, 479 solid bodies). It makes one assembly
-  document per product, so one per sub-assembly instance.
+  document per product. That read was of a file with one product per
+  sub-assembly instance and numbers as usage ids; a file as described above
+  has not been read by Inventor yet.
 - `KEY.FCStd` opens in the FreeCAD window with the assembly shown, upright
   and in view, the first level of its tree open, and the part files the
   occurrences link to hidden in a group of their own. FreeCADCmd has no
