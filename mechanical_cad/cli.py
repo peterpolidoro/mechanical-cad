@@ -70,7 +70,7 @@ def _assemblies(args):
     stale = sum(r["built"]["state"] == assemblies.OUT_OF_DATE for r in rows)
     print(f"{len(rows)} assembl{'y' if len(rows) == 1 else 'ies'}, {built} built and current"
           + (f", {stale} out of date (the records or the build changed since)" if stale else "")
-          + f". Built files: {built_in}/KEY.step and KEY.FCStd")
+          + f". Built files: {built_in / 'KEY.step'} and KEY.FCStd")
     return 0
 
 

@@ -104,6 +104,7 @@ class Project:
     errors: list = field(default_factory=list)
     findings: list = field(default_factory=list)
     lock: dict | None = None
+    converted: list = field(default_factory=list)       # files that differ from their record only in line endings
 
     def error(self, where, message):
         self.errors.append(f"{where}: {message}")
@@ -144,6 +145,20 @@ def _number(v):
 
 def _vec3(v):
     return isinstance(v, list) and len(v) == 3 and all(_number(x) for x in v)
+
+
+def _note_line_endings(project, path, recorded):
+    """Remember a file whose bytes are the recorded ones once every CRLF is an LF: a checkout converted it."""
+    if not _is_sha(recorded):
+        return
+    try:
+        data = Path(path).read_bytes()
+    except OSError:
+        return
+    if b"\r\n" in data and stepfile.sha256_bytes(data.replace(b"\r\n", b"\n")) == recorded:
+        name = Path(path).relative_to(project.dir).as_posix()
+        if name not in project.converted:
+            project.converted.append(name)
 
 
 def _only(project, where, data, allowed):
@@ -193,6 +208,7 @@ def load(project_dir):
     _check_references_between(project)
     _check_headers(project)
     _check_lock(project)
+    _check_line_endings(project)
     return project
 
 
@@ -281,6 +297,7 @@ def _check_step_record(project, comp, where, step, require_received):
         return
     if step.get("sha256") != comp.step_sha256:
         project.error(where, f"step.sha256 does not match part.step ({comp.step_sha256})")
+        _note_line_endings(project, comp.step_path, step.get("sha256"))
     if step.get("data_sha256") != comp.step_data_sha256:
         project.error(where, f"step.data_sha256 does not match part.step ({comp.step_data_sha256})")
     if "bytes" in step and step.get("bytes") != getattr(comp, "_step_bytes", None):
@@ -402,6 +419,7 @@ def _check_receipt(project, comp):
             project.error(where, f"{block} must record the file {filename!r} and its SHA-256")
         elif target.is_file() and stepfile.sha256_file(target) != rec["sha256"]:
             project.error(where, f"{filename} has changed since the part was built; build it again")
+            _note_line_endings(project, target, rec["sha256"])
     if not isinstance(data.get("tool"), dict):
         project.error(where, "tool must record the tool and kernel versions")
 
@@ -649,6 +667,19 @@ def _check_references_between(project):
                         node = None
                         break
                     node = project.components.get(nxt.component)
+
+
+def _check_line_endings(project):
+    """One cause for many errors: Git wrote CRLF into files whose hashes are recorded. It goes first."""
+    if not project.converted:
+        return
+    files = sorted(project.converted)
+    shown = ", ".join(files[:3]) + (f" and {len(files) - 3} more" if len(files) > 3 else "")
+    project.errors.insert(0, f".gitattributes: {len(files)} file(s) differ from their records only in line endings "
+                             f"(CRLF here, LF recorded): {shown}. The checkout converted them, and the errors below "
+                             "about them have that one cause: build nothing and measure nothing again. Give the "
+                             "repository the .gitattributes of docs/layout-specification.md (\"Line endings\") "
+                             "and check the files out again")
 
 
 def _check_headers(project):

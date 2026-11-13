@@ -275,6 +275,27 @@ def test_receipt_goes_stale_when_the_program_or_parameters_change(project_copy):
     assert has(e, SPACER + "/receipt.json", "build.py has changed since the part was built")
 
 
+def test_a_checkout_that_wrote_crlf_is_named_as_the_cause(project_copy):
+    """Git for Windows converts text it is not told to leave alone; the hashes then differ, and nothing was edited."""
+    for name in (SPACER + "/build.py", SPACER + "/parameters.json", PLATE + "/part.step"):
+        path = project_copy / name
+        path.write_bytes(path.read_bytes().replace(b"\n", b"\r\n"))
+    e = errors(project_copy)
+    assert e[0].startswith(".gitattributes: 3 file(s) differ from their records only in line endings")
+    for name in (SPACER + "/build.py", SPACER + "/parameters.json", PLATE + "/part.step"):
+        assert name in e[0]
+    assert "build nothing and measure nothing again" in e[0]
+    assert has(e, SPACER + "/receipt.json", "build.py has changed since the part was built")     # still said, below
+
+
+def test_an_edit_is_not_taken_for_a_converted_checkout(project_copy):
+    path = project_copy / SPACER / "build.py"
+    path.write_bytes(path.read_bytes().replace(b"\n", b"\r\n") + b"# edited\r\n")
+    e = errors(project_copy)
+    assert has(e, SPACER + "/receipt.json", "build.py has changed since the part was built")
+    assert not has(e, ".gitattributes")
+
+
 def test_publication_record(project_copy):
     sha = layout.load(project_copy).components["spacer"].step_sha256
     record = {"schema_version": 1, "publications": [

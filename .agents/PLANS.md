@@ -194,7 +194,7 @@ What exists here:
 - `examples/layout-fixture/`: a synthetic project with imported and authored
   parts, a flexible instance with an override, and its generator.
 - docs/layout-specification.md: the draft the code implements.
-- Tests: 139 pass in the base role and 8 more with FreeCAD (run 2026-11-12,
+- Tests: 141 pass in the base role and 8 more with FreeCAD (run 2026-11-13,
   Python 3.12.12, pytest 9.0.2, FreeCAD 1.1.3, OpenCASCADE 7.9.3).
 
 What was run against the enclosure (a dry run into the enclosure's ignored
@@ -352,11 +352,37 @@ Smaller ones:
      on the enclosure were run again on the pushed commits and give the same.
    - Peter ran `make open` in the enclosure's main checkout after the merge:
      the whole enclosure builds and opens.
-   - At 2026-11-12T19:42Z the share holds nothing from Windows for that
-     task: no reply, no evidence directory, its status file still the one of
-     15:41Z. The shared clones stay where the task names them
-     (`vault-cad-tools` a66ca5a, this repository 8737ae6, the enclosure
-     7a1af68) until the task is done, because its patch is against a66ca5a.
+   - Windows ran the first task that evening and stopped in it, as the
+     task says it must (shared evidence `2026-11-12-windows-new-layout-01`,
+     40 files checked against their checksums here). Passed: the 115 Python
+     tests and ten PowerShell suites, `status` equal to the baseline, and a
+     repeat import that leaves all 44 directories untouched. Failed:
+     `validate`, with one error, because Git for Windows had written CRLF
+     into `build.py` of the enclosure's authored part, whose hash the
+     receipt records. Nothing of the scripts and nothing in Inventor was
+     started. The fault is in the repositories, not on Windows: the
+     enclosure's `.gitattributes` gave LF to three file types only, and this
+     repository had none, so its fixture gave 16 errors there (STEP files
+     are text to Git).
+   - Corrected on 2026-11-13, uncommitted until Peter commits: `* text=auto
+     eol=lf` in the enclosure and a `.gitattributes` here with the same and
+     the STEP lines. No tracked file changes on Linux. Reproduced in scratch
+     clones with `core.autocrlf=true`: 29 files of the enclosure and 70 here
+     come out with CRLF and `validate` fails as on Windows; with the change,
+     none and both validate. An existing checkout is put right with `git rm
+     --cached -r -q .` and `git reset --hard` (tried: a fast-forward alone
+     leaves 28 of the 29). The validator now says first when files differ
+     from their records only in line endings, and that nothing is to be
+     built or measured again; docs/layout-specification.md has a section
+     "Line endings" with the lines a project needs. `vault-cad-tools` and
+     `mechanical-docs` have attributes of their own and were left alone:
+     nothing there hashes a file that Git converts.
+   - The reply to Windows and its next prompt are written
+     (`to-windows/20261113T144207Z-...`): the checkout first if the change has
+     reached the shared clones, then Inventor reading the STEP file built
+     here, then the scripts. The shared clones still hold `vault-cad-tools`
+     a66ca5a, this repository 8737ae6 and the enclosure 7a1af68; they are
+     brought level after Peter's commit, on his word.
    A full-quality render of the manual waits for Peter's corrected
    instructions.
 5. The first new part for the enclosure written as code, built and checked
@@ -392,9 +418,11 @@ Smaller ones:
   properties per object and a camera, in the form FreeCAD 1.1.3 reads.
   Another FreeCAD version may read them differently; the document then opens
   with its objects hidden, as it did before, and nothing else is lost.
-- On Windows only `mechanical_cad/stepfile.py` has been run, read-only, to
-  check the PowerShell port against it. The validator, the flatten step and the
-  tools under `tools/` have not.
+- On Windows `mechanical_cad/stepfile.py` has been run, read-only, to check
+  the PowerShell port against it, and `validate` and `assemblies` once, on a
+  checkout whose line endings Git had changed (2026-11-12) and on scratch
+  clones without that fault, where both give what Linux gets. The flatten
+  step, the tests and the tools under `tools/` have not been run there.
 
 ## Hazards
 

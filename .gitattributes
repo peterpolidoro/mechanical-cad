@@ -1,0 +1,12 @@
+# Text is stored and checked out with LF on every platform. The layout records hashes of files
+# (build.py, parameters.json, part.step), so a checkout must not change a byte: without this, Git
+# for Windows writes CRLF and the validator refuses the fixture.
+* text=auto eol=lf
+
+# Geometry is kept byte for byte. A STEP file is text, and must not be treated as text.
+*.step -text -diff -merge
+*.stp -text -diff -merge
+*.STEP -text -diff -merge
+*.STP -text -diff -merge
+*.FCStd -text -diff -merge
+*.fcstd -text -diff -merge

@@ -307,6 +307,43 @@ it, the `INVISIBILITY` entities are removed, and no other byte changes.
 who wants to open a part in a CAD program that ignores the mark, as FreeCAD
 does.
 
+## Line endings
+
+The layout records the SHA-256 of files: `part.step`, and for an authored
+part `build.py` and `parameters.json`. So a checkout has to give the same
+bytes on every platform, and Git for Windows does not do that by itself: as
+installed it writes CRLF into every file it takes for text, and a STEP file is
+text. A project repository therefore has these lines in its `.gitattributes`:
+
+    * text=auto eol=lf
+    *.step -text -diff -merge
+    *.stp -text -diff -merge
+    *.STEP -text -diff -merge
+    *.STP -text -diff -merge
+    *.FCStd -text -diff -merge
+    /references/receipts/** -text
+
+The first line stores text with LF and checks it out with LF whatever the
+workstation's Git is set to. The STEP lines keep geometry byte for byte. The
+last keeps the exporter's records as it wrote them, CRLF and byte-order mark
+included. A setting on one workstation is no substitute: `core.autocrlf=false`
+with `text=auto` alone still gives CRLF on Windows, and the next person's
+checkout would be wrong again.
+
+When a file differs from its record only in line endings, the validator says
+so in its first error and names the files; the other errors about them follow
+from it, and nothing is to be built or measured again. After `.gitattributes`
+is corrected, files that are already checked out stay as they are. In a
+checkout without uncommitted changes, `git rm --cached -r -q .` followed by
+`git reset --hard` writes every tracked file again and leaves untracked and
+ignored files alone; a fresh clone does the same.
+
+Found on 2026-11-12, when the enclosure was first validated on Windows: 29
+text files came out with CRLF, `build.py` of its authored part among them,
+and the fixture of this repository, which then had no `.gitattributes`, gave
+16 errors. Reproduced on Linux in clones with `core.autocrlf=true`, and gone
+there with the lines above.
+
 ## The flattened scene
 
 `python3 -m mechanical_cad flatten PROJECT --out DIR [--root KEY]` writes
