@@ -134,6 +134,29 @@ def document_shape(path):
         App.closeDocument(document.Name)
 
 
+POINT_TOLERANCE_MM = 1e-6
+
+
+def at_points(shape, points):
+    """What a shape has at each point: [{"point": [x, y, z], "is": "material" | "empty" | "surface"}].
+
+    "material" is inside a solid of the shape, "empty" is outside all of them,
+    and "surface" is on a face within POINT_TOLERANCE_MM, where neither can be
+    said: a check has to name a point clear of the surface.
+    """
+    out = []
+    for point in points:
+        vector = App.Vector(*point)
+        if shape.isInside(vector, POINT_TOLERANCE_MM, False):
+            state = "material"
+        elif shape.isInside(vector, POINT_TOLERANCE_MM, True):
+            state = "surface"
+        else:
+            state = "empty"
+        out.append({"point": [float(v) for v in point], "is": state})
+    return out
+
+
 def read_step(path):
     return Part.read(str(path))
 

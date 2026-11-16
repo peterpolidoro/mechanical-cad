@@ -122,7 +122,8 @@ def _check(args):
                 print(f"PASS    {comp.path}: {r['id']}")
             else:
                 failed += 1
-                print(f"FAIL    {comp.path}: {r['id']}: {r['fact']} is {r['actual']}, expected {json.dumps(r['expected'])}")
+                what = r["fact"] if "fact" in r else f"the point {json.dumps(r['point'])}"
+                print(f"FAIL    {comp.path}: {r['id']}: {what} is {r['actual']}, expected {json.dumps(r['expected'])}")
     print(f"{args.project}: {len(parts)} authored part(s), {evaluated} check(s), {failed} failure(s), "
           f"{len(project.errors)} layout error(s)")
     return 0 if not failed and project.ok else 1

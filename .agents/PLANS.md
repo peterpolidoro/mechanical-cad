@@ -673,10 +673,29 @@ read-only tests against Vault asked of the Windows agent.
    To make of this what can be kept in a project: a place in the layout for
    a supplier's file (open decision 6 bears on it), and the three scripts as
    one tool that writes an authored assembly. Not begun.
-   Next for this item: Peter's answers on the enclosure (which tank, the
-   arms' ratings); his measurements of the monitor; the picture command and
-   the point checks; then the mount, which is the part to be made or
-   bought.
+   Peter on 2026-11-16, later: he prefers the arm 5537T879 and holds the
+   mount until he has spoken with the researcher; the other steps of the
+   plan go on. Built that day, which closes what the monitor showed missing:
+   - **Checks that name a point** (`mechanical_cad/facts.py`,
+     `tools/kernel.py` `at_points`, the build command, the validator, the
+     specification; ten tests): `{"point": [x, y, z], "is": "material" |
+     "empty"}`. The build asks the kernel what the file read back has at
+     each point and records it in `facts.json`; the checks are then read
+     without a kernel; a point on a surface satisfies neither; a point added
+     after the build fails until the part is built again. The monitor's
+     mount is stated so, in fourteen points, and its build fails when one is
+     wrong.
+   - **`tools/picture.py`** with `.guix/manifest-view.scm` and `make picture
+     PROJECT=DIR KEY=K [VIEWS=...] [UP=...]`: a part from its `part.step`,
+     an assembly from its built file, into the project's ignored
+     `.cache/pictures/`, through `f3d` and EGL in a pure Guix environment.
+     Three tests; `make test-view` runs them with the viewer. f3d ends with
+     a fault after it has written each image on this workstation; the tool
+     counts the image and says so.
+   Next for this item, when Peter takes the mount up again: a place for a
+   supplier's file (open decision 6), his measurements of the monitor, the
+   arm's tilt range and rating. A part that is made, and measured against
+   its STEP, is still to come (goal 9).
 6. The Guix channel and the packages for writing parts as programs. Peter
    recorded this packaging as his own deferred work on 2026-10-23 and took it
    up on 2026-11-13: build123d first, the channel and the OCP package to go

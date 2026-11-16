@@ -437,3 +437,32 @@ def test_a_document_that_is_not_one_part_is_refused(project_copy, tmp_path):
     both = draw(tmp_path, project_copy / SPACER)
     out = run("build_part.py", both)
     assert "has part.FCStd and a program; a part has one source" in out and "exit status 1" in out
+
+
+@measures
+def test_what_is_at_a_point_is_found_when_the_part_is_built(project_copy, capsys):
+    """The fixture's spacer is a ring: 20 mm outside, 10.5 mm inside, 5 mm high, standing on Z = 0."""
+    from mechanical_cad.cli import main
+
+    def add(*checks):
+        edit_json(project_copy / SPACER / "checks.json", lambda d: d["checks"].extend(checks))
+
+    add({"id": "wall", "point": [7.5, 0, 2.5], "is": "material"}, {"id": "bore", "point": [0, 0, 2.5], "is": "empty"},
+        {"id": "outside", "point": [12, 0, 2.5], "is": "empty"}, {"id": "above", "point": [7.5, 0, 5.5], "is": "empty"})
+    out = run("build_part.py", project_copy / SPACER)
+    assert "[build_part] exit status 0" in out and "8 check(s)" in out, out
+    recorded = json.loads((project_copy / SPACER / "facts.json").read_text())["points"]
+    assert [p["is"] for p in recorded] == ["material", "empty", "empty", "empty"]
+    assert layout.load(project_copy).errors == []
+    assert main(["check", str(project_copy)]) == 0 and "8 check(s), 0 failure(s)" in capsys.readouterr().out
+
+    # a point that is wrong, and one on the surface, which is neither material nor empty
+    add({"id": "bore-is-filled", "point": [0, 0, 2.5], "is": "material"}, {"id": "on-the-rim", "point": [10, 0, 2.5], "is": "material"})
+    out = run("build_part.py", project_copy / SPACER)
+    assert "FAILED: bore-is-filled, on-the-rim" in out and "[build_part] exit status 1" in out
+    assert json.loads((project_copy / SPACER / "facts.json").read_text())["points"][-1] == {"point": [10.0, 0.0, 2.5], "is": "surface"}
+
+    # a point added to the checks is not known until the part is built again
+    add({"id": "new", "point": [-7.5, 0, 2.5], "is": "material"})
+    assert main(["check", str(project_copy)]) == 1
+    assert 'FAIL    designs/parts/spacer: new: the point [-7.5, 0.0, 2.5] is not looked at; build the part again' in capsys.readouterr().out

@@ -58,6 +58,7 @@ The commands, and where they live:
 | publication record | `vault.json` of an authored part, and the `publications` of `vault-lock.json` | `vault-cad-tools` (`vault-cad import-publish-result`) |
 | validate, check, flatten, assemblies | nothing in the repository | `python3 -m mechanical_cad` |
 | whole-assembly STEP | `.cache/assemblies/`, which the project ignores | `tools/assembly_step.py`, run by FreeCADCmd |
+| pictures | `.cache/pictures/`, which the project ignores | `tools/picture.py`, run with the `f3d` viewer |
 | step-info, normalise-header, visible-only | nothing in the repository | `python3 -m mechanical_cad` |
 
 ## Keys
@@ -178,8 +179,9 @@ What a geometry kernel measured of `part.step`, in millimetres.
 measured), `tool` (`name`, `version`, `kernel`, `kernel_version`,
 `integration`), `valid`, `length_unit_declared`, `solids`, `shells`, `faces`,
 `volume_mm3`, `area_mm2`, `center_of_mass_mm`, `bounding_box_mm` (`min`,
-`max`), `invisible_items` when the file marks items invisible, and `notes`
-when the tool has something to say.
+`max`), `invisible_items` when the file marks items invisible, `notes`
+when the tool has something to say, and, for an authored part whose checks
+name points, `points`: what the kernel found at each ("An authored part").
 
 **Volume, area and centre of mass are by the kernel's adaptive integration**,
 asked for a relative tolerance of 1e-7; `tool.integration` says so (`method`,
@@ -240,6 +242,25 @@ the 1e-7 asked; two exports of such a part may differ by more than 1e-6.
   `bounding_box_max_mm`) and gives `equals` with an optional absolute
   `tolerance`, or `min`, or `max`, or both bounds. A malformed check is an
   error, not a failed check.
+
+  A check may instead name a point of the part, in the part's own frame and
+  in millimetres, and say what is there (2026-11-16):
+
+  ```json
+    {"id": "hole-upper-right", "point": [50.0, 55.475, -56.5], "is": "empty"},
+    {"id": "pad-at-61-5", "point": [55.0, 60.475, -61.4], "is": "material"}
+  ```
+
+  `is` is `material` or `empty`. That is how a part states an interface: a
+  hole where a pattern has one, a face at a given depth (material just under
+  it, empty just above), an opening of a given width. The build command asks
+  the kernel what the file read back has at every point its checks name and
+  records the answers in `facts.json` as `points`, each `{"point", "is"}`
+  with `is` one of `material`, `empty` and `surface`. A point within 1e-6 mm
+  of a face is `surface`, which satisfies neither: a check names a point
+  clear of the surface. The checks are then read without a kernel. A point
+  added to `checks.json` after the build is not known, and its check fails
+  until the part is built again.
 - The build command calls `build`, writes the shape as `part.step` with a
   normalised header and with the STEP product named after the key, reads the
   file back, and writes `receipt.json` and `facts.json`. Neither carries a
@@ -512,12 +533,15 @@ targets to it:
 MECHANICAL_CAD ?= ../mechanical-cad
 MECHANICAL_CAD_MAKE = $(MAKE) --no-print-directory -C "$(MECHANICAL_CAD)" PROJECT="$(CURDIR)"
 
-.PHONY: validate assemblies assembly open
+.PHONY: validate assemblies assembly open picture
 validate assemblies:
 	@$(MECHANICAL_CAD_MAKE) $@
 
 assembly open:
 	@$(MECHANICAL_CAD_MAKE) $@ KEY="$(KEY)"
+
+picture:
+	@$(MECHANICAL_CAD_MAKE) $@ KEY="$(KEY)" VIEWS="$(VIEWS)" UP="$(UP)"
 ```
 
 Inside the project, `make assemblies` then lists what can be built,
@@ -526,7 +550,11 @@ any other. `make open`, with or without a key, builds the assembly if its
 files are not current and opens the FreeCAD document in the FreeCAD window
 that `guix shell` provides; FreeCAD stays in the foreground and the command
 returns when the window is closed, so it is a command for a person at the
-machine, not for an agent. `local.mk` holds what differs between machines (one line,
+machine, not for an agent. `make picture KEY=<key>` is the one for an agent,
+and for a person in a hurry: it draws a part, or an assembly that is built,
+to images in the project's ignored `.cache/pictures/` without a window
+(`tools/picture.py`; `VIEWS=iso,below,+x` says where the camera stands and
+`UP=+Y` which axis points up). `local.mk` holds what differs between machines (one line,
 `MECHANICAL_CAD = /path/to/mechanical-cad`) and is listed in the project's
 `.gitignore`. The Makefile is a convenience and not part of the layout: the
 validator does not look at it, and where there is no `make` the commands

@@ -39,7 +39,10 @@ project repository).
   `tools/`. Add a package to a manifest instead of reaching for host tools.
 - Commits, pushes, remotes and publication are Peter's. Leave work uncommitted
   and give one commit command per repository, ending with the attribution line
-  Peter's session supplies.
+  Peter's session supplies. Each command begins with `cd` into the
+  repository, joined with `&&` (`cd ~/path/to/repository && git add ... &&
+  git commit ...`), so that he is in that directory afterwards and pushes
+  from there (Peter, 2026-11-16).
 - Nothing writes to Vault without Peter's explicit request. Windows work is
   requested through the shared directory's mailbox; a message never wakes an
   agent, Peter starts it.

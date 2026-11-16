@@ -108,6 +108,13 @@ write nothing, and the tests of them are skipped.
 - `compare_step_exports.py` measures other exports of a project's parts (an
   AP242 export of a part tracked as AP214, an export from another session) and
   says whether each is the same geometry as the tracked file.
+- `picture.py` makes pictures of a part or of a built assembly without a
+  window, with the `f3d` viewer (`.guix/manifest-view.scm`; `make picture
+  PROJECT=DIR KEY=K`): something to look at for a person or an agent, into
+  the project's ignored `.cache/pictures/`. A view says where the camera
+  stands (`iso`, `iso-back`, `below`, `+x` and so on), `--up` which axis
+  points up. A check passes on a shape that is wrong in a way only a picture
+  shows, so look at what was built.
 - `fit_check.py` says whether some children of an assembly fit among the
   others. For an assembly KEY, usually an authored one that places what is
   mirrored together with what is being designed, and the names of the

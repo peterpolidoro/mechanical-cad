@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from . import jsonio, stepfile
+from .facts import POINT_STATES
 from . import transforms as T
 
 SCHEMA_VERSION = 1
@@ -39,7 +40,7 @@ CHILD_FLAG_DEFAULTS = {"visible": True, "suppressed": False, "grounded": False, 
 OVERRIDE_FIELDS = {"path", "transform"}
 FACTS_FIELDS = {"schema_version", "key", "step", "tool", "valid", "length_unit_declared", "solids",
                 "shells", "faces", "volume_mm3", "area_mm2", "center_of_mass_mm", "bounding_box_mm", "invisible_items",
-                "notes"}
+                "notes", "points"}
 RECEIPT_FIELDS = {"schema_version", "key", "name", "step", "program", "parameters", "document", "tool", "reimport"}
 DOCUMENT = "part.FCStd"         # the source of a part drawn in FreeCAD, where a programmed part has PROGRAM
 PROGRAM = ("build.py", "parameters.json")
@@ -508,6 +509,11 @@ def _check_facts(project, comp):
     box = data.get("bounding_box_mm")
     if not isinstance(box, dict) or not _vec3(box.get("min")) or not _vec3(box.get("max")):
         project.error(where, "bounding_box_mm must have min and max, three numbers each")
+    looked_at = data.get("points")
+    if "points" in data and (not isinstance(looked_at, list) or not looked_at or not all(
+            isinstance(p, dict) and set(p) == {"point", "is"} and _vec3(p["point"]) and p["is"] in POINT_STATES
+            for p in looked_at)):
+        project.error(where, "points must list each point looked at with what is there: material, empty or surface")
     hidden = data.get("invisible_items", 0)
     if isinstance(hidden, bool) or not isinstance(hidden, int) or hidden < 0 or ("invisible_items" in data and not hidden):
         project.error(where, "invisible_items must be a positive integer, and absent when nothing was left out")

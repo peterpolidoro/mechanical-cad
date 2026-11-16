@@ -30,7 +30,9 @@ the three files it produces:
 
 None of the three carries a timestamp, so building an unchanged part again
 changes no file. If the part has a `checks.json`, its checks are evaluated
-against the new facts and a failure is reported.
+against the new facts and a failure is reported. A check may name a point of
+the part and say whether it is material or empty; what the file read back has
+at those points is recorded in facts.json ("points").
 
 FreeCADCmd prints an uncaught exception and still exits 0, so this script
 prints its own status line; trust that and the files, not the exit code.
@@ -91,7 +93,8 @@ def build(part_dir):
     tmp_step.write_bytes(data)
     os.replace(tmp_step, part_dir / "part.step")
 
-    back = kernel.measure(kernel.read_step(part_dir / "part.step"))
+    read_back = kernel.read_step(part_dir / "part.step")
+    back = kernel.measure(read_back)
     same, diffs = facts.compare(built, back, REIMPORT_RELATIVE, REIMPORT_LENGTH_MM)
     tool = kernel.measuring_tool()
     unit = stepfile.length_unit(data)
@@ -110,6 +113,11 @@ def build(part_dir):
     fact.update(back)
     if not fact["notes"]:
         del fact["notes"]
+    checks_file = part_dir / "checks.json"
+    asked = facts.points(jsonio.load(checks_file)) if checks_file.is_file() else []
+    if asked:
+        # what the file read back has at the points its checks name; the validator reads that without a kernel
+        fact["points"] = kernel.at_points(read_back, asked)
     jsonio.write(part_dir / "receipt.json", receipt)
     jsonio.write(part_dir / "facts.json", fact)
 

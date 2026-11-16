@@ -53,7 +53,7 @@ editor. As capabilities, each with what shows it done:
 | --- | --- | --- |
 | | **Import** | |
 | 1 | An assembly in Vault is mirrored at exact versions as STEP and metadata that validate | **Done** on the first project; the mirror is Inventor's own export of the assembly, solid for solid |
-| 2 | A mirror is refreshed after Vault changed: what changed is found, only that is exported again, what is gone is removed | **Partly** (2026-11-16). A refresh from an earlier version of the first project's root to the one it holds gives the repository's files byte for byte: one file updated, four new, the rest untouched. Not built: finding what changed without exporting everything, and removing what is gone. Nothing has changed in Vault since the mirror was made |
+| 2 | A mirror is refreshed after Vault changed: what changed is found, only that is exported again, what is gone is removed | **Partly** (2026-11-16). A refresh from an earlier version of the first project's root to the one it holds gives the repository's files byte for byte: one file updated, four new, the rest untouched. `vault-cad sync-status` says file by file what a refresh would change, from a discovery of the Vault folder. Not built: exporting only that, and removing what is gone. Nothing has changed in Vault since the mirror was made |
 | 3 | A second assembly or project goes through the same commands | **Done once** (2026-11-16), as a test: a second root assembly was acquired, exported, imported, measured, validated and built, with no change to a command. No guard of the exporter has yet stopped a run on real data |
 | | **View** | |
 | 4 | Any part or assembly opens on Linux | **Done**: a FreeCAD document and a STEP file of any assembly, built from the records. No colour |
@@ -61,7 +61,7 @@ editor. As capabilities, each with what shows it done:
 | 5 | An inventory and an assembly manual are generated from the repository, good enough to build from | **Partly.** The pipeline runs end to end and a draft manual is published; it is being corrected at the bench, and has not been rendered at full quality since the re-export |
 | | **Create** | |
 | 6 | A part is written as a program, built and checked | **Partly.** The tools are there (build123d and its bindings packaged here, `tools/build_part.py`), shown on one simple solid |
-| 7 | A part is designed to fit: its checks say how it meets the parts around it, and whoever writes it, person or agent, can see it | **Partly** (2026-11-16). `tools/fit_check.py` tests what is being designed against the rest of an assembly for interference, contact and clearance, and a picture can be had without a window (`f3d`). Not built: a check that states an interface of a part, a command of this repository that makes the pictures, and a place for a supplier's file |
+| 7 | A part is designed to fit: its checks say how it meets the parts around it, and whoever writes it, person or agent, can see it | **Done for a part** (2026-11-16). A check may name a point of the part and say whether it is material or empty, which states a hole, a face or an opening; `tools/fit_check.py` tests what is being designed against the rest of an assembly for interference, contact and clearance; `tools/picture.py` draws a part or a built assembly without a window. Not built: a place for a supplier's file, so that a bought part can be a component |
 | 8 | A part drawn in a graphical editor is kept like a programmed one | **Built** (2026-11-16), after Peter decided it that day: `part.FCStd` as a part's source, built and validated like a program. Shown on documents made by a script; no part of a project has been drawn by hand yet |
 | 9 | A part is made and verified: a file to make it from, and a record of the made part against the STEP | **Not started** |
 | | **Export** | |
@@ -71,7 +71,7 @@ editor. As capabilities, each with what shows it done:
 | | **Packaging** | |
 | 13 | The tools are Guix packages | **Done here** for the OCP bindings and build123d, in this repository's channel. Not offered to Guix |
 
-Five done, six partly, two not begun (four, three and six when the table
+Six done, five partly, two not begun (four, three and six when the table
 was first written, earlier the same day). Of the loop above, mirror and
 document have run on the first project and its build is under way. Design,
 make and publish have not run for one real part, and a mirror has never been
