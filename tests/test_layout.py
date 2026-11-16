@@ -282,6 +282,47 @@ def test_receipt_goes_stale_when_the_program_or_parameters_change(project_copy):
     assert has(e, SPACER + "/receipt.json", "build.py has changed since the part was built")
 
 
+def as_drawn(project_copy, content=b"PK a FreeCAD document"):
+    """The fixture's spacer as a part drawn in FreeCAD: a document for its source and a receipt that says so.
+    The validator never opens the document, so any bytes stand for one here."""
+    import hashlib
+    part = project_copy / SPACER
+    (part / "build.py").unlink()
+    (part / "parameters.json").unlink()
+    (part / "part.FCStd").write_bytes(content)
+
+    def to_document(receipt):
+        del receipt["program"], receipt["parameters"]
+        receipt["document"] = {"file": "part.FCStd", "sha256": hashlib.sha256(content).hexdigest(),
+                               "object": "Body", "label": "Spacer", "type": "PartDesign::Body"}
+    edit_json(part / "receipt.json", to_document)
+    return part
+
+
+def test_a_drawn_part_has_a_document_for_its_source(project_copy):
+    part = as_drawn(project_copy)
+    assert errors(project_copy) == []
+    (part / "part.FCStd").write_bytes(b"PK the document, saved again")
+    assert has(errors(project_copy), SPACER + "/receipt.json", "part.FCStd has changed since the part was built; build it again")
+
+
+def test_a_part_has_one_source(project_copy):
+    (project_copy / SPACER / "part.FCStd").write_bytes(b"PK a FreeCAD document")
+    e = errors(project_copy)
+    assert has(e, SPACER, "part.FCStd and build.py and parameters.json: a part has one source, a program or a document")
+    assert has(e, SPACER + "/receipt.json", "document must record the file 'part.FCStd' and its SHA-256")
+    assert has(e, SPACER + "/receipt.json", "program is recorded, and the part's source is a document")
+    (project_copy / SPACER / "part.FCStd").unlink()
+    (project_copy / SPACER / "build.py").unlink()
+    assert has(errors(project_copy), SPACER, "build.py is missing")
+
+
+def test_a_receipt_names_the_source_the_part_has(project_copy):
+    as_drawn(project_copy)
+    edit_json(project_copy / SPACER / "receipt.json", lambda d: d.update(program={"file": "build.py", "sha256": "0" * 64}))
+    assert has(errors(project_copy), SPACER + "/receipt.json", "program is recorded, and the part's source is a document")
+
+
 def test_a_checkout_that_wrote_crlf_is_named_as_the_cause(project_copy):
     """Git for Windows converts text it is not told to leave alone; the hashes then differ, and nothing was edited."""
     for name in (SPACER + "/build.py", SPACER + "/parameters.json", PLATE + "/part.step"):

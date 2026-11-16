@@ -26,8 +26,9 @@ references/                    Vault is the authority
   receipts/<run>/              import command; the exporter's records, unchanged
 designs/                       the repository is the authority
   parts/<key>/
-    build.py                   people and agents
-    parameters.json            people and agents
+    build.py                   people and agents      } the part's source: a program with its
+    parameters.json            people and agents      } parameters, or
+    part.FCStd                 people                   a document drawn in FreeCAD; never both
     checks.json                people and agents (optional)
     README.md                  people and agents (optional)
     part.step                  build command
@@ -250,6 +251,29 @@ the 1e-7 asked; two exports of such a part may differ by more than 1e-6.
   other than the tool, `tool.library` names it: `name`, `version`,
   `bindings` and `bindings_version`. A receipt whose program or parameters
   hash no longer matches the file is an error: build the part again.
+- **A drawn part** (Peter, 2026-11-16) has `part.FCStd`, a FreeCAD document,
+  where a programmed part has `build.py` and `parameters.json`. A part has
+  one source; a directory with a document and either of the two files is an
+  error. Everything else is the same for both: `checks.json`, the three
+  files the build command writes, `vault.json`, how an assembly places the
+  part and how it is published.
+  - The build command opens the document, computes every object in it
+    again and closes it without saving: it never writes the document. The
+    part is the one object that has a solid and that nothing else in the
+    document uses, a body, a part container or the last of a chain of
+    features. Sketches, planes and sheets that are left over have no solid
+    and do not count. An object that does not compute, no such object, and
+    more than one are refused: a part is one thing, and the document does
+    not say which.
+  - `receipt.json` has `document` in place of `program` and `parameters`:
+    `file`, `sha256`, and the object exported (`object`, `label`, `type`).
+    `name` is that object's label.
+  - A FreeCAD document is a compressed archive: Git cannot compare two
+    versions of it, and saving it again gives another file even when
+    nothing in it changed. So the receipt goes stale with every save and
+    the part is built again, which gives the same `part.step` when the
+    solid is the same; a review reads the STEP file's facts and a picture,
+    not the document.
 - `vault.json`, once a publication is verified: `schema_version` and
   `publications`, each with `request_id`, `master_id`, `version_id`,
   `git_commit` and `step_sha256`. When `part.step` differs from the last
@@ -329,7 +353,7 @@ does.
 ## Line endings
 
 The layout records the SHA-256 of files: `part.step`, and for an authored
-part `build.py` and `parameters.json`. So a checkout has to give the same
+part `build.py` and `parameters.json`, or `part.FCStd`. So a checkout has to give the same
 bytes on every platform, and Git for Windows does not do that by itself: as
 installed it writes CRLF into every file it takes for text, and a STEP file is
 text. A project repository therefore has these lines in its `.gitattributes`:

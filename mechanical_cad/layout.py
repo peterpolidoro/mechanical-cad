@@ -40,13 +40,15 @@ OVERRIDE_FIELDS = {"path", "transform"}
 FACTS_FIELDS = {"schema_version", "key", "step", "tool", "valid", "length_unit_declared", "solids",
                 "shells", "faces", "volume_mm3", "area_mm2", "center_of_mass_mm", "bounding_box_mm", "invisible_items",
                 "notes"}
-RECEIPT_FIELDS = {"schema_version", "key", "name", "step", "program", "parameters", "tool", "reimport"}
+RECEIPT_FIELDS = {"schema_version", "key", "name", "step", "program", "parameters", "document", "tool", "reimport"}
+DOCUMENT = "part.FCStd"         # the source of a part drawn in FreeCAD, where a programmed part has PROGRAM
+PROGRAM = ("build.py", "parameters.json")
 
 FILES = {
     ("references", "part"): ({"part.step", "source.json"}, {"facts.json"}),
     ("references", "assembly"): ({"assembly.json", "source.json"}, set()),
-    ("designs", "part"): ({"part.step", "build.py", "parameters.json", "receipt.json"},
-                          {"checks.json", "facts.json", "vault.json", "README.md"}),
+    ("designs", "part"): ({"part.step", "receipt.json"},        # and its source, which _check_files asks for
+                          {"checks.json", "facts.json", "vault.json", "README.md", DOCUMENT, *PROGRAM}),
     ("designs", "assembly"): ({"assembly.json"}, {"README.md"}),
 }
 
@@ -249,6 +251,15 @@ def _check_files(project, comp):
     present = {p.name for p in comp.dir.iterdir() if not p.name.startswith(".")}
     for name in sorted(required - present):
         project.error(comp.path, f"{name} is missing")
+    if (comp.root, comp.kind) == ("designs", "part"):
+        # one source: a program with its parameters, or a document drawn in FreeCAD
+        if DOCUMENT in present:
+            both = sorted(set(PROGRAM) & present)
+            if both:
+                project.error(comp.path, f"{DOCUMENT} and {' and '.join(both)}: a part has one source, a program or a document")
+        else:
+            for name in sorted(set(PROGRAM) - present):
+                project.error(comp.path, f"{name} is missing")
     extra = sorted(present - required - optional)
     if extra:
         if comp.root == "references":
@@ -412,14 +423,20 @@ def _check_receipt(project, comp):
     if data.get("key") != comp.key:
         project.error(where, "key must equal the directory name")
     _check_step_record(project, comp, where, data.get("step"), require_received=False)
-    for block, filename in (("program", "build.py"), ("parameters", "parameters.json")):
+    drawn = (comp.dir / DOCUMENT).is_file()
+    sources = (("document", DOCUMENT),) if drawn else (("program", "build.py"), ("parameters", "parameters.json"))
+    for block, filename in sources:
         rec = data.get(block)
         target = comp.dir / filename
         if not isinstance(rec, dict) or rec.get("file") != filename or not _is_sha(rec.get("sha256")):
             project.error(where, f"{block} must record the file {filename!r} and its SHA-256")
         elif target.is_file() and stepfile.sha256_file(target) != rec["sha256"]:
             project.error(where, f"{filename} has changed since the part was built; build it again")
-            _note_line_endings(project, target, rec["sha256"])
+            if not drawn:
+                _note_line_endings(project, target, rec["sha256"])
+    for block in sorted({"program", "parameters", "document"} - {b for b, _ in sources}):
+        if block in data:
+            project.error(where, f"{block} is recorded, and the part's source is {'a document' if drawn else 'a program'}; build it again")
     if not isinstance(data.get("tool"), dict):
         project.error(where, "tool must record the tool and kernel versions")
 

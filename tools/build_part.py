@@ -1,8 +1,9 @@
-"""Build an authored part from its program.
+"""Build an authored part from its source: a program, or a document drawn in FreeCAD.
 
     FreeCADCmd tools/build_part.py --pass PROJECT/designs/parts/KEY [...]
 
-The part directory holds `build.py` and `parameters.json`. `build.py` defines
+A part has one source. A programmed part's directory holds `build.py` and
+`parameters.json`. `build.py` defines
 
     def build(parameters): ...  ->  a Part.Shape of FreeCAD, or a shape of build123d
 
@@ -10,13 +11,21 @@ a pure function: it takes the parsed parameters and returns the shape; it
 reads and writes no file. A build123d shape needs build123d in the same
 environment as FreeCAD (README.md, "Guix"); it is handed to FreeCAD as BREP,
 and the receipt names the library and its version beside the tool.
+
+A drawn part's directory holds `part.FCStd`, a FreeCAD document, and neither
+of the two files above. The document is opened, computed again and closed
+without being saved; the one object in it that has a solid and that nothing
+else in the document uses is the part (tools/kernel.py, document_shape). The
+receipt records the document's hash and that object.
+
 This tool does the rest and is the only writer of
 the three files it produces:
 
     part.step      the shape as STEP, with a normalised header and its product
                    named after the part's key
-    receipt.json   hashes of the program, the parameters and the STEP, the tool
-                   and kernel versions, and the re-import check
+    receipt.json   hashes of the program and the parameters, or of the document,
+                   and of the STEP, the tool and kernel versions, and the
+                   re-import check
     facts.json     what the kernel measures of part.step as read back
 
 None of the three carries a timestamp, so building an unchanged part again
@@ -50,16 +59,29 @@ def build(part_dir):
     key = part_dir.name
     if part_dir.parent.name != "parts" or part_dir.parent.parent.name != "designs" or not layout.KEY.match(key):
         raise ValueError(f"{part_dir}: expected PROJECT/designs/parts/<key>")
-    program, params_file = part_dir / "build.py", part_dir / "parameters.json"
-    parameters = jsonio.load(params_file)
-    namespace = {"__file__": str(program), "__name__": f"build_{key.replace('-', '_').replace('@', '_')}"}
-    exec(compile(program.read_text(encoding="utf-8"), str(program), "exec"), namespace)
-    if not callable(namespace.get("build")):
-        raise ValueError(f"{program}: no build(parameters) function")
-    shape, library = kernel.as_shape(namespace["build"](parameters))
+    program, params_file, document = part_dir / "build.py", part_dir / "parameters.json", part_dir / layout.DOCUMENT
+    programmed = program.exists() or params_file.exists()
+    if programmed and document.exists():
+        raise ValueError(f"{key}: has {layout.DOCUMENT} and a program; a part has one source")
+    library = None
+    if document.exists():
+        shape, exported = kernel.document_shape(document)
+        source = {"document": {"file": layout.DOCUMENT, "sha256": stepfile.sha256_file(document), **exported}}
+        name, what = exported["label"], f"{layout.DOCUMENT} gave"
+    else:
+        parameters = jsonio.load(params_file)
+        namespace = {"__file__": str(program), "__name__": f"build_{key.replace('-', '_').replace('@', '_')}"}
+        exec(compile(program.read_text(encoding="utf-8"), str(program), "exec"), namespace)
+        if not callable(namespace.get("build")):
+            raise ValueError(f"{program}: no build(parameters) function")
+        shape, library = kernel.as_shape(namespace["build"](parameters))
+        source = {"program": {"file": "build.py", "sha256": stepfile.sha256_file(program)},
+                  "parameters": {"file": "parameters.json", "sha256": stepfile.sha256_file(params_file)}}
+        name = parameters.get("name") if isinstance(parameters, dict) and isinstance(parameters.get("name"), str) else key
+        what = "build() returned"
     built = kernel.measure(shape)
     if not built["valid"] or built["solids"] < 1:
-        raise ValueError(f"{key}: build() returned a shape that is not valid or has no solid")
+        raise ValueError(f"{key}: {what} a shape that is not valid or has no solid")
 
     with tempfile.TemporaryDirectory() as tmp:
         raw = Path(tmp) / "part.step"
@@ -75,11 +97,9 @@ def build(part_dir):
     unit = stepfile.length_unit(data)
     step = {"sha256": stepfile.sha256_bytes(data), "data_sha256": stepfile.data_sha256(data), "bytes": len(data),
             "length_unit": unit, "header_normalised": True}
-    name = parameters.get("name") if isinstance(parameters, dict) and isinstance(parameters.get("name"), str) else key
     receipt = {
         "schema_version": layout.SCHEMA_VERSION, "key": key, "name": name, "step": step,
-        "program": {"file": "build.py", "sha256": stepfile.sha256_file(program)},
-        "parameters": {"file": "parameters.json", "sha256": stepfile.sha256_file(params_file)},
+        **source,
         "tool": dict(tool, library=library) if library else tool,
         "reimport": {"passed": same, "differences": diffs,
                      "tolerance": {"relative": REIMPORT_RELATIVE, "length_mm": REIMPORT_LENGTH_MM}},

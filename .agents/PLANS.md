@@ -278,6 +278,19 @@ The four questions under "Not settled" in docs/direction.md:
    holds everything the earlier files did.
 6. Whether supplier-originated models may be redistributed publicly, and the
    wording of the enclosure README's scope statement.
+   This now decides a next step (2026-11-16). Peter prefers the arm McMaster
+   5537T879 for the enclosure's monitors, and the study that mated it to the
+   monitor lives in an ignored directory. To make it an assembly of the
+   project that opens in FreeCAD, is checked for fit and can be published,
+   the arm has to be a component, and the layout has no place for a file
+   that comes from a supplier. Proposed to him: a third source of a part
+   beside the program and the drawn document, the supplier's file itself
+   with a record of where it came from (supplier, part number, the file's
+   hash, the day), and the arm as two such parts, what turns with the plate
+   and the rest, placed by an authored assembly. Not built. It is of use
+   only if the supplier's file may be committed: the enclosure's repository
+   is public, and it already holds the supplier models that came through
+   Vault.
 7. Where on GitHub the repositories live. `origin` here is still Codeberg.
 
 Smaller ones:
@@ -323,7 +336,17 @@ Smaller ones:
       read-only tests were asked of Windows that day (`vault-cad-tools`
       plan);
     - where a part drawn in FreeCAD should sit, a question back. Recommended
-      to him, and not built until he says so: in `designs/parts/<key>/`
+      to him; **he decided it later that day ("FreeCAD-drawn parts may sit
+      beside programmed ones") and it was built** (`tools/kernel.py`
+      `document_shape`, `tools/build_part.py`, the validator, the
+      specification; three tests of the validator and three with FreeCAD: a
+      document made by a script is built, validates, builds again to the
+      same files, goes stale when it is saved again and gives the same
+      STEP file when the solid is the same; a body of Part Design is the
+      part, and a sketch and a sheet left over beside it do not count; a
+      document with two solids, with none, and a part with both sources are
+      refused). Not done: a document drawn by hand in the FreeCAD window.
+      As recommended: in `designs/parts/<key>/`
       like a programmed part, with `part.FCStd` as its source where a
       programmed part has `build.py` and `parameters.json`, never both. A
       command opens the document with FreeCADCmd, recomputes it, refuses a

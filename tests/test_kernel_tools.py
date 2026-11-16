@@ -337,3 +337,103 @@ def test_a_subject_the_assembly_does_not_have_is_refused_with_its_children(proje
     out = run("fit_check.py", project_copy, "fixture-with-spacer", "--", "--subject", "WASHER:1")
     assert "has no child named 'WASHER:1'; its children: FIXTURE ROOT:1, SPACER:1" in out
     assert "[fit_check] exit status 2" in out
+
+
+
+DRAW = """import sys
+import FreeCAD as App
+out, shapes = sys.argv[sys.argv.index("--pass") + 1:][:2]
+doc = App.newDocument("Drawn")
+box = doc.addObject("Part::Box", "Block")
+box.Length, box.Width, box.Height = 30, 20, 5
+hole = doc.addObject("Part::Cylinder", "Hole")
+hole.Radius, hole.Height = 4, 5
+hole.Placement.Base = App.Vector(15, 10, 0)
+plate = doc.addObject("Part::Cut", "Plate")
+plate.Base, plate.Tool = box, hole
+plate.Label = "Drawn plate"
+if shapes == "two":
+    other = doc.addObject("Part::Box", "Other")
+    other.Placement.Base = App.Vector(100, 0, 0)
+if shapes == "body":
+    doc.removeObject("Plate"); doc.removeObject("Block"); doc.removeObject("Hole")
+    body = doc.addObject("PartDesign::Body", "Body")
+    body.Label = "Drawn body"
+    block = body.newObject("PartDesign::AdditiveBox", "Box")
+    block.Length, block.Width, block.Height = 12, 8, 3
+    doc.addObject("Sketcher::SketchObject", "LeftOver")          # a sketch nothing uses: no solid, so it does not count
+    doc.addObject("Spreadsheet::Sheet", "Sizes")
+if shapes == "none":
+    doc.removeObject("Plate"); doc.removeObject("Block"); doc.removeObject("Hole")
+    doc.addObject("Part::Plane", "Sheet")
+doc.recompute()
+doc.saveAs(out)
+print("[draw] saved", flush=True)
+"""
+
+
+def draw(tmp_path, part_dir, shapes="one"):
+    """A part directory with a document drawn by FreeCAD for its source: a plate 30 x 20 x 5 with a hole of 8."""
+    script = tmp_path / "draw.py"
+    script.write_text(DRAW)
+    part_dir.mkdir(parents=True, exist_ok=True)
+    proc = subprocess.run([FREECAD, str(script), "--pass", str(part_dir / "part.FCStd"), shapes], capture_output=True, text=True)
+    assert "[draw] saved" in proc.stdout, proc.stdout + proc.stderr
+    (part_dir / "README.md").write_text("# A drawn plate\n")
+    return part_dir
+
+
+@measures
+def test_a_part_drawn_in_freecad_is_built_from_its_document(project_copy, tmp_path):
+    part = draw(tmp_path, project_copy / "designs/parts/drawn-plate")
+    write_json(part / "checks.json", {"schema_version": 1, "checks": [
+        {"id": "one-solid", "fact": "solids", "equals": 1},
+        {"id": "outer-size", "fact": "extent_mm", "equals": [30.0, 20.0, 5.0], "tolerance": 1e-6}]})
+    document = (part / "part.FCStd").read_bytes()
+    out = run("build_part.py", part)
+    assert "[build_part] exit status 0" in out and "2 check(s)" in out, out
+    assert (part / "part.FCStd").read_bytes() == document                         # opened, computed, never saved
+    receipt = json.loads((part / "receipt.json").read_text())
+    assert receipt["document"]["file"] == "part.FCStd" and receipt["document"]["label"] == "Drawn plate"
+    assert receipt["name"] == "Drawn plate" and "program" not in receipt and "parameters" not in receipt
+    facts = json.loads((part / "facts.json").read_text())
+    assert facts["solids"] == 1 and facts["volume_mm3"] == pytest.approx(30 * 20 * 5 - 3.141592653589793 * 16 * 5, rel=1e-9)
+    assert b"PRODUCT('drawn-plate'" in (part / "part.step").read_bytes()
+    assert layout.load(project_copy).errors == []
+    before = derived(part)
+    assert "[build_part] exit status 0" in run("build_part.py", part)
+    assert derived(part) == before                                                # the same document, the same files
+
+    # the document saved again, even unchanged, is another file: the receipt is stale until the part is built
+    draw(tmp_path, part)
+    assert any("part.FCStd has changed since the part was built" in e for e in layout.load(project_copy).errors)
+    assert "[build_part] exit status 0" in run("build_part.py", part)
+    assert layout.load(project_copy).errors == []
+    assert derived(part)["part.step"] == before["part.step"]                      # and the same solid gives the same STEP
+
+
+@measures
+def test_a_body_of_part_design_is_the_part_and_what_is_left_over_does_not_count(project_copy, tmp_path):
+    part = draw(tmp_path, project_copy / "designs/parts/drawn-body", "body")
+    out = run("build_part.py", part)
+    assert "[build_part] exit status 0" in out, out
+    receipt = json.loads((part / "receipt.json").read_text())
+    assert (receipt["document"]["label"], receipt["document"]["type"]) == ("Drawn body", "PartDesign::Body")
+    facts = json.loads((part / "facts.json").read_text())
+    assert facts["solids"] == 1 and facts["volume_mm3"] == pytest.approx(12 * 8 * 3, rel=1e-9)
+    assert layout.load(project_copy).errors == []
+
+
+@measures
+def test_a_document_that_is_not_one_part_is_refused(project_copy, tmp_path):
+    two = draw(tmp_path, project_copy / "designs/parts/two-things", "two")
+    out = run("build_part.py", two)
+    assert "more than one object with a solid that nothing else uses (Drawn plate, Other)" in out and "exit status 1" in out
+    assert not (two / "part.step").exists()
+    none = draw(tmp_path, project_copy / "designs/parts/no-solid", "none")
+    out = run("build_part.py", none)
+    assert "no object with a solid that nothing else in the document uses" in out and "exit status 1" in out
+    # and a part with both sources
+    both = draw(tmp_path, project_copy / SPACER)
+    out = run("build_part.py", both)
+    assert "has part.FCStd and a program; a part has one source" in out and "exit status 1" in out

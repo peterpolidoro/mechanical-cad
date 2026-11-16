@@ -133,8 +133,11 @@ write nothing, and the tests of them are skipped.
 - `step_facts.py` measures every imported STEP file (validity, solids, volume,
   area, centre of mass, bounding box) and writes `facts.json` beside it. A
   file measured with another tool, or another integration, is measured again.
-- `build_part.py` builds an authored part from its `build.py` and
-  `parameters.json`: the STEP file, a receipt and the facts. Building an
+- `build_part.py` builds an authored part from its source: `build.py` and
+  `parameters.json`, or `part.FCStd`, a document drawn in FreeCAD (the one
+  object in it that has a solid and that nothing else uses is the part; the
+  document is opened and computed again, never saved). It writes the STEP
+  file, a receipt and the facts. Building an
   unchanged part again changes no file. `build.py` returns a `Part.Shape` of
   FreeCAD or a shape of build123d; for the second, run the tool in the
   environment of "Guix packages" below. FreeCAD writes and measures the file

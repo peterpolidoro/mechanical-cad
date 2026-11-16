@@ -75,6 +75,8 @@ references/                 Vault is the authority; two commands write here
 designs/                    the repository is the authority
   parts/<key>/
     build.py  parameters.json  checks.json     people and agents
+                            (or part.FCStd, a document drawn in FreeCAD, in place
+                            of the program and its parameters; Peter, 2026-11-16)
     part.step  receipt.json  facts.json        build command
     vault.json              written when a publication to Vault is verified
   assemblies/<key>/

@@ -62,7 +62,7 @@ editor. As capabilities, each with what shows it done:
 | | **Create** | |
 | 6 | A part is written as a program, built and checked | **Partly.** The tools are there (build123d and its bindings packaged here, `tools/build_part.py`), shown on one simple solid |
 | 7 | A part is designed to fit: its checks say how it meets the parts around it, and whoever writes it, person or agent, can see it | **Partly** (2026-11-16). `tools/fit_check.py` tests what is being designed against the rest of an assembly for interference, contact and clearance, and a picture can be had without a window (`f3d`). Not built: a check that states an interface of a part, a command of this repository that makes the pictures, and a place for a supplier's file |
-| 8 | A part drawn in a graphical editor is kept like a programmed one | **Not started.** The layout takes `build.py` only, and "Decided" says new parts are programs. Peter asked on 2026-11-16 where such a part should sit; the recommendation is in `.agents/PLANS.md`, open decision 15, and waits for his word |
+| 8 | A part drawn in a graphical editor is kept like a programmed one | **Built** (2026-11-16), after Peter decided it that day: `part.FCStd` as a part's source, built and validated like a program. Shown on documents made by a script; no part of a project has been drawn by hand yet |
 | 9 | A part is made and verified: a file to make it from, and a record of the made part against the STEP | **Not started** |
 | | **Export** | |
 | 10 | A new STEP file is added to Vault and verified | **Done once** (2026-10-22), before the layout changed; the commands have not run on Windows since |
@@ -71,7 +71,7 @@ editor. As capabilities, each with what shows it done:
 | | **Packaging** | |
 | 13 | The tools are Guix packages | **Done here** for the OCP bindings and build123d, in this repository's channel. Not offered to Guix |
 
-Five done, five partly, three not begun (four, three and six when the table
+Five done, six partly, two not begun (four, three and six when the table
 was first written, earlier the same day). Of the loop above, mirror and
 document have run on the first project and its build is under way. Design,
 make and publish have not run for one real part, and a mirror has never been
@@ -118,6 +118,9 @@ refreshed.
   reasonable when they were put to him. (2026-11-16)
 - Reading from Vault is authorized for tests. Writing to it stays as above:
   at Peter's explicit request, each time. (2026-11-16)
+- A part drawn in FreeCAD may sit beside a programmed one: the same
+  directory, with the document as its source in place of the program and
+  its parameters. (2026-11-16)
 
 ## Repositories
 
@@ -199,8 +202,9 @@ as code are left. The numbers in brackets are the goals above.
 4. **The manual finished from the bench** (5): Peter's notes and corrected
    instructions, one render at full quality, and the manual packages out of
    the project's tracked tree.
-5. **A drawn part** (8), if Peter wants it: a FreeCAD document as the source
-   of an authored part, with the STEP exported from it by a command.
+5. **A drawn part** (8): a FreeCAD document as the source of an authored
+   part, with the STEP exported from it by a command. Decided and built on
+   2026-11-16; what is left is a part of a project drawn that way.
 6. **The packages offered to Guix** (13), once step 1 has shown they are the
    right ones and the licence question raised on OCP is clearer. CadQuery
    after that, when someone wants to write in it.

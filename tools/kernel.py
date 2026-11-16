@@ -2,6 +2,8 @@
 
 A part's program may build its shape with FreeCAD's Part module or with
 build123d; as_shape brings either to the Part.Shape everything here works on.
+A part drawn in FreeCAD has a document for its source; document_shape gives
+the shape that document is a part of.
 
 Volumes and areas that are recorded (facts.json, a receipt's re-import check)
 are measured with OpenCASCADE's adaptive integration, which FreeCAD's Python
@@ -89,6 +91,47 @@ def as_shape(result):
     if name == "OCP":
         return shape, {"name": "OCP", "version": bindings}
     return shape, {"name": name, "version": version(name), "bindings": "OCP", "bindings_version": bindings}
+
+
+def document_shape(path):
+    """The shape a FreeCAD document is a part of, as (Part.Shape, what was exported).
+
+    The document is opened, every object in it is computed again, and it is
+    closed without being saved: the file is not touched. What is exported is
+    the one object nothing else in the document uses that has a solid: a
+    body, a part container, the last feature of a chain of Part features.
+    Sketches, planes and spreadsheets that are left over have no solid and do
+    not count. Refused: an object that does not compute, no such object, and
+    more than one, because a part is one thing and the document does not say
+    which.
+    """
+    document = App.openDocument(str(path), True)
+    try:
+        for obj in document.Objects:
+            obj.touch()
+        document.recompute()
+        broken = sorted(o.Label for o in document.Objects if not o.isValid())
+        if broken:
+            raise ValueError(f"{Path(path).name}: {', '.join(broken)} did not compute; open the document in FreeCAD and repair it")
+        found = []
+        for obj in document.Objects:
+            if obj.InList:
+                continue
+            try:
+                shape = Part.getShape(obj)
+            except Exception:
+                continue
+            if shape is not None and not shape.isNull() and shape.Solids:
+                found.append((obj, shape))
+        if not found:
+            raise ValueError(f"{Path(path).name}: no object with a solid that nothing else in the document uses")
+        if len(found) > 1:
+            raise ValueError(f"{Path(path).name}: more than one object with a solid that nothing else uses "
+                             f"({', '.join(sorted(o.Label for o, _ in found))}); a part is one of them")
+        obj, shape = found[0]
+        return shape.copy(), {"object": obj.Name, "label": obj.Label, "type": obj.TypeId}
+    finally:
+        App.closeDocument(document.Name)
 
 
 def read_step(path):
