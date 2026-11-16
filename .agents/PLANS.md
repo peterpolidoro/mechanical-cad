@@ -440,8 +440,25 @@ Smaller ones:
        files read once, one with shared containers, from which the STEP file
        is written, and one with a container for every instance, which is
        kept. The STEP file is the same bytes as before that change. Not
-       seen: Inventor reading the file, and the window with the document as
-       it is now (no window can be opened from the agent's shell).
+       seen: the window with the document as it is now (no window can be
+       opened from the agent's shell).
+     - **Inventor read the file with shared products on 2026-11-13** (shared
+       evidence `2026-11-13-windows-shared-products-01`, 146 files checked
+       here on 2026-11-16, and the comparison made again here from the two
+       receipts): it makes one document of each product and places it once
+       for every usage. 45 documents in memory where the earlier file gave
+       55: 37 parts and 8 assemblies, which are the root, the added level
+       and the six sub-assemblies under their files' names (three of them
+       with four occurrences each, one with two, two with one). The
+       172 occurrences are those of the earlier read, in the same order,
+       with no placement and no part volume differing; all 171 paths below
+       the added level are the package's, and the 90 occurrences in or below
+       a shared document are where the package puts them within 4.5e-10 mm.
+       `Successful` in 44 s, no dialog. Written out as native documents it
+       gives 8 `.iam` and 37 `.ipt` where it gave 18 and 37. The root
+       document is named after the STEP file; the root product's name shows
+       nowhere in Inventor. Not done there: the native documents written
+       were not opened again.
      - Windows read the file with the names on 2026-11-13 (shared evidence
        `2026-11-13-windows-step-names-01`, 144 files checked): none of
        Inventor's 172 occurrence names is a number, it changed none, and all
@@ -488,9 +505,12 @@ Smaller ones:
        one body. Nothing changes in the project.
      - The Windows patch (the six remarks on the exporter, each with an
        offline case; a new probe that reads a STEP file in Inventor) is
-       applied in `vault-cad-tools`, uncommitted, with its README and plan.
-       Windows listed eight scripts that serve only the earlier formats;
-       the list is in that plan for Peter, and nothing is removed.
+       applied in `vault-cad-tools`, with its README and plan.
+       Windows listed eight scripts that served only the earlier formats,
+       and Peter had them removed that day. Its last patch of that day (the
+       suites after the removal, a `Dirty` flag that is nothing stopping the
+       exporter) is applied there too, on 2026-11-16; the Windows agent has
+       no assignment.
    A full-quality render of the manual waits for Peter's corrected
    instructions.
 5. The first new part for the enclosure written as code, built and checked

@@ -441,11 +441,14 @@ lists and the validator does not look into. They are never committed.
   features, and no colour.
 - Inventor 2025 opens such a file as an assembly in millimetres with every
   occurrence where the manifests put it (2026-11-13, the first project: 171
-  occurrences within 7e-10 mm, 479 solid bodies). It makes one assembly
-  document per product, and shows the names of the usages (a second read
-  that day: all 171 paths are the exporter's). Both reads were of files with
-  one product per sub-assembly instance; a file with shared products has not
-  been read by Inventor yet.
+  occurrences within 7e-10 mm, 479 solid bodies). It shows the names of the
+  usages (a second read that day: all 171 paths are the exporter's). It
+  makes one document of each product and places it once for every usage (a
+  third read that day, of the file with shared products: 8 assembly
+  documents, as many as the native design has plus the added level, where a
+  product per instance gave 18; the same occurrences, names and placements).
+  The root document is named after the STEP file, not after the root
+  product.
 - `KEY.FCStd` opens in the FreeCAD window with the assembly shown, upright
   and in view, the first level of its tree open, and the part files the
   occurrences link to hidden in a group of their own. FreeCADCmd has no
