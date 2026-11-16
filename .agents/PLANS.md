@@ -308,8 +308,31 @@ Smaller ones:
 14. Settled by Peter on 2026-11-13: the eight Windows scripts that served
     only the earlier export formats are removed, and with them the reading
     of the earlier package (`vault-cad-tools/.agents/PLANS.md`).
+15. The plan of the whole project. Peter asked for one on 2026-11-16 and
+    restated the goal (import and export to and from Inventor and Vault;
+    viewing, documenting and creating parts on Linux, with agents, programs
+    and a graphical editor). Proposed that day in docs/direction.md: thirteen
+    capabilities with the state of each (four done, three partly, six not
+    begun), an order of work in six steps, what else to package and which
+    tests with Inventor and Vault are worth running. For Peter:
+    - whether the goals and the order are his;
+    - which part of the enclosure is the first real one (its procurement
+      sheet lists the new design work);
+    - whether a part drawn in FreeCAD may be an authored part beside a
+      programmed one, which "Decided" does not allow today;
+    - his word for reading from Vault (change detection, a second assembly),
+      and later, part by part, for writing to it.
 
 ## Next work, in order
+
+Items 1 to 3 below are done, item 4 but for the manual's render at full
+quality, and item 6 as far as build123d; they stand here as their record. A
+new order for what is left was proposed on 2026-11-16 in docs/direction.md,
+"Proposed: order of work": one real part through the whole loop (item 5
+here), publishing it as collaborators will meet it, keeping a mirror
+current, the manual finished from the bench, a drawn part if wanted, and the
+packages offered to Guix. It waits for Peter (open decision 15). Until he
+answers, nothing is started on it and the Windows agent has no task.
 
 1. Peter's review of the enclosure's branch `layout-conversion` (done on
    2026-11-11 in a worktree beside the project checkout, at Peter's word; the

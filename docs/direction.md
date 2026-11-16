@@ -2,7 +2,9 @@
 
 **Status: proposal, drafted 2026-11-10 from Peter's statements. Not yet accepted.**
 Sections marked *decided* record what Peter has already settled, with the date.
-Sections marked *proposed* are waiting for a decision.
+Sections marked *proposed* are waiting for a decision. The goals, the order
+of work and the two sections after it were proposed again on 2026-11-16,
+when Peter asked for a plan of the whole project.
 
 This is the one place that says where the open mechanical CAD work is going.
 Each repository's `.agents/PLANS.md` records that repository's own work and
@@ -38,6 +40,40 @@ The free-standing tank enclosure is the test project for every stage.
 5. **Make and verify.** The parts are manufactured and checked against the STEP.
 6. **Publish.** The verified STEP files are placed in Vault so collaborators can
    use them from Inventor.
+
+## Proposed: goals, and where each stands (2026-11-16)
+
+Peter on 2026-11-16: import and export to and from Inventor and Vault, so
+that open-source tools on Linux can view and document mechanical CAD
+projects and create parts, with agents, with programs and in a graphical
+editor. As capabilities, each with what shows it done:
+
+| | Capability | State on 2026-11-16 |
+| --- | --- | --- |
+| | **Import** | |
+| 1 | An assembly in Vault is mirrored at exact versions as STEP and metadata that validate | **Done** on the first project; the mirror is Inventor's own export of the assembly, solid for solid |
+| 2 | A mirror is refreshed after Vault changed: what changed is found, only that is exported again, what is gone is removed | **Not built.** Designed in `vault-cad-tools`. Importing the same versions again changes nothing; nothing has changed in Vault to try a refresh on |
+| 3 | A second assembly or project goes through the same commands | **Not tried.** One assembly has been imported, and several things the exporter refuses have never met real data |
+| | **View** | |
+| 4 | Any part or assembly opens on Linux | **Done**: a FreeCAD document and a STEP file of any assembly, built from the records. No colour |
+| | **Document** | |
+| 5 | An inventory and an assembly manual are generated from the repository, good enough to build from | **Partly.** The pipeline runs end to end and a draft manual is published; it is being corrected at the bench, and has not been rendered at full quality since the re-export |
+| | **Create** | |
+| 6 | A part is written as a program, built and checked | **Partly.** The tools are there (build123d and its bindings packaged here, `tools/build_part.py`), shown on one simple solid |
+| 7 | A part is designed to fit: its checks say how it meets the parts around it, and whoever writes it, person or agent, can see it | **Not built.** A check reads facts of the part alone; nothing places an authored part among the mirrored ones and tests clearance; no command renders a part to an image |
+| 8 | A part drawn in a graphical editor is kept like a programmed one | **Not started.** The layout takes `build.py` only, and "Decided" says new parts are programs: Peter's word is needed |
+| 9 | A part is made and verified: a file to make it from, and a record of the made part against the STEP | **Not started** |
+| | **Export** | |
+| 10 | A new STEP file is added to Vault and verified | **Done once** (2026-10-22), before the layout changed; the commands have not run on Windows since |
+| 11 | A published part is revised: a new version of the same Vault file | **Not built** |
+| 12 | A collaborator uses the part from Inventor: the STEP referenced in a native assembly, following its revisions | **Partly**: tried in a disposable copy only. Shown besides: Inventor opens a STEP file of a whole assembly built here with every name and placement right |
+| | **Packaging** | |
+| 13 | The tools are Guix packages | **Done here** for the OCP bindings and build123d, in this repository's channel. Not offered to Guix |
+
+Four done, three partly, six not begun. Of the loop above, mirror and
+document have run on the first project and its build is under way. Design,
+make and publish have not run for one real part, and a mirror has never been
+refreshed.
 
 ## Decided
 
@@ -127,24 +163,72 @@ the two decided choices, with its validator, is in
 [layout-specification.md](layout-specification.md); it stays a draft until the
 enclosure has been converted and re-exported under it.
 
-## Proposed: order of work
+## Proposed: order of work (2026-11-16)
 
-1. Accept or amend this document.
-2. Write the layout as a specification with a validator, here.
-3. Convert the enclosure's existing snapshot into the layout on a branch, on
-   Linux alone, and require the scene flattened from it to equal today's, part
-   for part and placement for placement.
-4. Run the read-only Windows tests that settle the open choices: AP214 against
-   AP242, header stability on more parts, lifecycle state and revision, and what
-   Inventor reports for parameters, holes and threads. Run on 2026-11-10; the
-   results are in layout-proposal.md.
-5. Change the Windows exporter to write the layout, re-export the enclosure and
-   compare it with step 3. Render the manual once from the result and compare
-   it with today's. Merge the branch.
-6. Build the first code-authored part with the tools here and publish it to
-   Vault.
-7. Package OCP and build123d in the channel (begun 2026-11-13), CadQuery
-   possibly after them.
+Of the order proposed on 2026-11-10, the layout, its validator, the
+conversion of the enclosure, the Windows tests, the exporter and the
+re-export are finished (2026-11-12), and the packages of OCP and build123d
+are built (2026-11-13). Accepting this document and the first part written
+as code are left. The numbers in brackets are the goals above.
+
+1. **One real part through the whole loop** (6, 7, 9). A part the first
+   project needs, not a box: written with build123d, with checks for how it
+   meets the parts around it, seen while it is written, made, and measured
+   against its STEP. What this needs and lacks is built for that part and no
+   further: a check of fit against the mirrored assembly, a command that
+   renders a part to an image, the file to make it from. It is the stretch
+   of the loop that has never run, and it shows whether agents can design
+   with these tools.
+2. **Publishing as collaborators will meet it** (10, 11, 12), with that
+   part: the publish commands on the new layout, the STEP referenced from a
+   native assembly in a test folder, then a revision published as a new
+   version of the same file. Every write to Vault is at Peter's request.
+   Before it: the file's name in Vault, the wrapper part, and the Inventor
+   requirement under "Not settled".
+3. **Keeping a mirror current** (2, 3): change detection against Vault,
+   read-only; a refresh tried on a real change; a second assembly imported,
+   to meet what the exporter refuses. It needs Peter's word for reading
+   from Vault and his decision on which files a project mirrors, and can run
+   on Windows while step 1 runs on Linux.
+4. **The manual finished from the bench** (5): Peter's notes and corrected
+   instructions, one render at full quality, and the manual packages out of
+   the project's tracked tree.
+5. **A drawn part** (8), if Peter wants it: a FreeCAD document as the source
+   of an authored part, with the STEP exported from it by a command.
+6. **The packages offered to Guix** (13), once step 1 has shown they are the
+   right ones and the licence question raised on OCP is clearer. CadQuery
+   after that, when someone wants to write in it.
+
+## Proposed: what else to package (2026-11-16)
+
+- **Nothing more before a real part exists.** Guix has what the other goals
+  need: FreeCAD (viewing, drawing, meshing), Blender and Typst (the manual),
+  `ezdxf`, and `f3d` built with OpenCASCADE, a small viewer that reads STEP.
+  `f3d` is to be tried in step 1, for a preview that follows the file while a
+  part is written and for images an agent can look at; it has not been run
+  here.
+- **CadQuery later, on demand.** It makes the same OCP shape as build123d,
+  so it adds a way of writing a part and no capability. It costs `casadi`
+  and `runtype`, which Guix lacks, a newer `multimethod`, and VTK's Python
+  modules.
+- **For Guix itself**, what step 6 needs is in `.agents/PLANS.md`: the
+  bindings generated in the build, lib3mf 2.4.1, fewer inputs.
+
+## Proposed: tests with Inventor and Vault (2026-11-16)
+
+The export from Inventor has been reviewed and run until two runs agree in
+every file, and Inventor has read the files built here. More runs of either
+on the same assembly would show little. What the goals rest on and nothing
+has tested:
+
+- a refresh after something changed in Vault (step 3), which is the
+  operation of every working day once a project is mirrored;
+- a published part revised and followed from an Inventor assembly (step 2),
+  which is what a collaborator sees of all this;
+- a second assembly (step 3), because every rule so far rests on one.
+
+The first and third read from Vault and the second writes to it. None is
+authorized until Peter says so.
 
 ## Not settled
 
@@ -167,7 +251,8 @@ none is decided. The working list, with what is known about each, is in
 
 ## Out of scope
 
-- A graphical editor.
+- Writing a graphical editor. (Keeping a part drawn in FreeCAD's is proposed
+  above, goal 8.)
 - A neutral parametric interchange format, or rebuilding Inventor's feature
   history from geometry.
 - Two-way synchronisation of features between Inventor and code.
