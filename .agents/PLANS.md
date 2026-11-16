@@ -692,6 +692,13 @@ read-only tests against Vault asked of the Windows agent.
      Three tests; `make test-view` runs them with the viewer. f3d ends with
      a fault after it has written each image on this workstation; the tool
      counts the image and says so.
+   - **Short commands and a guide** (the same day): `make part KEY=K`,
+     `make check` and `make fit KEY=K SUBJECT='NAME[,NAME]'` here and handed
+     on by the enclosure's Makefile, beside `make picture`; and
+     docs/adding-a-part.md, which walks a person or an agent through adding
+     a part, programmed or drawn: source, checks, build, pictures, placing
+     it, fit. Tried through `make` on the enclosure and the fixture. No test
+     runs `make`.
    Next for this item, when Peter takes the mount up again: a place for a
    supplier's file (open decision 6), his measurements of the monitor, the
    arm's tilt range and rating. A part that is made, and measured against

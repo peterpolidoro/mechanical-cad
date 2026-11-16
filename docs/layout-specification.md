@@ -533,9 +533,15 @@ targets to it:
 MECHANICAL_CAD ?= ../mechanical-cad
 MECHANICAL_CAD_MAKE = $(MAKE) --no-print-directory -C "$(MECHANICAL_CAD)" PROJECT="$(CURDIR)"
 
-.PHONY: validate assemblies assembly open picture
-validate assemblies:
+.PHONY: validate check assemblies assembly open picture part fit
+validate check assemblies:
 	@$(MECHANICAL_CAD_MAKE) $@
+
+part:
+	@$(MECHANICAL_CAD_MAKE) $@ KEY="$(KEY)"
+
+fit:
+	@$(MECHANICAL_CAD_MAKE) $@ KEY="$(KEY)" SUBJECT="$(SUBJECT)" CLEARANCE="$(CLEARANCE)"
 
 assembly open:
 	@$(MECHANICAL_CAD_MAKE) $@ KEY="$(KEY)"
@@ -544,7 +550,11 @@ picture:
 	@$(MECHANICAL_CAD_MAKE) $@ KEY="$(KEY)" VIEWS="$(VIEWS)" UP="$(UP)"
 ```
 
-Inside the project, `make assemblies` then lists what can be built,
+Inside the project, `make part KEY=<key>` builds an authored part,
+`make check` evaluates every part's checks and `make fit KEY=<assembly>
+SUBJECT='NAME[,NAME]'` says whether those children of an assembly fit among
+the rest ([adding-a-part.md](adding-a-part.md) walks through them).
+`make assemblies` lists what can be built,
 `make assembly` builds the top-level assembly and `make assembly KEY=<key>`
 any other. `make open`, with or without a key, builds the assembly if its
 files are not current and opens the FreeCAD document in the FreeCAD window

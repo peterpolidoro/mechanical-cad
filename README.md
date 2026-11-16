@@ -35,6 +35,9 @@ CadQuery is not packaged.
 
 ## Commands
 
+[docs/adding-a-part.md](docs/adding-a-part.md) walks through adding a part to
+a project, programmed or drawn, with the short `make` forms of what follows.
+
 `make` alone lists short forms of the commonest ones:
 
 ```sh

@@ -17,7 +17,7 @@ GUIX_VIEW = guix shell --pure -m manifest.scm -m .guix/manifest-view.scm
 project = $(if $(PROJECT),$(abspath $(PROJECT)),$(error name the project repository: make $@ PROJECT=/path/to/project))
 
 .DEFAULT_GOAL := help
-.PHONY: help test test-cad test-build123d test-view validate assemblies assembly open picture
+.PHONY: help test test-cad test-build123d test-view validate assemblies assembly open picture part check fit
 
 help:
 	@echo "make test                        the tests that need no FreeCAD"
@@ -25,6 +25,9 @@ help:
 	@echo "make test-build123d              all the tests, with FreeCAD, the OCP bindings and build123d"
 	@echo "make test-view                   the tests of the pictures, with the f3d viewer"
 	@echo "make validate PROJECT=DIR        check a project repository against the layout"
+	@echo "make part PROJECT=DIR KEY=K      build the authored part K from its program or its FreeCAD document"
+	@echo "make check PROJECT=DIR           evaluate the checks of every authored part against what was built"
+	@echo "make fit PROJECT=DIR KEY=K SUBJECT='NAME[,NAME]'   do those children of the assembly K fit among the rest"
 	@echo "make assemblies PROJECT=DIR      list the project's assemblies, and which are built"
 	@echo "make assembly PROJECT=DIR        build its top-level assembly as one STEP file and one FreeCAD document"
 	@echo "make assembly PROJECT=DIR KEY=K  build the assembly K of that list"
@@ -47,6 +50,20 @@ test-view:
 
 validate:
 	@$(GUIX) -- python3 -B -m mechanical_cad validate "$(project)"
+
+# An authored part from its source (build.py with parameters.json, or part.FCStd): part.step, receipt.json, facts.json.
+part:
+	@$(GUIX_B3D) -- FreeCADCmd tools/build_part.py --pass "$(project)/designs/parts/$(if $(KEY),$(KEY),$(error name the part: make part PROJECT=... KEY=K))"
+
+check:
+	@$(GUIX) -- python3 -B -m mechanical_cad check "$(project)"
+
+# Interference, contact and clearance of some children of an assembly against everything else in it.
+comma := ,
+fit:
+	@$(GUIX_CAD) -- FreeCADCmd tools/fit_check.py --pass "$(project)" $(if $(KEY),$(KEY),$(error name the assembly: make fit PROJECT=... KEY=K SUBJECT=NAME)) \
+	  $(if $(SUBJECT),$(foreach s,$(subst $(comma), ,$(SUBJECT)),-- --subject "$(s)"),$(error name the children to check: SUBJECT='NAME[,NAME]')) \
+	  $(if $(CLEARANCE),-- --clearance $(CLEARANCE))
 
 assemblies:
 	@$(GUIX) -- python3 -B -m mechanical_cad assemblies "$(project)"
