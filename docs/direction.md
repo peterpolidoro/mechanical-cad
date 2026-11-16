@@ -2,9 +2,10 @@
 
 **Status: proposal, drafted 2026-11-10 from Peter's statements. Not yet accepted.**
 Sections marked *decided* record what Peter has already settled, with the date.
-Sections marked *proposed* are waiting for a decision. The goals, the order
-of work and the two sections after it were proposed again on 2026-11-16,
-when Peter asked for a plan of the whole project.
+Sections marked *proposed* are waiting for a decision. The goals and the order
+of work were written on 2026-11-16, when Peter asked for a plan of the whole
+project, and he accepted them that day; the two sections after them are
+proposals.
 
 This is the one place that says where the open mechanical CAD work is going.
 Each repository's `.agents/PLANS.md` records that repository's own work and
@@ -41,7 +42,7 @@ The free-standing tank enclosure is the test project for every stage.
 6. **Publish.** The verified STEP files are placed in Vault so collaborators can
    use them from Inventor.
 
-## Proposed: goals, and where each stands (2026-11-16)
+## Goals, and where each stands (2026-11-16)
 
 Peter on 2026-11-16: import and export to and from Inventor and Vault, so
 that open-source tools on Linux can view and document mechanical CAD
@@ -61,7 +62,7 @@ editor. As capabilities, each with what shows it done:
 | | **Create** | |
 | 6 | A part is written as a program, built and checked | **Partly.** The tools are there (build123d and its bindings packaged here, `tools/build_part.py`), shown on one simple solid |
 | 7 | A part is designed to fit: its checks say how it meets the parts around it, and whoever writes it, person or agent, can see it | **Not built.** A check reads facts of the part alone; nothing places an authored part among the mirrored ones and tests clearance; no command renders a part to an image |
-| 8 | A part drawn in a graphical editor is kept like a programmed one | **Not started.** The layout takes `build.py` only, and "Decided" says new parts are programs: Peter's word is needed |
+| 8 | A part drawn in a graphical editor is kept like a programmed one | **Not started.** The layout takes `build.py` only, and "Decided" says new parts are programs. Peter asked on 2026-11-16 where such a part should sit; the recommendation is in `.agents/PLANS.md`, open decision 15, and waits for his word |
 | 9 | A part is made and verified: a file to make it from, and a record of the made part against the STEP | **Not started** |
 | | **Export** | |
 | 10 | A new STEP file is added to Vault and verified | **Done once** (2026-10-22), before the layout changed; the commands have not run on Windows since |
@@ -112,6 +113,10 @@ refreshed.
 - Directories are keyed by a readable name tied to the Vault master id, not by
   a mirror of Vault's folder tree. (2026-11-11)
 - Files exported from Inventor are AP242. (2026-11-11)
+- The goals and the order of work below are the plan: Peter found them
+  reasonable when they were put to him. (2026-11-16)
+- Reading from Vault is authorized for tests. Writing to it stays as above:
+  at Peter's explicit request, each time. (2026-11-16)
 
 ## Repositories
 
@@ -163,7 +168,7 @@ the two decided choices, with its validator, is in
 [layout-specification.md](layout-specification.md); it stays a draft until the
 enclosure has been converted and re-exported under it.
 
-## Proposed: order of work (2026-11-16)
+## Order of work (2026-11-16)
 
 Of the order proposed on 2026-11-10, the layout, its validator, the
 conversion of the enclosure, the Windows tests, the exporter and the
@@ -227,8 +232,9 @@ has tested:
   which is what a collaborator sees of all this;
 - a second assembly (step 3), because every rule so far rests on one.
 
-The first and third read from Vault and the second writes to it. None is
-authorized until Peter says so.
+The first and third read from Vault, which Peter authorized for tests on
+2026-11-16; they were asked of the Windows agent that day. The second writes
+to Vault and waits for his request.
 
 ## Not settled
 

@@ -314,14 +314,28 @@ Smaller ones:
     and a graphical editor). Proposed that day in docs/direction.md: thirteen
     capabilities with the state of each (four done, three partly, six not
     begun), an order of work in six steps, what else to package and which
-    tests with Inventor and Vault are worth running. For Peter:
-    - whether the goals and the order are his;
-    - which part of the enclosure is the first real one (its procurement
-      sheet lists the new design work);
-    - whether a part drawn in FreeCAD may be an authored part beside a
-      programmed one, which "Decided" does not allow today;
-    - his word for reading from Vault (change detection, a second assembly),
-      and later, part by part, for writing to it.
+    tests with Inventor and Vault are worth running. Peter the same day:
+    - the goals and the order "seem reasonable" (now under "Decided");
+    - the first real part: he is not sure which, "we can try modeling the
+      monitor". Begun that day in the enclosure (next work, item 5);
+    - "I authorize vault access for test". Taken as reading only, which is
+      what he was asked, and told to him so; no write is authorized. Three
+      read-only tests were asked of Windows that day (`vault-cad-tools`
+      plan);
+    - where a part drawn in FreeCAD should sit, a question back. Recommended
+      to him, and not built until he says so: in `designs/parts/<key>/`
+      like a programmed part, with `part.FCStd` as its source where a
+      programmed part has `build.py` and `parameters.json`, never both. A
+      command opens the document with FreeCADCmd, recomputes it, refuses a
+      document that does not recompute or has more than one shape to
+      export, and writes `part.step`, `receipt.json` (with the document's
+      hash) and `facts.json` as the build command does; `checks.json`, the
+      validator, the assembly manifests and the publication are the same
+      for both kinds. What it costs: a FreeCAD document is a zip file that
+      Git cannot compare and that changes in every byte when it is saved,
+      so the STEP file and the facts are what a review reads. The decision
+      of 2026-10-23 that new parts are programs would then read "programs,
+      or documents of FreeCAD".
 
 ## Next work, in order
 
@@ -331,8 +345,9 @@ new order for what is left was proposed on 2026-11-16 in docs/direction.md,
 "Proposed: order of work": one real part through the whole loop (item 5
 here), publishing it as collaborators will meet it, keeping a mirror
 current, the manual finished from the bench, a drawn part if wanted, and the
-packages offered to Guix. It waits for Peter (open decision 15). Until he
-answers, nothing is started on it and the Windows agent has no task.
+packages offered to Guix. Peter accepted it that day (open decision 15),
+and two things began: the monitor as the first real part (item 5), and three
+read-only tests against Vault asked of the Windows agent.
 
 1. Peter's review of the enclosure's branch `layout-conversion` (done on
    2026-11-11 in a worktree beside the project checkout, at Peter's word; the
@@ -538,6 +553,37 @@ answers, nothing is started on it and the Windows agent has no task.
    instructions.
 5. The first new part for the enclosure written as code, built and checked
    here, manufactured, then published to Vault.
+   Begun on 2026-11-16 with a reference model of the enclosure's monitor,
+   which Peter named as the part to try: the first authored part that is not
+   a box (two lofts, an extrusion, a pocket, pads, holes; 59 faces), written
+   with build123d and built with `tools/build_part.py`. What it showed of the
+   tools:
+   - **A picture is needed, and one can be had without a window.** The first
+     build passed its four checks and was wrong: a loft through rounded
+     rectangles had paired their corners one edge apart and the surface was
+     twisted. Only a picture showed it. `f3d` 3.0.0 of Guix, built with
+     OpenCASCADE, renders a STEP file to a PNG with `--rendering-backend=egl`
+     and no display; an agent can read that image. On this workstation it
+     writes the image and then ends with `free(): invalid pointer` (exit
+     134). Not built: a command of this repository that makes the pictures.
+   - **The checks cannot state an interface.** A check names a fact of the
+     whole part. That four holes are where a mounting pattern has them, and
+     that a face is at a given depth, was checked by hand on the file read
+     back: the cylindrical faces listed, and sixteen points asked whether
+     they are material or empty. Proposed for the layout: a check that names
+     a point and says "material" or "empty", evaluated by the build command
+     and recorded with the facts, so the validator needs no kernel. It would
+     serve fit between parts as well. Not built, and Peter has not been
+     asked.
+   - **The plain volume integration is wrong again**, by 0.9 % on this model
+     (build123d's own `volume`). The adaptive integration that `facts.json`
+     records agrees with a fine mesh within 0.04 %.
+   - Writing it took the outline drawing and no other information. Numbers
+     read off the drawing's pictures are kept apart from printed ones in
+     `parameters.json` and are to be measured on the monitor.
+   Next for this item: Peter's measurements of the monitor; the picture
+   command and the point checks; then the mount, which is the part to be
+   made.
 6. The Guix channel and the packages for writing parts as programs. Peter
    recorded this packaging as his own deferred work on 2026-10-23 and took it
    up on 2026-11-13: build123d first, the channel and the OCP package to go
