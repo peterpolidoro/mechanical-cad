@@ -296,3 +296,44 @@ def test_another_file_of_the_whole_assembly_is_compared_with_the_records(project
     report = json.loads((tmp_path / "moved.json").read_text())
     assert not report["same_assembly"] and report["other"]["invisible_items_left_out"] == 0
     assert report["unmatched_by_part"]["spacer"]["nearest_solid_of_this_volume_mm"] == [pytest.approx(5.0, abs=1e-6)]
+
+
+WITH_SPACER = "designs/assemblies/fixture-with-spacer/assembly.json"
+
+
+def test_what_is_being_designed_is_checked_against_the_rest(project_copy, tmp_path):
+    """The spacer of the fixture's authored assembly sits on the base plate, around a pin."""
+    report = tmp_path / "fit.json"
+    out = run("fit_check.py", project_copy, "fixture-with-spacer", "--", "--subject", "SPACER:1", "--", "--out", report)
+    assert "[fit_check] exit status 0" in out, out
+    assert "CONTACT       SPACER:1 [0] touches FIXTURE ROOT:1/BASE PLATE:1 [0]" in out
+    assert "CLOSE         SPACER:1 [0] is 0.250 mm from FIXTURE ROOT:1/PIN PAIR:1/PIN:1 [0]" in out
+    found = json.loads(report.read_text())
+    assert found["counts"] == {"interference": 0, "contact": 1, "close": 1}
+    assert found["solids"] == {"subjects": 1, "others": 5} and found["subjects"] == ["SPACER:1"]
+    assert found["closest_apart"]["distance_mm"] == pytest.approx(0.25, abs=1e-6)
+    first = report.read_bytes()
+    run("fit_check.py", project_copy, "fixture-with-spacer", "--", "--subject", "SPACER:1", "--", "--out", report)
+    assert report.read_bytes() == first                            # no timestamp: the same check, the same bytes
+
+    # a smaller clearance asks about less
+    out = run("fit_check.py", project_copy, "fixture-with-spacer", "--", "--subject", "SPACER:1", "--", "--clearance", "0.1")
+    assert "CLOSE" not in out and "1 contact(s), 0 closer than 0.1 mm" in out
+
+
+def test_a_part_moved_into_another_interferes(project_copy):
+    def shift(manifest):
+        spacer = next(c for c in manifest["children"] if c["name"] == "SPACER:1")
+        spacer["transform"][0][3] += 3.0                           # 3 mm across the pin it sits around
+    edit_json(project_copy / WITH_SPACER, shift)
+    out = run("fit_check.py", project_copy, "fixture-with-spacer", "--", "--subject", "SPACER:1")
+    assert "[fit_check] exit status 1" in out, out
+    line = next(l for l in out.splitlines() if l.startswith("INTERFERENCE"))
+    assert "SPACER:1 [0] shares" in line and "FIXTURE ROOT:1/PIN PAIR:1/PIN:1 [0]" in line
+    assert float(line.split("shares ")[1].split(" mm3")[0]) > 1.0
+
+
+def test_a_subject_the_assembly_does_not_have_is_refused_with_its_children(project_copy):
+    out = run("fit_check.py", project_copy, "fixture-with-spacer", "--", "--subject", "WASHER:1")
+    assert "has no child named 'WASHER:1'; its children: FIXTURE ROOT:1, SPACER:1" in out
+    assert "[fit_check] exit status 2" in out

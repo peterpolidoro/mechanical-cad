@@ -108,6 +108,13 @@ write nothing, and the tests of them are skipped.
 - `compare_step_exports.py` measures other exports of a project's parts (an
   AP242 export of a part tracked as AP214, an export from another session) and
   says whether each is the same geometry as the tracked file.
+- `fit_check.py` says whether some children of an assembly fit among the
+  others. For an assembly KEY, usually an authored one that places what is
+  mirrored together with what is being designed, and the names of the
+  children in question, it compares every solid of those children with every
+  other solid of the assembly and reports what interferes (shared volume),
+  what touches and what is closer than a clearance, with the smallest
+  clearance that is left. It needs FreeCAD alone.
 - `assembly_step.py` builds one STEP file and one FreeCAD document of a whole
   assembly (KEY, one of the keys `assemblies` lists, or the only assembly
   nothing places) from the part files and

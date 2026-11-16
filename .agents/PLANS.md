@@ -337,6 +337,17 @@ Smaller ones:
       of 2026-10-23 that new parts are programs would then read "programs,
       or documents of FreeCAD".
 
+16. Which state a mirror holds. Found on 2026-11-16 by the read-only tests
+    against Vault (`vault-cad-tools` plan, next work 4): the server answers
+    any version of a root assembly with its children at their latest
+    versions, so a root version does not name a state. Recommended to Peter:
+    a mirror is "get latest", every file at its latest version, which is
+    what a collaborator sees who opens the assembly in Inventor today and
+    what the first project's mirror is; whether it is current is asked of
+    every file in it. The state a root version was checked in with can be
+    rebuilt by date, as a rule and not a record, and is not what a project
+    is mirrored with.
+
 ## Next work, in order
 
 Items 1 to 3 below are done, item 4 but for the manual's render at full
@@ -581,9 +592,68 @@ read-only tests against Vault asked of the Windows agent.
    - Writing it took the outline drawing and no other information. Numbers
      read off the drawing's pictures are kept apart from printed ones in
      `parameters.json` and are to be measured on the monitor.
-   Next for this item: Peter's measurements of the monitor; the picture
-   command and the point checks; then the mount, which is the part to be
-   made.
+   Peter on 2026-11-16, after the model: the two monitors are to lie
+   face-up, screens horizontal, under the fish tanks, as displays and
+   backlights; McMaster sells monitor arms with STEP files; could one be
+   aligned with the monitor's mounting holes as a sub-assembly and placed in
+   the enclosure to see whether it fits, and are tools missing for that.
+   Answered and built that day:
+   - **Nothing has to be packaged for it.** The kernel in the channel finds
+     holes in a STEP file, places shapes, and measures common volume and
+     distance; build123d has joints (rigid, revolute and others) for
+     attaching one pattern to another and for posing an arm; the layout
+     already has authored assemblies that place mirrored and authored
+     components. FreeCAD of Guix has its Assembly workbench for doing the
+     same by hand (the module is there; not tried). CadQuery would add a
+     constraint solver for assemblies, which this does not need.
+   - **`tools/fit_check.py`** (FreeCAD alone, three tests): for an assembly
+     and the names of some of its children, every solid of those against
+     every other solid: interference by common volume, contact, and what is
+     closer than a clearance. Tried on a scratch copy of the enclosure with
+     an authored assembly that places the mirrored root and two monitor
+     models face-up, side by side, 5 mm under the lower tank's platform: the
+     project validates, 2 solids against 479 in 17 s, nothing interferes,
+     and the three distances it reports are the ones the placement gives. A
+     second authored assembly of the lower tank support frame and the two
+     monitors was built with `assembly_step.py` and drawn with `f3d`. That
+     position is a guess; Peter has not said where the monitors sit.
+   - The enclosure's frame is 1193.8 mm square outside and 1117.6 mm clear
+     between its posts and rails, which are 38.1 mm square. Two monitors
+     with their long edges side by side need about 610 by 712 mm; end to end
+     they need 1219 mm and do not fit.
+   Not built: bringing a supplier's STEP file into a project (the layout has
+   mirrored and authored components and no third kind; whether supplier
+   models may be public is open decision 6, so a study stays in the
+   project's ignored `.cache/` until an arm is chosen); finding matching
+   hole patterns in two parts and writing the placement that aligns them;
+   posing an arm about its joints, which a STEP file does not describe.
+   Asked of Peter: the arms' STEP files in one directory, a drawing or
+   catalogue page for each with its tilt and swivel ranges, where the
+   monitors sit and what an arm bolts to.
+   Peter saved the STEP files of two arms that day and the study was made
+   (the enclosure's plan, next work 6, has the results; its ignored
+   `tmp/monitor-mounts/study-2026-11-16/` the pictures, files and scripts).
+   What it showed of the tools, with build123d alone and three scripts of
+   about a hundred lines each:
+   - A supplier's file is read as it is: its solids, the two flat plates by
+     their sizes, the holes of a pattern by radius and spacing, the joints by
+     the cylinders and spheres around their axes. Neither file has a tree or
+     names, so which solids turn with a joint was decided by looking at
+     their boxes; that is the part an agent cannot take from the file.
+   - The mate is a placement worked out from the two patterns, and checked
+     by pairing the holes (0 mm) and by asking the kernel what touches.
+   - Turning a joint is a placement of some solids about an axis. The files
+     overlap themselves slightly at a joint turned by a right angle, which
+     says something about the joint's range and is worth reporting.
+   - Placing two sub-assemblies in the enclosure and checking them against
+     its 479 solids took a minute, most of it reading the 20 MB file.
+   To make of this what can be kept in a project: a place in the layout for
+   a supplier's file (open decision 6 bears on it), and the three scripts as
+   one tool that writes an authored assembly. Not begun.
+   Next for this item: Peter's answers on the enclosure (which tank, the
+   arms' ratings); his measurements of the monitor; the picture command and
+   the point checks; then the mount, which is the part to be made or
+   bought.
 6. The Guix channel and the packages for writing parts as programs. Peter
    recorded this packaging as his own deferred work on 2026-10-23 and took it
    up on 2026-11-13: build123d first, the channel and the OCP package to go
