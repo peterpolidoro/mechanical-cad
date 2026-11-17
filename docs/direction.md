@@ -297,6 +297,32 @@ build123d or CadQuery; coordinates of these solids are published with the
 enclosure generators found take dimensions, not a board's STEP file. None
 of these was examined.
 
+Peter pointed to FreeCAD's polyhedra add-on, which is installed on his
+workstation: "Polyhedra", formerly "Pyramids-and-Polyhedrons", version
+0.2.1, Python, GPL-3.0-or-later, so its code may be used here. Read and run
+without a window the same day, in FreeCAD 1.1.3:
+
+- it makes solids only, as objects of a FreeCAD document: the five Platonic
+  solids, pyramids, a geodesic sphere, and a "Regular Solid" that truncates
+  a Platonic solid by two numbers, with presets named for the thirteen
+  Archimedean solids and their duals. Size is set by the inner, middle or
+  outer radius or by an edge. No shell, frame, panels or flat pattern, and
+  nothing that sizes a shape to what it holds;
+- of the thirteen presets, five are exact to machine precision, the
+  truncated octahedron among them (edges equal, the volume of the closed
+  form). Six are close but not exact, their numbers being rounded: edges
+  differ by 0.005 % to 0.24 %. Two are not the solid they name: "Truncated
+  Dodecahedron" has edges of two lengths in the golden ratio, and
+  "Truncated Cube" gives no shape at all ("Failed to create face from
+  wire");
+- so it serves two ways. Drawn by hand: a Regular Solid in FreeCAD, made a
+  shell with Part's thickness tool, kept as a part's `part.FCStd`, which the
+  layout takes already; not tried, and whether such a document rebuilds
+  where the add-on is absent is not known. And as a second opinion: each
+  solid of a table here can be compared with the add-on's where the add-on
+  is exact. The tests named above (equal edges, the known volume) are what
+  told its exact presets from the others.
+
 ## Not settled
 
 These are Peter's to settle. The direction above depends on each of them, and
