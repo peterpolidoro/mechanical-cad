@@ -5,7 +5,8 @@ Sections marked *decided* record what Peter has already settled, with the date.
 Sections marked *proposed* are waiting for a decision. The goals and the order
 of work were written on 2026-11-16, when Peter asked for a plan of the whole
 project, and he accepted them that day; the two sections after them are
-proposals.
+proposals. On 2026-11-17 he accepted further additions and asked for a plan
+of them: it is the last section before "Not settled".
 
 This is the one place that says where the open mechanical CAD work is going.
 Each repository's `.agents/PLANS.md` records that repository's own work and
@@ -124,6 +125,15 @@ refreshed.
 - The Windows agent may read and write files in the test folder Peter made
   in Vault for this work. Anywhere else in Vault, writing stays as above: at
   his explicit request, each time. (2026-11-17)
+- The additions put to Peter on 2026-11-17 are wanted, all of them: a place
+  for files that come from outside, parts built against other components,
+  `bd_warehouse` packaged, the library of enclosure shapes, helpers for
+  circuit boards, a path to a printed part, flat patterns, a preview that
+  follows a part while it is written; and three more tasks for the Windows
+  agent: the published file referenced from an Inventor assembly in the test
+  folder, a revision as a new version of the same file, and the properties
+  of the file published in October. The plan below orders them.
+  (2026-11-17)
 
 ## Repositories
 
@@ -259,8 +269,9 @@ likes polyhedra for enclosures, Platonic and Archimedean solids, a truncated
 octahedron for one. He wants a library of such shapes as solids, shells and
 frames with volume, to be machined, printed or folded from flat stock, and
 parameterized so that a person or an agent sizes one to a board or to
-another use. He is thinking about it; nothing is decided and nothing is in
-the repository.
+another use. He was thinking about it then; later that day he said he
+wanted it, and it is stage 3 of the plan below. Nothing is in the repository
+yet.
 
 A trial that day, in a scratch directory, with build123d as packaged here
 and a truncated octahedron given by its 24 vertices and nothing else:
@@ -322,6 +333,217 @@ without a window the same day, in FreeCAD 1.1.3:
   solid of a table here can be compared with the add-on's where the add-on
   is exact. The tests named above (equal edges, the known volume) are what
   told its exact presets from the others.
+
+## Plan: parts around other parts, enclosures for boards, pictures and motion (2026-11-17)
+
+Peter on 2026-11-17 wanted all the additions put to him that day and asked
+for a plan of them. He designs circuit boards in KiCad. He named two of his
+repositories as examples: `mouse-joystick-pcb`, a board, and
+`mouse-joysticks-mech`, a mechanical project of the kind he may later keep
+in this layout. He renders such projects in Blender and would like animated
+videos of them. He asked whether a board should have an interface file.
+
+### What the two examples hold
+
+Read that day; nothing in either was changed.
+
+- **The board's files already say what an enclosure needs in the plane of
+  the board.** The repository generates and tracks `board-geometry.json`
+  (the outline, 100 x 80 mm with 5 mm corners; the thickness; four mounting
+  holes of 3.2 mm; thirteen connectors and switches with their courtyards;
+  a frame at the centre of the outline), `mechanical-datums.json` (the
+  direction in which six connectors mate) and a STEP file of the assembled
+  board. That is an interface file in all but name. **It lacks height**:
+  nothing says how tall a connector is, or how far the board's parts reach
+  above and below it.
+- **The STEP file has the heights.** Read here with build123d: 703 solids in
+  361 components, 16.6 mm above the board's top face and 2.4 mm below its
+  bottom face. Its frame is not the geometry file's: it is KiCad's page with
+  y reversed, and the geometry file records the offset between the two. Its
+  components carry the names of footprints, not references such as J201.
+- **The mechanical repository** is one STEP file of an assembly, exported
+  from Inventor by a collaborator, with a registry that maps its parts to
+  the nodes of a glTF model and gives each a finish, a scene file, and
+  renders made from them in Blender. `mechanical-docs` has the same kind of
+  pipeline for the manuals: a mesh of each part, Blender for the pictures, a
+  viewer model assembled and exploded. Neither moves anything.
+
+So the answer to the interface file is yes, and most of it exists: the
+board's side keeps writing the facts it knows, and a command here adds what
+only the solid model shows.
+
+### Goals added
+
+| | Capability | Shown by |
+| --- | --- | --- |
+| 14 | A file from outside is a component: a supplier's part, a circuit board | The example board and one supplier's part in a project, each with a record of where it came from, validating |
+| 15 | A part is built against other components | A part that takes a board's shape as an input and is reported stale when the board changes |
+| 16 | A component states its interface: the holes, faces, ports and keep-outs that other parts are designed to | The board's interface written from its files and agreeing with its STEP file |
+| 17 | An enclosure for a board is generated: a shape from a library, sized to the board, with standoffs and openings where the interface says | The example board's enclosure as a box and as a polyhedron, each passing a fit check against the board |
+| 18 | Goal 9 begun: a part is printed from a file a slicer has accepted, measured, and the record kept; flat stock is cut from a pattern | One enclosure printed and measured against its STEP |
+| 19 | A project that begins as one STEP file of an assembly is kept in the layout | A copy of the mechanical example imported and validating, its scene equal to the file solid for solid |
+| 20 | A project is pictured and animated from its records: finishes, views, joints and poses | A turntable, an exploded sequence and a moving joint of one project, as video |
+
+### Stages
+
+Each stage is built on the example board and no further than it needs. S, M
+and L say how large a stage is beside the others.
+
+**1. Components from outside, and parts built against them** (14, 15, 16;
+here; M).
+
+- 1.1 A third source of a part beside the program and the drawn document:
+  the file itself as received, `supplied.step`, never edited, with
+  `origin.json` saying where it came from (a supplier and a part number, or
+  a repository, a commit and a path), its hash, the day, and whether it may
+  be published. The build command writes `part.step`, `receipt.json` and
+  `facts.json` from it as from the other sources. Such a part may be many
+  solids. It may bring a display model from the same origin, for pictures.
+- 1.2 Inputs. A part names the components it is built against, and its
+  program becomes `build(parameters, inputs)`, receiving their shapes and
+  interfaces. The program still reads no file. The receipt records each
+  input's hash, the validator reports a part whose input has changed, parts
+  are built in the order of their inputs, and a circle is refused.
+- 1.3 `interface.json`, optional for any part: named features in the part's
+  own frame. A hole (centre, axis, diameter, depth), a face, an outline, a
+  port (its extent, the direction something enters it, what that is), a
+  volume to keep clear. Written by hand for an authored part, by a command
+  for a board. The validator checks its form, and a check may hold it to the
+  solid, a hole where a hole is stated.
+- Done when each is shown on a fixture with tests, and the specification and
+  the guide to adding a part say how.
+
+**2. The board as a component** (14, 16; here; M).
+
+- 2.1 A command that writes a board's `interface.json` from the board
+  repository's geometry and datum files and its assembled STEP file: the
+  outline, the thickness, the mounting holes, every connector with its
+  extent in the plane, its height measured from the solids over its
+  courtyard, its mating direction where the board's files give one, the
+  highest and the lowest point of the board, and the board's solid model
+  moved into the frame of the geometry file.
+- 2.2 The interface held to the STEP file: the outline, a hole at every
+  stated hole, the heights.
+- 2.3 Put to the board's side, which is `kicad-libs` and Peter's to decide:
+  that its generator write a height and a mating direction for every
+  connector and name the STEP file's components by their references. Until
+  then they are measured here.
+- Which connectors must be reached from outside, and how much room a plug
+  needs, are not facts about the board. They are parameters of the
+  enclosure.
+- Done when the example board at a named commit is a component with an
+  interface in a project.
+
+**3. What an enclosure is made of** (17; here; L).
+
+- 3.1 `bd_warehouse` packaged in the channel: screws, threads, holes for
+  heat-set inserts. It can be done at any time.
+- 3.2 The library of shapes, as proposed above: a table of solids by their
+  vertices; the forms solid, shell with faces left open or made lids,
+  panels, frame and flat pattern; sized by an edge, a radius, a box to hold,
+  or a board's interface with a clearance and a wall. Every solid tested
+  against what is known of it, and against FreeCAD's add-on where that is
+  exact.
+- 3.3 The features of an enclosure as functions a part's program calls:
+  standoffs under the mounting holes with holes for screws or inserts; an
+  opening for a port, cut along its direction through whatever wall or lid
+  is in the way; a body divided into two halves with a lip and screws.
+- Done when each has tests and a picture.
+
+**4. The first enclosure** (6, 7, 17; a project repository; M).
+
+- 4.1 For the example board, as a plain box first: a base, a lid, and an
+  assembly with the board in place. Its checks: no interference with the
+  board, a stated clearance, a point in every opening that is empty and one
+  in every standoff that is material. Pictures.
+- 4.2 The same board in a polyhedron, a truncated octahedron for one.
+- Done when both build, validate and pass their fit checks.
+
+**5. Made and verified** (9, 18; here and at the printer; M).
+
+- 5.1 A command that writes the file to print, checks the mesh against the
+  solid, and has a slicer slice it (PrusaSlicer is in Guix), keeping what
+  the slicer said. It needs the printer and the material.
+- 5.2 The part printed and measured, the measurements kept beside the STEP,
+  and the clearances that printing needs made parameters.
+- 5.3 Flat patterns as DXF or SVG for panels cut from sheet, with fold lines
+  for folded stock. The allowance for a bend is looked at then, starting
+  with what FreeCAD's sheet-metal add-on does.
+
+**6. A project that begins as one STEP file** (19; here; M).
+
+- 6.1 A command that takes a STEP file of an assembly apart into the
+  layout: a part for every distinct solid model, the assemblies with their
+  placements, keys from the names in the file, one record of where the file
+  came from. Nothing in it comes from Vault.
+- 6.2 Tried on a copy of the mechanical example, and the scene built from
+  the result compared with the file, solid for solid.
+- 6.3 What that repository's registry holds (vendor numbers, datasheets,
+  finishes, which board connector a part meets) set against the records of
+  the layout. The repository itself is converted only when Peter says so.
+- If the native files of such a project are in Vault, the mirror through
+  Inventor is the better way in: it knows the identity of every file.
+
+**7. Pictures and motion** (20; `mechanical-docs`, with records defined
+here; L).
+
+- 7.1 Records in the layout that a picture needs and CAD does not give
+  reliably: the finish of each component, curated like quantities and
+  materials; joints between components, an axis and its limits, and named
+  poses; views.
+- 7.2 In `mechanical-docs`, which has the meshes, the Blender stage and the
+  exploded view already: a still of any view outside a manual, a turntable,
+  an exploded sequence that follows the manual's steps, a joint moved
+  through its range, each written as video.
+- 7.3 The fit check run over the range of a joint, which the monitor arm
+  needs.
+- What this asks of the earlier stages is small: a supplied component may
+  bring its display model (1.1), every solid keeps its name into the scene,
+  which the layout does already, and colour is not put into STEP files,
+  since a picture takes its finishes from a record.
+
+**8. A preview that follows the file** (here; S): a short command that
+opens the viewer on a part or a built assembly and reloads it when it is
+built again. With stage 1 or 4.
+
+**The Windows agent** (10, 11, 12; `vault-cad-tools`), beside all of the
+above and independent of it:
+
+- W1 The published STEP file referenced from an Inventor assembly in the
+  test folder, and what Vault records of that relation.
+- W2 A revision as a new version of the same file: designed first, the SDK
+  members looked up without touching Vault, then built, run dry, run once,
+  and the assembly of W1 seen to follow it.
+- W3 The properties of the file published in October, to see whether the
+  server fills in a lab the same way every time.
+- Each begins with the offline rehearsal of the line corrected on
+  2026-11-17.
+
+### Order
+
+Stage 1 first: it is small, and the board, the monitor arm and every
+enclosure wait on it. Then 2, 3 and 4 in that order, with 3.1 whenever it
+fits. Stage 5 when there is an enclosure to print. Stages 6 and 7 after the
+first enclosure, or earlier if Peter wants pictures or the mechanical
+repository sooner; neither depends on 2 to 5. The Windows tasks run beside
+the rest, W1 and W3 first.
+
+### For Peter to decide
+
+1. Where a supplied file lives. Recommended, as proposed on 2026-11-16: in
+   `designs/parts/<key>/` as a third source of a part, so the two roots
+   stay as decided. The other way is a third root.
+2. Where the first enclosure lives. Recommended: a new, small project
+   repository with authored parts only, the board pinned by commit; the
+   board's own repository and the mechanical one are left as they are.
+3. How the first enclosure is made. Assumed: printed. Then which printer
+   and which material.
+4. Whether the board's generator in `kicad-libs` is asked for the heights,
+   the mating directions and the references (2.3).
+5. Whether a supplier's file may be in a public repository: the open
+   question of 2026-11-16. It holds up the monitor arm, not the board, which
+   is his own.
+6. Whether the native files of `mouse-joysticks-mech` are in Vault.
 
 ## Not settled
 

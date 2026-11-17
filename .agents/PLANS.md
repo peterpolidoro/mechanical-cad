@@ -371,6 +371,25 @@ Smaller ones:
     rebuilt by date, as a rule and not a record, and is not what a project
     is mirrored with.
 
+17. The plan of 2026-11-17 (docs/direction.md, "Plan: parts around other
+    parts, enclosures for boards, pictures and motion"). Peter that day
+    wanted every addition put to him and the three further Windows tasks
+    (under "Decided" there), named `mouse-joystick-pcb` and
+    `mouse-joysticks-mech` as examples, said he designs boards in KiCad and
+    renders and would animate such projects in Blender, and asked for a
+    plan. It adds goals 14 to 20 and eight stages. Its six questions for
+    him, each with a recommendation there:
+    - where a supplied file lives (recommended: a third source of a part in
+      `designs/parts/<key>/`, as proposed under 6 above);
+    - where the first enclosure lives (recommended: a new project
+      repository, the board pinned by commit);
+    - how the first enclosure is made (assumed: printed), and then the
+      printer and the material;
+    - whether the board's generator in `kicad-libs` is asked for heights,
+      mating directions and references in the STEP file;
+    - decision 6 above, which holds up the monitor arm only;
+    - whether the native files of `mouse-joysticks-mech` are in Vault.
+
 ## Next work, in order
 
 Items 1 to 3 below are done, item 4 but for the manual's render at full
@@ -810,6 +829,31 @@ read-only tests against Vault asked of the Windows agent.
      placements), so neither library's assembly model is in the contract.
      build123d's `import_step` rewrites spaces, dots and parentheses in names
      to underscores; a kernel tool on OCP should read names itself.
+
+7. The plan of 2026-11-17 (docs/direction.md; open decision 17). Nothing of
+   it is built. What was read and tried that day, all in scratch
+   directories and in no repository:
+   - a truncated octahedron from its vertices as solid, shell, frame and
+     flat pattern, and the size that holds a box (docs/direction.md,
+     "Proposed: a library of enclosure shapes");
+   - FreeCAD's polyhedra add-on on Peter's workstation, read and run
+     without a window: five of its thirteen Archimedean presets exact, six
+     close, two not the solid they name;
+   - solids read from STEP files subtracted, intersected and merged with
+     build123d, the volumes agreeing to 2e-6 mm3 when measured with the
+     kernel's fine integration (the plain `volume` of a solid with spline
+     faces is 0.9 % off, as found before); moved, turned and mirrored
+     exactly; scaled evenly with planes and cylinders kept; scaled unevenly
+     with every face made a spline;
+   - the example board's assembled STEP file: read in six seconds, 703
+     solids in 361 components, 16.6 mm above the board and 2.4 mm below it,
+     in KiCad's page frame with y reversed, components named after
+     footprints.
+   Where to begin: stage 1.1 and 1.2, once Peter has said where a supplied
+   file lives. Stage 3.1 (`bd_warehouse` in the channel) waits on nothing.
+   In Guix that day: KiCad 10.0.5, PrusaSlicer 2.9.5, `python-ezdxf`,
+   `python-trimesh`, lib3mf; not `bd_warehouse`. The packaged build123d
+   0.12.0 has the exporters for STL, 3MF, DXF and SVG.
 
 ## Known limits of what was built
 
