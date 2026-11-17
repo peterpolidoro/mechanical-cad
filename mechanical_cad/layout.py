@@ -12,7 +12,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import jsonio, stepfile
+from . import interfaces, jsonio, stepfile
 from .facts import POINT_STATES
 from . import transforms as T
 
@@ -41,15 +41,29 @@ OVERRIDE_FIELDS = {"path", "transform"}
 FACTS_FIELDS = {"schema_version", "key", "step", "tool", "valid", "length_unit_declared", "solids",
                 "shells", "faces", "volume_mm3", "area_mm2", "center_of_mass_mm", "bounding_box_mm", "invisible_items",
                 "notes", "points"}
-RECEIPT_FIELDS = {"schema_version", "key", "name", "step", "program", "parameters", "document", "tool", "reimport"}
+RECEIPT_FIELDS = {"schema_version", "key", "name", "step", "program", "parameters", "document", "inputs", "tool",
+                  "reimport"}
+INPUT_FIELDS = {"name", "key", "step_sha256", "interface_sha256"}
 DOCUMENT = "part.FCStd"         # the source of a part drawn in FreeCAD, where a programmed part has PROGRAM
 PROGRAM = ("build.py", "parameters.json")
+ORIGIN = "origin.json"          # the record of a supplied part: a file that came from outside, kept as it came
+INTERFACE = interfaces.FILE     # the named features of a part that other parts are designed to
+ORIGIN_FIELDS = {"schema_version", "key", "name", "origin", "step"}
+ORIGIN_KINDS = {
+    #  kind          required                        optional
+    "supplier": (("supplier", "part_number"), ("url",)),
+    "repository": (("repository", "commit", "path"), ()),
+    "other": (("description",), ("url",)),
+}
+ORIGIN_COMMON = ("kind", "retrieved", "licence", "publishable", "note")
+DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 FILES = {
     ("references", "part"): ({"part.step", "source.json"}, {"facts.json"}),
     ("references", "assembly"): ({"assembly.json", "source.json"}, set()),
-    ("designs", "part"): ({"part.step", "receipt.json"},        # and its source, which _check_files asks for
-                          {"checks.json", "facts.json", "vault.json", "README.md", DOCUMENT, *PROGRAM}),
+    ("designs", "part"): ({"part.step"},                        # and its source, which _check_files asks for
+                          {"checks.json", "facts.json", "vault.json", "README.md", "receipt.json", DOCUMENT, *PROGRAM,
+                           ORIGIN, INTERFACE}),
     ("designs", "assembly"): ({"assembly.json"}, {"README.md"}),
 }
 
@@ -77,6 +91,9 @@ class Component:
     assembly: dict | None = None
     facts: dict | None = None
     receipt: dict | None = None
+    origin: dict | None = None             # of a supplied part
+    interface: dict | None = None
+    inputs: dict = field(default_factory=dict)      # of a programmed part: the name its program uses -> a part's key
     vault: dict | None = None
     children: list = field(default_factory=list)
     step_sha256: str | None = None
@@ -90,7 +107,7 @@ class Component:
 
     @property
     def name(self):
-        for d in (self.source, self.assembly, self.receipt):
+        for d in (self.source, self.assembly, self.receipt, self.origin):
             if isinstance(d, dict) and isinstance(d.get("name"), str) and d["name"]:
                 return d["name"]
         return self.key
@@ -98,6 +115,11 @@ class Component:
     @property
     def step_path(self):
         return self.dir / "part.step"
+
+    @property
+    def supplied(self):
+        """A part of designs/ whose source is a file from outside, recorded in origin.json."""
+        return self.root == "designs" and self.kind == "part" and (self.dir / ORIGIN).is_file()
 
 
 @dataclass
@@ -202,13 +224,18 @@ def load(project_dir):
         if comp.root == "references":
             _check_source(project, comp)
         elif comp.kind == "part":
-            _check_receipt(project, comp)
+            if comp.supplied:
+                _check_origin(project, comp)
+            else:
+                _check_receipt(project, comp)
+            _check_interface(project, comp)
             _check_publications(project, comp)
         if comp.kind == "part":
             _check_facts(project, comp)
         if comp.kind == "assembly":
             _check_assembly(project, comp)
     _check_references_between(project)
+    _check_inputs(project)
     _check_headers(project)
     _check_lock(project)
     _check_line_endings(project)
@@ -253,14 +280,21 @@ def _check_files(project, comp):
     for name in sorted(required - present):
         project.error(comp.path, f"{name} is missing")
     if (comp.root, comp.kind) == ("designs", "part"):
-        # one source: a program with its parameters, or a document drawn in FreeCAD
-        if DOCUMENT in present:
+        # one source: a program with its parameters, a document drawn in FreeCAD, or a file from outside
+        if ORIGIN in present:
+            other = sorted(({DOCUMENT, "receipt.json"} | set(PROGRAM)) & present)
+            if other:
+                project.error(comp.path, f"{ORIGIN} and {' and '.join(other)}: a part has one source, and a supplied "
+                                         "part is not built")
+        elif DOCUMENT in present:
             both = sorted(set(PROGRAM) & present)
             if both:
                 project.error(comp.path, f"{DOCUMENT} and {' and '.join(both)}: a part has one source, a program or a document")
         else:
             for name in sorted(set(PROGRAM) - present):
                 project.error(comp.path, f"{name} is missing")
+        if ORIGIN not in present and "receipt.json" not in present:
+            project.error(comp.path, "receipt.json is missing")
     extra = sorted(present - required - optional)
     if extra:
         if comp.root == "references":
@@ -442,6 +476,168 @@ def _check_receipt(project, comp):
         project.error(where, "tool must record the tool and kernel versions")
 
 
+def _check_origin(project, comp):
+    """origin.json of a supplied part: where the file came from, and the file as it is here."""
+    where = f"{comp.path}/{ORIGIN}"
+    data = _load_json(project, comp.dir / ORIGIN, where)
+    if data is None:
+        return
+    comp.origin = data
+    _only(project, where, data, ORIGIN_FIELDS)
+    if data.get("schema_version") != SCHEMA_VERSION:
+        project.error(where, f"schema_version must be {SCHEMA_VERSION}")
+    if data.get("key") != comp.key:
+        project.error(where, "key must equal the directory name")
+    if not isinstance(data.get("name"), str) or not data["name"]:
+        project.error(where, "name must be a non-empty string")
+    _check_step_record(project, comp, where, data.get("step"), require_received=True)
+    origin = data.get("origin")
+    if not isinstance(origin, dict):
+        project.error(where, "origin: expected an object")
+        return
+    kind = origin.get("kind")
+    if kind not in ORIGIN_KINDS:
+        project.error(where, f"origin.kind must be one of {', '.join(sorted(ORIGIN_KINDS))}")
+        return
+    required, optional = ORIGIN_KINDS[kind]
+    _only(project, where + " origin", origin, set(required) | set(optional) | set(ORIGIN_COMMON))
+    for f in required:
+        if not isinstance(origin.get(f), str) or not origin[f]:
+            project.error(where, f"origin.{f} must be a non-empty string")
+    for f in optional + ("licence", "note"):
+        if f in origin and not _str_or_none(origin[f]):
+            project.error(where, f"origin.{f} must be a string or null")
+    if not isinstance(origin.get("retrieved"), str) or not DATE.match(origin["retrieved"]):
+        project.error(where, "origin.retrieved must be the day the file was taken, as YYYY-MM-DD")
+    if "publishable" not in origin or origin["publishable"] not in (True, False, None):
+        project.error(where, "origin.publishable must be true, false, or null when it is not known")
+    elif origin["publishable"] is not True:
+        project.finding(comp.path, "the file came from outside and is not recorded as publishable"
+                        if origin["publishable"] is None else "the file came from outside and may not be published")
+    if kind == "repository" and isinstance(origin.get("commit"), str) and not re.fullmatch(r"[0-9a-f]{7,64}", origin["commit"]):
+        project.error(where, "origin.commit must be a commit hash")
+
+
+def _check_interface(project, comp):
+    path = comp.dir / INTERFACE
+    where = f"{comp.path}/{INTERFACE}"
+    if not path.is_file():
+        return
+    data = _load_json(project, path, where)
+    if data is None:
+        return
+    wrong = interfaces.problems(data, comp.key)
+    for line in wrong:
+        project.error(where, line)
+    if not wrong:
+        comp.interface = data
+
+
+def declared_inputs(parameters):
+    """The inputs a parameters.json declares: {the name the program uses: a part's key}. Raises ValueError."""
+    if not isinstance(parameters, dict) or "inputs" not in parameters:
+        return {}
+    inputs = parameters["inputs"]
+    if not isinstance(inputs, dict) or not all(isinstance(k, str) and k.isidentifier() and isinstance(v, str) and KEY.match(v)
+                                                for k, v in inputs.items()):
+        raise ValueError('inputs must map names, each a Python identifier, to the keys of parts: {"board": "the-board"}')
+    return dict(inputs)
+
+
+def _check_inputs(project):
+    """The parts a programmed part is built against: they exist, nothing goes in a circle, and a part whose
+    input has changed since it was built is said to be stale."""
+    parts = project.of(root="designs", kind="part")
+    for comp in parts:
+        params = comp.dir / "parameters.json"
+        if comp.supplied or not params.is_file():
+            continue
+        where = f"{comp.path}/parameters.json"
+        try:
+            comp.inputs = declared_inputs(jsonio.load(params))
+        except (jsonio.JsonError, OSError):
+            continue                    # the receipt check has said what is wrong with the file
+        except ValueError as exc:
+            project.error(where, str(exc))
+            continue
+        for name, key in sorted(comp.inputs.items()):
+            target = project.components.get(key)
+            if key == comp.key:
+                project.error(where, f"input {name!r} is the part itself")
+            elif target is None:
+                project.error(where, f"input {name!r}: no component {key!r}")
+            elif target.kind != "part":
+                project.error(where, f"input {name!r}: {key} is an assembly; an input is a part")
+    for comp in parts:
+        circle = _input_circle(project, comp.key)
+        if circle:
+            project.error(f"{comp.path}/parameters.json", "its inputs go in a circle: " + " -> ".join(circle))
+    for comp in parts:
+        if comp.supplied or not isinstance(comp.receipt, dict):
+            continue
+        where = f"{comp.path}/receipt.json"
+        recorded = comp.receipt.get("inputs", [])
+        ok = isinstance(recorded, list) and all(
+            isinstance(r, dict) and set(r) == INPUT_FIELDS and isinstance(r["name"], str) and isinstance(r["key"], str)
+            and _is_sha(r["step_sha256"]) and (r["interface_sha256"] is None or _is_sha(r["interface_sha256"]))
+            for r in recorded)
+        if not ok:
+            project.error(where, "inputs must list each input with its name, key, step_sha256 and interface_sha256")
+            continue
+        if {r["name"]: r["key"] for r in recorded} != comp.inputs:
+            project.error(where, "the inputs recorded are not the inputs parameters.json declares; build it again")
+            continue
+        for r in recorded:
+            target = project.components.get(r["key"])
+            if target is None or target.kind != "part":
+                continue
+            if target.step_sha256 is not None and target.step_sha256 != r["step_sha256"]:
+                project.error(where, f"input {r['name']!r} ({r['key']}) has changed since the part was built; build it again")
+            interface = target.dir / INTERFACE
+            now = stepfile.sha256_file(interface) if interface.is_file() else None
+            if now != r["interface_sha256"]:
+                project.error(where, f"the interface of input {r['name']!r} ({r['key']}) has changed since the part "
+                                     "was built; build it again")
+
+
+def _input_circle(project, start):
+    """The keys of a circle of inputs through `start`, closed, or None."""
+    def walk(key, trail):
+        comp = project.components.get(key)
+        for nxt in sorted((comp.inputs if comp is not None else {}).values()):
+            if nxt == start:
+                return trail + [nxt]
+            if nxt not in trail:
+                found = walk(nxt, trail + [nxt])
+                if found:
+                    return found
+        return None
+    return walk(start, [start])
+
+
+def build_order(project, keys=None):
+    """The programmed, drawn and supplied parts of designs/ in an order in which each comes after its inputs.
+    With `keys`, those parts and everything they are built against. Raises ValueError on a circle."""
+    parts = {c.key: c for c in project.of(root="designs", kind="part")}
+    wanted = list(parts) if keys is None else list(keys)
+    out, visiting = [], set()
+
+    def visit(key):
+        if key in out or key not in parts:
+            return
+        if key in visiting:
+            raise ValueError(f"the inputs of {key} go in a circle")
+        visiting.add(key)
+        for nxt in sorted(parts[key].inputs.values()):
+            visit(nxt)
+        visiting.discard(key)
+        out.append(key)
+
+    for key in sorted(wanted):
+        visit(key)
+    return out
+
+
 def _check_publications(project, comp):
     path = comp.dir / "vault.json"
     where = f"{comp.path}/vault.json"
@@ -497,7 +693,13 @@ def _check_facts(project, comp):
         project.finding(comp.path, "facts.json was measured with the kernel's plain integration, which can be about "
                                    "1 % off in volume for a solid with free-form surfaces; measure it again")
     if data.get("valid") is not True:
-        project.error(where, "the kernel did not find the geometry valid")
+        if comp.supplied:
+            # a file from outside is what it is: said, not refused. A boolean operation on it may fail.
+            notes = [n for n in data.get("notes", []) if isinstance(n, str) and "not valid" in n]
+            project.finding(comp.path, "the kernel does not find all of the supplied geometry valid"
+                            + (f" ({'; '.join(notes)})" if notes else ""))
+        else:
+            project.error(where, "the kernel did not find the geometry valid")
     solids = data.get("solids")
     if isinstance(solids, bool) or not isinstance(solids, int) or solids < 0:
         project.error(where, "solids must be a non-negative integer")

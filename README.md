@@ -61,6 +61,8 @@ guix shell --pure -m manifest.scm -- python3 -B -m mechanical_cad assemblies PRO
 guix shell --pure -m manifest.scm -- python3 -B -m mechanical_cad built PROJECT [KEY]
 guix shell --pure -m manifest.scm -- python3 -B -m mechanical_cad flatten PROJECT --out NEW_DIR [--root KEY]
 guix shell --pure -m manifest.scm -- python3 -B -m mechanical_cad check PROJECT
+guix shell --pure -m manifest.scm -- python3 -B -m mechanical_cad add-supplied PROJECT KEY FILE.step --supplier S --part-number N --retrieved DAY --publishable yes
+guix shell --pure -m manifest.scm -- python3 -B -m mechanical_cad build-order PROJECT [KEY ...]
 guix shell --pure -m manifest.scm -- python3 -B -m mechanical_cad compare-scenes OLD/scene.json NEW/scene.json
 guix shell --pure -m manifest.scm -- python3 -B -m mechanical_cad step-info FILE.step
 guix shell --pure -m manifest.scm -- python3 -B -m mechanical_cad normalise-header IN.step OUT.step
@@ -81,7 +83,30 @@ guix shell --pure -m manifest.scm -- python3 -B -m pytest -q tests
 - `flatten` composes the per-assembly manifests into the `scene.json` that
   `mechanical-docs` reads, with a copy of the STEP files it names.
 - `check` evaluates each authored part's `checks.json` against its measured
-  facts.
+  facts, and holds what its `interface.json` says to the solid: a hole is
+  empty.
+- `tools/print_file.py PROJECT KEY` writes the mesh to print a part from
+  (`.cache/print/KEY.stl`) with a record beside it: that the mesh is closed,
+  how its volume compares with the solid's, and, with
+  `.guix/manifest-print.scm` in the environment, what PrusaSlicer says of
+  the file. It does not slice: that needs a printer and a material.
+- `mechanical_cad/enclosures.py` is not a command: a part's program calls it
+  to make a plain box around a circuit board from the board's interface, a
+  base with standoffs and a lid with posts and openings, or the same inside
+  a polyhedron of `mechanical_cad/shapes/`
+  (docs/direction.md, the plan of 2026-11-17).
+- `mechanical_cad/shapes/` is a library of polyhedra for a part's program:
+  the Platonic and Archimedean solids, prisms, antiprisms and boxes by their
+  vertices, sized by an edge or to hold a box, as solid, shell, frame,
+  mitred panels and flat pattern.
+- `add-supplied` puts a STEP file from outside into a project as a part: a
+  supplier's model, or a circuit board's from its own repository (`--repository
+  URL --commit HASH --path PATH` in place of the supplier). The file is kept
+  as it came, with its header normalised, and `origin.json` records where it
+  came from and whether it may be published.
+- `build-order` prints the authored parts so that each comes after the parts
+  it is built against: a part's `parameters.json` may name other parts as
+  `inputs`, and its program then receives their solids and interfaces.
 - `compare-scenes` says whether two flattened scenes are the same assembly.
   With `--other-export`, STEP files that differ are listed, not counted: use
   it with `compare_step_exports.py` when a project was exported again in
@@ -95,6 +120,7 @@ the two about whole assemblies need FreeCAD alone (`.guix/manifest-cad.scm`):
 B3D="guix shell --pure -L .guix/modules -m manifest.scm -m .guix/manifest-build123d.scm --"
 $B3D FreeCADCmd tools/step_facts.py --pass PROJECT
 $B3D FreeCADCmd tools/build_part.py --pass PROJECT/designs/parts/KEY
+$B3D FreeCADCmd tools/board_interface.py --pass PROJECT/designs/parts/KEY BOARD-GEOMETRY.json [DATUMS.json]
 $B3D FreeCADCmd tools/compare_step_exports.py --pass PROJECT MAP.json NEW_REPORT.json
 $B3D python3 -B -m pytest -q tests
 guix shell --pure -m .guix/manifest-cad.scm -- FreeCADCmd tools/assembly_step.py --pass PROJECT [KEY]
@@ -140,9 +166,16 @@ write nothing, and the tests of them are skipped.
 - `compare_assembly_step.py` says whether another STEP file of a whole
   assembly, such as the mirrored CAD system's own export of its assembly
   document, holds every solid where the project's records put it.
-- `step_facts.py` measures every imported STEP file (validity, solids, volume,
-  area, centre of mass, bounding box) and writes `facts.json` beside it. A
-  file measured with another tool, or another integration, is measured again.
+- `step_facts.py` measures every STEP file that nothing here builds, the
+  mirrored parts and the supplied ones (validity, solids, volume, area, centre
+  of mass, bounding box), and writes `facts.json` beside it. A file measured
+  with another tool, or another integration, is measured again.
+- `board_interface.py` writes the `interface.json` of a circuit board that is
+  a supplied part: the outline, the mounting holes and the connectors from
+  the geometry file the board's repository generates, and from the solid
+  model how high each connector stands and how far the board's parts reach
+  above and below it. It refuses a model that is not that board: every
+  mounting hole has to be empty in it.
 - `build_part.py` builds an authored part from its source: `build.py` and
   `parameters.json`, or `part.FCStd`, a document drawn in FreeCAD (the one
   object in it that has a solid and that nothing else uses is the part; the

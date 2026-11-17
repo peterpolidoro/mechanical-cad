@@ -2,6 +2,7 @@
 
     python3 tools/picture.py PROJECT KEY [--views iso,iso-back] [--up +Z] [--size 1400x900] [--out DIR]
     python3 tools/picture.py FILE.step   [--views ...] [--up ...] [--size ...] [--out DIR]
+    python3 tools/picture.py PROJECT KEY --where       print the STEP file that would be drawn, and draw nothing
 
 Run it where `f3d` is on PATH (.guix/manifest-view.scm). f3d is a viewer built
 on VTK and OpenCASCADE that reads a STEP file and renders it to an image
@@ -77,12 +78,14 @@ def file_name(view):
 
 
 def options(argv):
-    opts = {"views": ",".join(DEFAULT_VIEWS), "up": "+Z", "size": "1400x900", "out": None}
+    opts = {"views": ",".join(DEFAULT_VIEWS), "up": "+Z", "size": "1400x900", "out": None, "where": False}
     positional = []
     i = 0
     while i < len(argv):
         a = argv[i]
-        if a.startswith("--") and a[2:] in opts and i + 1 < len(argv):
+        if a == "--where":
+            opts["where"] = True
+        elif a.startswith("--") and a[2:] in opts and i + 1 < len(argv):
             opts[a[2:]] = argv[i + 1]
             i += 1
         elif a.startswith("--"):
@@ -138,6 +141,10 @@ def draw(step, png, direction, up, size):
 
 def main(argv):
     positional, opts = options(argv)
+    if opts["where"]:
+        # for a viewer that follows the file (make view): the file alone on a line, and no f3d needed to say it
+        print(source(positional)[0])
+        return 0
     if shutil.which("f3d") is None:
         print("[picture] f3d is not on PATH; run this in the environment of .guix/manifest-view.scm")
         return 2
@@ -163,5 +170,6 @@ if __name__ == "__main__":
     except ValueError as exc:
         print(f"[picture] {exc}")
         rc = 2
-    print(f"[picture] exit status {rc}", flush=True)
+    if "--where" not in sys.argv[1:] or rc:
+        print(f"[picture] exit status {rc}", flush=True)
     sys.exit(rc)

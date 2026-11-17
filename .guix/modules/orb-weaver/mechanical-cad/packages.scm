@@ -11,7 +11,8 @@
 ;;; GNU General Public License for more details.
 
 ;;; Packages for writing CAD parts as programs: the OCP bindings of
-;;; OpenCASCADE, build123d, and what build123d needs that Guix does not have.
+;;; OpenCASCADE, build123d, what build123d needs that Guix does not have, and
+;;; bd_warehouse, the fasteners and other standard parts written with it.
 ;;; They are written the way Guix's own package modules are, so that they can
 ;;; be submitted there.
 ;;;
@@ -560,4 +561,41 @@ built on the OpenCASCADE kernel through the OCP bindings.  Lines, sketches and
 solids are ordinary Python objects that are combined with operators or inside
 builder contexts, selected with filters and sorts, and written as STEP, BREP,
 STL, 3MF, glTF, DXF and SVG files.")
+    (license license:asl2.0)))
+
+;;;
+;;; Parts written with build123d.
+;;;
+
+(define-public python-bd-warehouse
+  (package
+    (name "python-bd-warehouse")
+    ;; The newest release; it asks for build123d from 0.12.0 and below 0.14.0.
+    (version "0.4.0")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/gumyr/bd_warehouse")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "1rsr2vxycqhvbcvjj39a9a7c9n12lnkscp33l3gfxddwjqzjz8yk"))))
+    (build-system pyproject-build-system)
+    ;; The tests take about six minutes, more than half of that for the
+    ;; threads that tests/test_thread.py models.
+    (native-inputs
+     (list python-pytest python-setuptools python-setuptools-scm))
+    (propagated-inputs
+     (list python-bd-materials python-build123d python-typing-extensions))
+    (home-page "https://github.com/gumyr/bd_warehouse")
+    (synopsis "Parametric fasteners, threads, bearings and gears for build123d")
+    (description
+     "This package is a collection of parametric parts for build123d: metric
+and imperial screws, nuts, washers and heat-set inserts with the clearance,
+tap, threaded and insert holes that take them, threads, bearings with their
+press-fit holes, gears, sprockets, pipes and flanges, O-rings, retaining
+rings, shaft keys and the rails and hardware of OpenBuilds.  The sizes are
+read from tables of the standards and of suppliers that come with the
+package.")
     (license license:asl2.0)))

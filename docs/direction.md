@@ -134,6 +134,12 @@ refreshed.
   folder, a revision as a new version of the same file, and the properties
   of the file published in October. The plan below orders them.
   (2026-11-17)
+- A file from outside lives in `designs/parts/<key>/` as a third source of a
+  part, beside the program and the drawn document. The two roots stay.
+  (2026-11-17)
+- A supplier's file may be in a public repository. (2026-11-17)
+- The generator of a board's geometry files in `kicad-libs` may be used as
+  it is, or changed to be of more use here. (2026-11-17)
 
 ## Repositories
 
@@ -393,12 +399,12 @@ and L say how large a stage is beside the others.
 here; M).
 
 - 1.1 A third source of a part beside the program and the drawn document:
-  the file itself as received, `supplied.step`, never edited, with
-  `origin.json` saying where it came from (a supplier and a part number, or
-  a repository, a commit and a path), its hash, the day, and whether it may
-  be published. The build command writes `part.step`, `receipt.json` and
-  `facts.json` from it as from the other sources. Such a part may be many
-  solids. It may bring a display model from the same origin, for pictures.
+  the file itself as received, never edited, with `origin.json` saying where
+  it came from (a supplier and a part number, or a repository, a commit and
+  a path), its hash, the day, and whether it may be published. Such a part
+  may be many solids. It may bring a display model from the same origin, for
+  pictures. (As built, the file is the part's `part.step`: "Built so far"
+  below.)
 - 1.2 Inputs. A part names the components it is built against, and its
   program becomes `build(parameters, inputs)`, receiving their shapes and
   interfaces. The program still reads no file. The receipt records each
@@ -530,20 +536,118 @@ the rest, W1 and W3 first.
 
 ### For Peter to decide
 
-1. Where a supplied file lives. Recommended, as proposed on 2026-11-16: in
-   `designs/parts/<key>/` as a third source of a part, so the two roots
-   stay as decided. The other way is a third root.
-2. Where the first enclosure lives. Recommended: a new, small project
+Answered on 2026-11-17 and now under "Decided": where a supplied file lives,
+that a supplier's file may be public, and that the board's generator in
+`kicad-libs` may be used or changed. He also said that the native files of
+`mouse-joysticks-mech` are in Vault, so that project can be mirrored through
+Inventor as the first one was (stage 6, last line); the folder is in the
+ignored notes of this checkout, not here. Still his to decide:
+
+1. Where the first enclosure lives. Recommended: a new, small project
    repository with authored parts only, the board pinned by commit; the
    board's own repository and the mechanical one are left as they are.
-3. How the first enclosure is made. Assumed: printed. Then which printer
+2. How the first enclosure is made. Assumed: printed. Then which printer
    and which material.
-4. Whether the board's generator in `kicad-libs` is asked for the heights,
-   the mating directions and the references (2.3).
-5. Whether a supplier's file may be in a public repository: the open
-   question of 2026-11-16. It holds up the monitor arm, not the board, which
-   is his own.
-6. Whether the native files of `mouse-joysticks-mech` are in Vault.
+
+### Built so far
+
+- **Stage 1** (2026-11-17): a supplied part (`add-supplied`, `origin.json`),
+  inputs (`build(parameters, inputs)`, the receipt's `inputs`, the stale
+  part reported, `build-order`), and `interface.json` held to the solid. One
+  thing is not as first written above: the file is not kept twice. The
+  part's `part.step` is the file as it came with its header normalised, its
+  data section byte for byte what was received, and `origin.json` holds the
+  hash of the file as received; there is no `supplied.step` beside it. A
+  board's file is 12.8 MB, and a second copy would only repeat it.
+- **Stage 2** (2026-11-17), 2.1 and 2.2: `tools/board_interface.py`. Run on
+  the example board in a scratch project: the board found in the file with
+  its frame at (137.425, -95.0), the four mounting holes empty in it, a
+  solid over every one of the thirteen connectors and switches, their
+  heights from 1.74 mm (the switches) to 16.58 mm (the RJ45), parts 16.585
+  mm above the top face and 2.405 mm below the bottom. Found on the way: two
+  of the file's 703 solids, the USB-C connector's, are not valid to the
+  kernel; for a supplied part that is reported and not refused. The board's
+  solid is 1.51 mm thick where its files say 1.6 mm. Six of the thirteen
+  have a mating direction from the board's files; for the rest it is taken
+  as away from the board, and the interface says so. 2.3, asking more of the
+  board's generator, is not begun.
+- **Stage 3.1** (2026-11-17): `bd_warehouse` 0.4.0 is in the channel and in
+  the build123d manifest. Its own 1105 tests run in the build, about six
+  minutes; three tests here make a screw, a clearance hole and a hole for a
+  heat-set insert.
+- **Stage 3.2** (2026-11-17): `mechanical_cad/shapes/`, written by a second
+  agent from the trial above and reviewed here. `polyhedra` has the five
+  Platonic and thirteen Archimedean solids, prisms, antiprisms and boxes by
+  their vertices, with the faces found as the convex hull, and sizes one to
+  hold a box behind a wall; `unfold` lays a solid out flat with its fold
+  lines; `forms` makes the solid, the shell with faces opened, the frame,
+  mitred panels and the flat pattern with build123d. The first two need no
+  kernel.
+  - Every named solid is held to what is known of it: its counts, equal
+    edges, flat and convex faces, the closed-form volume to 1e-9, the
+    rotations of its family, and a second derivation of its radius and
+    volume from the faces around one vertex, without coordinates. That
+    second derivation matters because the coordinates were written from
+    memory, with no network to look them up.
+  - Every solid the kernel makes is held to the volume worked out without
+    it, and refused when they differ. That came from a finding: **the
+    kernel's union of plain cylinders and balls is silently wrong in some
+    positions**. A frame of the truncated octahedron resting on a hexagon
+    came out as one valid solid with 0.06 % to 2.6 % of its volume missing,
+    a dodecahedron's as four solids. So a frame is made of pieces that meet
+    only in flat faces, and sizes at which the kernel cannot join them are
+    refused with the reason. The frame of the trial above, which was one
+    valid solid, was never checked for its volume.
+  - Not there: an allowance for sheet thickness and bends in the flat
+    pattern; sizing by the distance across two faces; and a flat pattern or
+    a set of panels as a part, since the build command takes one shape with
+    a solid.
+- **Stage 3.3 and 4.1, a first cut** (2026-11-17): `mechanical_cad/
+  enclosures.py` makes a plain box from a board's interface: a base with a
+  standoff and an insert hole under each mounting hole, and a lid with a
+  post and a counterbored screw hole over each and an opening above each
+  port that is asked for. Four screws through the lid and the board into
+  the standoffs hold the board and close the box, and the halves meet in a
+  step that locates the lid. Tried on the example board
+  in a scratch project, as two parts built against the board and an
+  assembly: both build and pass their checks (a point in every standoff,
+  hole, post and opening), and the fit check finds no interference with any
+  of the board's 703 solids, three contacts (the halves, the board on its
+  standoffs, the posts on the board) and 0.75 mm as the smallest gap that
+  does not touch. A screw and an insert can be named, and their holes then
+  come from `bd_warehouse`'s tables. That showed at once what typed-in
+  numbers had hidden: the standard M3 insert is 5.7 mm long and needs 6.8
+  mm of material, and the box's standoff and floor were 5.4 mm together; the
+  generator now refuses that and says what to change, and the example has
+  1.5 mm more room under the board. Not there yet: openings in a wall for
+  ports that face sideways, and a home for the project, which is Peter's to
+  say; until then it is kept in this checkout's ignored
+  `tmp/mouse-joystick-box/`. Nothing has been printed.
+- **Stage 4.2, a first cut** (2026-11-17): the same board in a truncated
+  octahedron, with the library of stage 3.2: `polyhedron_halves` sizes the
+  solid to hold the board with its parts, a clearance and a wall, divides
+  the shell at the board's top face, and gives the halves the standoffs,
+  posts, screw holes and openings of the box, each reaching to whatever
+  wall is there. Two parts and an assembly in the kept project: they build,
+  pass their checks, and do not interfere with the board. What it shows: a
+  solid that is as high as it is wide is large around a flat board. For
+  this board of 100 x 80 mm it has an edge of 52.5 mm, is 149 mm high and
+  166 mm across its corners, and the standoffs are 66 mm long; the plain
+  box is 107 x 87 x 28 mm. A cuboctahedron would be 111 mm high. A prism,
+  which the library also has, would follow the board more closely. The
+  halves meet flat, without a step.
+- **Stage 5.1, the first half** (2026-11-17): `tools/print_file.py` and
+  `make print` write the mesh to print a part from and check it: every edge
+  shared by two triangles, the volume within 0.5 % of the solid's, the same
+  extent; and PrusaSlicer, from Guix, is asked what it makes of the file.
+  The two halves of the box: closed, 0.005 % and 0.002 % from their
+  solids, and manifold to the slicer. It is not sliced: that needs the
+  printer and the material, which Peter has not named. The part measured
+  after printing, the other half of goal 9, is not begun.
+- **Stage 8** (2026-11-17): `make view PROJECT=DIR KEY=K` opens the viewer
+  on a part or a built assembly and has it follow the file. The command is
+  written and the viewer has the option; no window was opened from the
+  agent's shell, so it is not tried.
 
 ## Not settled
 

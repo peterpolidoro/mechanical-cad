@@ -28,12 +28,14 @@ designs/                       the repository is the authority
   parts/<key>/
     build.py                   people and agents      } the part's source: a program with its
     parameters.json            people and agents      } parameters, or
-    part.FCStd                 people                   a document drawn in FreeCAD; never both
+    part.FCStd                 people                   a document drawn in FreeCAD, or
+    origin.json                supply command           a file from outside; one of the three
     checks.json                people and agents (optional)
+    interface.json             people and agents, or a command (optional)
     README.md                  people and agents (optional)
-    part.step                  build command
-    receipt.json               build command
-    facts.json                 build command
+    part.step                  build command; the supply command for a supplied part
+    receipt.json               build command; a supplied part has none
+    facts.json                 build command; the facts command for a supplied part
     vault.json                 publication record command, when a publication is verified
   assemblies/<key>/
     assembly.json              people and agents
@@ -53,7 +55,9 @@ The commands, and where they live:
 | Command | Writes | Where |
 | --- | --- | --- |
 | import | `references/`, `vault-lock.json` | `vault-cad-tools` (`vault-cad import-snapshot`, provisional) |
-| facts | `references/parts/*/facts.json` | `tools/step_facts.py`, run by FreeCADCmd with the OCP bindings |
+| facts | `facts.json` of every mirrored part and of every supplied part | `tools/step_facts.py`, run by FreeCADCmd with the OCP bindings |
+| supply | `part.step` and `origin.json` of a supplied part | `python3 -m mechanical_cad add-supplied` |
+| board interface | `interface.json` of a supplied circuit board | `tools/board_interface.py`, run by FreeCADCmd |
 | build | `part.step`, `receipt.json`, `facts.json` of an authored part | `tools/build_part.py`, run by FreeCADCmd with the OCP bindings |
 | publication record | `vault.json` of an authored part, and the `publications` of `vault-lock.json` | `vault-cad-tools` (`vault-cad import-publish-result`) |
 | validate, check, flatten, assemblies | nothing in the repository | `python3 -m mechanical_cad` |
@@ -299,6 +303,110 @@ the 1e-7 asked; two exports of such a part may differ by more than 1e-6.
   `publications`, each with `request_id`, `master_id`, `version_id`,
   `git_commit` and `step_sha256`. When `part.step` differs from the last
   publication, that is reported.
+
+## A supplied part
+
+A third source of a part (Peter, 2026-11-17): a STEP file that came from
+outside, a supplier's model or a circuit board's, kept as it came. It lives in
+`designs/parts/<key>/` like the other two, and nothing builds it.
+
+- `python3 -m mechanical_cad add-supplied PROJECT KEY FILE` with the origin
+  puts it there. `part.step` is the file with its header normalised; its data
+  section is byte for byte what was received, so names, colours and the
+  structure inside the file are kept. Such a part may be many solids. The
+  command fetches nothing: the file is a path on the machine, and what is
+  recorded of its origin is what the caller says.
+- `origin.json`: `schema_version`, `key`, `name`, `step` (as in
+  `source.json`, with `received_sha256`, the hash of the file as it came) and
+  `origin`:
+
+  ```json
+  {"kind": "supplier", "supplier": "McMaster-Carr", "part_number": "5537T879", "url": null,
+   "retrieved": "2026-11-16", "licence": null, "publishable": true}
+  {"kind": "repository", "repository": "https://github.com/OWNER/board", "commit": "b58cd3f",
+   "path": "docs/generated/3d/board-assembled.step",
+   "retrieved": "2026-11-17", "licence": "CC-BY-SA-4.0", "publishable": true}
+  {"kind": "other", "description": "measured and drawn by the workshop", ...}
+  ```
+
+  `retrieved` is the day the file was taken. `publishable` says whether the
+  file may be in a public repository: `true`, `false`, or `null` when nobody
+  has said; the validator reports the last two. A `note` may say more.
+- A supplied part has no `receipt.json`, no program and no document; a
+  directory with `origin.json` and any of those is an error. The facts
+  command measures it. `checks.json`, `interface.json`, `vault.json` and how
+  an assembly places the part are as for any other part.
+- A newer file of the same part is added over the old one with `--replace`.
+  The key stays, and every part built against it is then stale.
+
+## The interface of a part
+
+`interface.json`, optional for a part under `designs/`, states the named
+features that other parts are designed to, in the part's own frame and in
+millimetres: where a board's mounting holes are, where a connector sits and
+from which side something enters it, how high its parts reach.
+
+```json
+{"schema_version": 1, "key": "the-board", "length_unit": "mm",
+ "frames": {"board": {"transform": [[1,0,0,137.425],[0,1,0,-95.0],[0,0,1,1.51],[0,0,0,1]],
+                      "note": "origin at the middle of the outline, on the top face"}},
+ "features": [
+   {"id": "h101", "kind": "hole", "center": [92.425, -60.0, 1.51], "axis": [0, 0, 1], "diameter": 3.2, "through": true},
+   {"id": "top", "kind": "plane", "point": [137.425, -95.0, 1.51], "normal": [0, 0, 1]},
+   {"id": "j201", "kind": "port", "box": {"min": [90.1, -111.0, 1.51], "max": [94.7, -100.9, 8.0]},
+    "direction": [0, 0, 1], "accepts": "USB-C plug", "reference": "J201"},
+   {"id": "parts-above", "kind": "keep_out", "box": {"min": [87.4, -135.0, 1.51], "max": [187.4, -55.0, 18.1]}}]}
+```
+
+- A feature has an `id`, unique in the file (lower-case letters and digits
+  joined by `-`, `_` or `.`), and a `kind`:
+
+  | Kind | Fields | Meaning |
+  | --- | --- | --- |
+  | `hole` | `center`, `axis`, `diameter`; `depth`, `through` | `center` is where the axis meets the face the hole is drilled from, and `axis` points out of the material there |
+  | `plane` | `point`, `normal` | a face to mate with or to measure from; `normal` points out of the material |
+  | `outline` | `point`, `normal`, `x`, `polygon`; `corner_radius` | a closed outline in the plane through `point`, its points given along `x` and `normal` x `x` |
+  | `port` | `box`, `direction`; `accepts` | where something plugs in; `direction` points the way out, so what plugs in comes against it |
+  | `keep_out` | `box` | a volume nothing else may enter |
+  | `point` | `point` | a datum |
+  | `axis` | `point`, `direction` | a datum line |
+
+  Vectors named `axis`, `normal`, `direction` and `x` are unit vectors. A
+  `box` has `min` and `max`. Any feature may carry `note`, `reference` (the
+  name the part's own documents use, a connector's J201) and `expect`.
+- `frames` names frames other than the part's own. A frame's `transform` is a
+  4 x 4 matrix, rigid, that takes a point given in the named frame to the
+  part's frame. Features are always given in the part's own frame.
+- **The interface is held to the solid.** A hole must be empty on its axis,
+  at half its depth or 0.01 mm inside the face when no depth is given; and
+  `expect` lists points of a feature that must be `material` or `empty`.
+  These are point checks like those of `checks.json`, with ids that begin
+  `interface:`: the build command, or the facts command for a supplied part,
+  looks at the points and records them in `facts.json`, and `check` reads
+  them. A malformed interface is an error.
+- It is written by hand, or by a command: `tools/board_interface.py` writes
+  a circuit board's from the files its repository generates.
+- Not yet for a part under `references/`, where nothing is added by hand.
+
+## Inputs: a part built against other parts
+
+A programmed part may be built against other parts of the project, an
+enclosure against the board it holds (Peter, 2026-11-17).
+
+- `parameters.json` names them: `"inputs": {"board": "the-board"}`, the name
+  the program uses and the key of a part, mirrored, authored or supplied.
+- The program is then `build(parameters, inputs)`. `inputs["board"]` has
+  `key`, `name`, `facts` (the part's `facts.json`), `interface` (its
+  `interface.json`, or nothing), and the solid: `shape()` for FreeCAD's Part
+  module, `build123d()` for build123d, read without the items the file marks
+  invisible. The program still opens no file itself.
+- `receipt.json` gets `inputs`: for each, `name`, `key`, `step_sha256` and
+  `interface_sha256` (null when the input has no interface). When either file
+  of an input has changed since, the validator says the part is to be built
+  again.
+- An input has to validate before a part is built against it, so parts are
+  built in the order of their inputs: `python3 -m mechanical_cad build-order
+  PROJECT [KEY ...]` prints it. Inputs that go in a circle are an error.
 
 ## `vault-lock.json`
 
@@ -584,6 +692,11 @@ above do the same.
   applied to them.
 - **Drawings**, and anything else a Vault file carries besides its geometry.
 - **Purchased parts shared between projects.** Each project holds its own copy.
+- **A supplied assembly.** A supplied part is one file and one component,
+  however many solids it holds. Taking a STEP file of an assembly apart into
+  parts and placements is not built.
+- **A display model beside a supplied part**, the glTF file a board's
+  repository generates, for pictures with real finishes.
 - **A key for an occurrence that survives a refresh.** Occurrence names are
   what Inventor shows; nothing ties an instruction step to an occurrence
   across a rename.

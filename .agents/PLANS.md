@@ -377,8 +377,14 @@ Smaller ones:
     (under "Decided" there), named `mouse-joystick-pcb` and
     `mouse-joysticks-mech` as examples, said he designs boards in KiCad and
     renders and would animate such projects in Blender, and asked for a
-    plan. It adds goals 14 to 20 and eight stages. Its six questions for
-    him, each with a recommendation there:
+    plan. It adds goals 14 to 20 and eight stages. Later that day he
+    answered four of its six questions (now under "Decided" in
+    docs/direction.md): a supplied file lives in `designs/parts/<key>/` as
+    recommended; a supplier's file may be public, which settles decision 6
+    above; the board's generator in `kicad-libs` may be used or changed; and
+    the natives of `mouse-joysticks-mech` are in Vault (the folder is in the
+    ignored `.agents/handoff.local.md`). Left for him: where the first
+    enclosure lives, and how it is made. The six as they were put:
     - where a supplied file lives (recommended: a third source of a part in
       `designs/parts/<key>/`, as proposed under 6 above);
     - where the first enclosure lives (recommended: a new project
@@ -851,6 +857,68 @@ read-only tests against Vault asked of the Windows agent.
      footprints.
    Where to begin: stage 1.1 and 1.2, once Peter has said where a supplied
    file lives. Stage 3.1 (`bd_warehouse` in the channel) waits on nothing.
+
+   **Built on 2026-11-17, after he said it** (he was away for some hours
+   and asked what could be done without him; uncommitted when this was
+   written):
+   - Stage 1: `mechanical_cad/supplied.py` and `add-supplied` (a supplied
+     part is `part.step`, the file as it came with its header normalised,
+     and `origin.json`; no second copy of the file, which the plan had
+     first written); `interface.json` (`mechanical_cad/interfaces.py`:
+     holes, planes, outlines, ports, volumes to keep clear, points, axes,
+     named frames; a hole is held to the solid as a point check); inputs
+     (`"inputs"` in `parameters.json`, `build(parameters, inputs)`,
+     `kernel.Input`, the receipt's `inputs`, a part reported stale when an
+     input's STEP file or interface has changed, `build-order`). The facts
+     command measures supplied parts and looks at the points their
+     interfaces name. A supplied part whose geometry the kernel does not
+     find valid is a finding, not an error. The validator, the
+     specification and the guide to adding a part say all of it.
+   - Stage 2.1 and 2.2: `tools/board_interface.py`, run on the example
+     board in a scratch project (the numbers are in docs/direction.md,
+     "Built so far").
+   - Stage 3.1: `python-bd-warehouse` 0.4.0 in the channel, by a second
+     agent; reviewed here.
+   - Stage 3.3 and 4.1, a first cut: `mechanical_cad/enclosures.py`, a plain
+     box (base and lid) from a board's interface; the example board boxed
+     in the scratch project, no interference.
+   - Stage 5.1, the first half: `tools/print_file.py`, `make print`,
+     `.guix/manifest-print.scm` with PrusaSlicer; both halves of the box
+     give closed meshes the slicer calls manifold. Not sliced.
+   - Stage 8: `make view` (not tried in a window), and `make parts` and
+     `make facts`.
+   - Stage 3.2, the library of polyhedra (`mechanical_cad/shapes/`), given
+     to a third agent with the trial as its start, and reviewed here: 18
+     named solids, prisms, antiprisms, boxes; sizing to hold a box; unfold;
+     solid, shell, frame, panels and flat pattern. What it found and what is
+     left are in docs/direction.md, "Built so far". Its coordinates are
+     from memory (no network), cross-checked by a second derivation.
+   - A hazard it found, for every tool here that joins solids: the
+     kernel's union of cylinders and balls that are tangent or nearly so
+     can return one valid solid with volume missing. The library holds what
+     the kernel returns to a volume worked out without it.
+     `enclosures.py` joins cylinders to flat floors and walls and is tested
+     by volume for the box only.
+   - Tests: `tests/test_supplied.py` (29, no kernel), `test_enclosures.py`
+     (3 without a kernel, 4 with build123d), `test_parts_from_outside.py`
+     (5), `test_board_interface.py` (2), `test_print_file.py` (3 and 1),
+     `test_bd_warehouse.py` (3), one more in `test_picture.py`, and the
+     library's own `test_polyhedra.py` and `test_shape_forms.py`. All of the
+     repository's tests on 2026-11-17: 467 pass without a kernel (67
+     skipped), 534 with FreeCAD, the bindings, build123d and bd_warehouse (2
+     skipped), 4 with the viewer.
+   - The scratch project with the board and its box is under the session's
+     scratch directory and in no repository. Making it a project needs
+     Peter's word on where it lives.
+   - The box takes a named screw and insert (`screw`, `insert`) and cuts
+     the holes of `bd_warehouse`'s tables; an insert that the standoff and
+     floor are too short for is refused. The halves meet in a step.
+   - Stage 4.2, a first cut: `enclosures.halves` and `polyhedron_halves`;
+     the board in a truncated octahedron in the kept project (large: 149 mm
+     high for a board of 100 x 80 mm).
+   - Next here: openings in walls; a step between the halves of a polyhedron; once the
+     library is reviewed; slicing with a printer's profile once Peter names
+     the printer; the part measured after printing.
    In Guix that day: KiCad 10.0.5, PrusaSlicer 2.9.5, `python-ezdxf`,
    `python-trimesh`, lib3mf; not `bd_warehouse`. The packaged build123d
    0.12.0 has the exporters for STL, 3MF, DXF and SVG.

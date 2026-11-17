@@ -1,18 +1,21 @@
-"""Measure the imported STEP files of a project and write their facts.json.
+"""Measure the STEP files of a project that nothing here builds, and write their facts.json.
 
     FreeCADCmd tools/step_facts.py --pass PROJECT [-- --force] [-- --only KEY ...]
 
 FreeCADCmd reads dashed options itself, even after --pass; put a bare `--`
 before this script's own options.
 
-Writes references/parts/<key>/facts.json for every imported part whose facts
+Writes facts.json for every part mirrored from Vault (references/parts/<key>/)
+and every supplied part (designs/parts/<key>/ with origin.json) whose facts
 are missing or describe a different part.step, a different unit or a different
-tool or kernel version. A file that marks items invisible (the hidden bodies of
+tool or kernel version. For a supplied part it also looks at the points its
+checks.json and its interface.json name, and records what is there. A file that marks items invisible (the hidden bodies of
 an AP242 export) is measured without them, and the facts say how many were
 left out. With --force every part is measured again. A file
 whose measurement has not changed is not rewritten.
 
-The facts of authored parts under designs/ are written by tools/build_part.py.
+The facts of the parts that are built, from a program or a document, are
+written by tools/build_part.py.
 
 FreeCADCmd prints an uncaught exception and still exits 0, so this script
 prints its own status line; trust that and the files, not the exit code.
@@ -29,21 +32,24 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import kernel  # noqa: E402
-from mechanical_cad import jsonio, layout, stepfile  # noqa: E402
+from mechanical_cad import interfaces, jsonio, layout, stepfile  # noqa: E402
 
 
-def facts_for(comp, tool):
+def facts_for(comp, tool, asked=()):
     data = comp.step_path.read_bytes()
     out = {"schema_version": layout.SCHEMA_VERSION, "key": comp.key,
            "step": {"sha256": stepfile.sha256_bytes(data), "data_sha256": stepfile.data_sha256(data)},
            "tool": tool, "length_unit_declared": stepfile.length_unit(data)}
-    measured, hidden = kernel.measure_step(comp.step_path, data)
-    out.update(measured)
+    shape, hidden = kernel.read_step_visible(comp.step_path, data)
+    out.update(kernel.measure(shape))
     if hidden:
         out["invisible_items"] = hidden
     notes = out.pop("notes")
     if notes:
         out["notes"] = notes
+    if asked:
+        # what the file has at the points its checks and its interface name; the validator reads that without a kernel
+        out["points"] = kernel.at_points(shape, asked)
     return out
 
 
@@ -63,11 +69,13 @@ def main(argv):
     except kernel.MeasureError as exc:
         print(f"[step_facts] {exc}")
         return 2
-    parts = sorted(project.of(root="references", kind="part"), key=lambda c: c.key)
+    # what nothing here builds: the parts mirrored from Vault, and the supplied parts of designs/
+    parts = sorted(project.of(root="references", kind="part") + [c for c in project.of(root="designs", kind="part") if c.supplied],
+                   key=lambda c: c.key)
     if only:
         missing = only - {c.key for c in parts}
         if missing:
-            print(f"[step_facts] no such imported part: {', '.join(sorted(missing))}")
+            print(f"[step_facts] no such imported or supplied part: {', '.join(sorted(missing))}")
             return 2
         parts = [c for c in parts if c.key in only]
     measured = kept = failed = 0
@@ -77,15 +85,17 @@ def main(argv):
             failed += 1
             continue
         old = comp.facts or {}
+        asked = interfaces.points_asked(comp.dir) if comp.supplied else []
         current = (old.get("step", {}).get("sha256") == comp.step_sha256 and old.get("tool") == tool
                    and old.get("length_unit_declared") == comp.step_length_unit
-                   and old.get("invisible_items", 0) == (comp.step_invisible_items or 0))
+                   and old.get("invisible_items", 0) == (comp.step_invisible_items or 0)
+                   and [p.get("point") for p in old.get("points", [])] == asked)
         if current and not force:
             kept += 1
             continue
         t0 = time.time()
         try:
-            new = facts_for(comp, tool)
+            new = facts_for(comp, tool, asked)
         except Exception as exc:        # a kernel failure on one file must not hide the others
             print(f"[step_facts] {comp.key}: FAILED: {exc}")
             failed += 1

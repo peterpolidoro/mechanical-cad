@@ -48,6 +48,12 @@ def test_a_view_says_where_the_camera_stands():
     assert [picture.file_name(v) for v in ("iso", "+x", "-Z")] == ["iso", "plus-x", "minus-z"]
 
 
+def test_where_prints_the_file_and_draws_nothing(project_copy):
+    assert run(project_copy, "spacer", "--where").strip() == str(project_copy / "designs/parts/spacer/part.step")
+    out = run(project_copy, "fixture-with-spacer", "--where")
+    assert "is an assembly and is not built" in out and "[picture] exit status 2" in out
+
+
 def test_what_cannot_be_drawn_is_said(project_copy):
     assert "exit status 2" in run(project_copy)                                      # no key
     if F3D is None:

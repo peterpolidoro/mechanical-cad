@@ -3,7 +3,8 @@
 A part's program may build its shape with FreeCAD's Part module or with
 build123d; as_shape brings either to the Part.Shape everything here works on.
 A part drawn in FreeCAD has a document for its source; document_shape gives
-the shape that document is a part of.
+the shape that document is a part of. A part built against other parts gets
+each of them as an Input.
 
 Volumes and areas that are recorded (facts.json, a receipt's re-import check)
 are measured with OpenCASCADE's adaptive integration, which FreeCAD's Python
@@ -91,6 +92,38 @@ def as_shape(result):
     if name == "OCP":
         return shape, {"name": "OCP", "version": bindings}
     return shape, {"name": name, "version": version(name), "bindings": "OCP", "bindings_version": bindings}
+
+
+class Input:
+    """A part that another part is built against, as its program receives it.
+
+    `key` and `name` say which part; `facts` is its facts.json and `interface`
+    its interface.json, each None when the part has none. The solid is read
+    when asked for, without the items the file marks invisible: `shape()` as a
+    Part.Shape of FreeCAD, `build123d()` as a shape of build123d. The program
+    reads no file itself, so what it was built against is what the build
+    command recorded.
+    """
+
+    def __init__(self, key, name, step_path, facts=None, interface=None):
+        self.key, self.name, self.step_path = key, name, Path(step_path)
+        self.facts, self.interface = facts, interface
+
+    def shape(self):
+        return read_step_visible(self.step_path)[0]
+
+    def build123d(self):
+        from build123d import import_step
+        data = self.step_path.read_bytes()
+        if not stepfile.invisible_items(data):
+            return import_step(str(self.step_path))
+        with tempfile.TemporaryDirectory() as tmp:
+            visible = Path(tmp) / "visible.step"
+            visible.write_bytes(stepfile.visible_only(data))
+            return import_step(str(visible))
+
+    def __repr__(self):
+        return f"Input({self.key!r})"
 
 
 def document_shape(path):
@@ -243,8 +276,14 @@ def measure(shape):
     if worst > 10 * INTEGRATION_TOLERANCE:
         notes.append(f"the integration reached a relative error of {worst:.1e}, not the {INTEGRATION_TOLERANCE:.0e} asked")
     bb = shape.optimalBoundingBox(True, False)
+    valid = bool(shape.isValid())
+    if not valid and len(shape.Solids) > 1:
+        # a file of many solids, a circuit board's with a model per component, is often valid but for a few
+        broken = sum(1 for s in shape.Solids if not s.isValid())
+        if broken:
+            notes.append(f"{broken} of {len(shape.Solids)} solids are not valid")
     return {
-        "valid": bool(shape.isValid()),
+        "valid": valid,
         "solids": len(solids), "shells": len(shape.Shells), "faces": len(shape.Faces),
         "volume_mm3": volume, "area_mm2": area, "center_of_mass_mm": com,
         "bounding_box_mm": {"min": [bb.XMin, bb.YMin, bb.ZMin], "max": [bb.XMax, bb.YMax, bb.ZMax]},

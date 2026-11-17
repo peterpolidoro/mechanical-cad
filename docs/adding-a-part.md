@@ -21,6 +21,30 @@ has **one source**:
   object in it that has a solid and that nothing else in the document uses: a
   body, or the last feature of a chain. Leave no second solid lying beside
   it.
+- **A file from outside**: a supplier's model, or the model of a circuit
+  board from its own repository. It is not built; a command puts it in and
+  records where it came from:
+
+  ```sh
+  python3 -m mechanical_cad add-supplied . <key> path/to/file.step --name "Monitor arm" \
+      --supplier McMaster-Carr --part-number 5537T879 --retrieved 2026-11-16 --publishable yes
+  python3 -m mechanical_cad add-supplied . <key> ../board/docs/generated/3d/board-assembled.step --name "The board" \
+      --repository https://github.com/OWNER/board --commit b58cd3f --path docs/generated/3d/board-assembled.step \
+      --retrieved 2026-11-17 --licence CC-BY-SA-4.0 --publishable yes
+  FreeCADCmd tools/step_facts.py --pass . -- --only <key>      # measure it
+  ```
+
+  The file is kept as it came, with only its header rewritten. A newer file
+  of the same part goes over the old one with `--replace`.
+
+**A part built against another.** A program may take other parts of the
+project as inputs: name them in `parameters.json`,
+`"inputs": {"board": "<key of the board>"}`, and write
+`build(parameters, inputs)`. `inputs["board"].build123d()` (or `.shape()` for
+FreeCAD's Part module) is that part's solid, `.interface` what it states of
+itself, `.facts` its measurements. Cut the board out of a block, put a
+standoff under each of its holes. Build the input first; when it changes, the
+validator says which parts are to be built again.
 
 Add a `README.md` that says what the part is for and where its numbers come
 from.
@@ -43,6 +67,12 @@ bounding box) or a point of it, in the part's own frame and in millimetres,
 that has to be `material` or `empty`. Points are how an interface is stated:
 a hole where a pattern has one, a face at a given depth (material just under
 it, empty just above). Keep a point clear of every surface.
+
+What other parts are designed to goes into `interface.json`: the holes, the
+faces, the ports and the volumes to keep clear, each with a name
+([the layout](layout-specification.md), "The interface of a part"). A part
+built against this one reads it, and the build holds it to the solid: a hole
+stated where there is material fails.
 
 ## 3. Build it, and look at it
 

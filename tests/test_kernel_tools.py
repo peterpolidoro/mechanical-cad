@@ -150,7 +150,7 @@ def test_facts_are_kept_when_current_and_reproduced_when_forced(project_copy):
     plate.unlink()
     out = run("step_facts.py", project_copy, "--", "--only", "base-plate")
     assert "1 measured" in out and plate.read_bytes() == before
-    assert "no such imported part: nothing" in run("step_facts.py", project_copy, "--", "--only", "nothing")
+    assert "no such imported or supplied part: nothing" in run("step_facts.py", project_copy, "--", "--only", "nothing")
 
 
 TWO_SOLIDS = """
