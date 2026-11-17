@@ -121,6 +121,9 @@ refreshed.
 - A part drawn in FreeCAD may sit beside a programmed one: the same
   directory, with the document as its source in place of the program and
   its parameters. (2026-11-16)
+- The Windows agent may read and write files in the test folder Peter made
+  in Vault for this work. Anywhere else in Vault, writing stays as above: at
+  his explicit request, each time. (2026-11-17)
 
 ## Repositories
 
@@ -239,7 +242,10 @@ has tested:
 
 The first and third read from Vault, which Peter authorized for tests on
 2026-11-16; they were asked of the Windows agent that day. The second writes
-to Vault and waits for his request.
+to Vault. Its first part, a dry run of adding an authored part to a test
+folder Peter made, passed on 2026-11-16; on 2026-11-17 he allowed files to
+be read and written in that folder, and the add itself was asked of the
+Windows agent that day.
 
 ## Not settled
 
