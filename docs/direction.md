@@ -65,7 +65,7 @@ editor. As capabilities, each with what shows it done:
 | 8 | A part drawn in a graphical editor is kept like a programmed one | **Built** (2026-11-16), after Peter decided it that day: `part.FCStd` as a part's source, built and validated like a program. Shown on documents made by a script; no part of a project has been drawn by hand yet |
 | 9 | A part is made and verified: a file to make it from, and a record of the made part against the STEP | **Not started** |
 | | **Export** | |
-| 10 | A new STEP file is added to Vault and verified | **Done once** (2026-10-22), before the layout changed; the commands have not run on Windows since |
+| 10 | A new STEP file is added to Vault and verified | **Done** (2026-11-17) for a part authored in the new layout: planned, run dry, added once to a test folder Peter made, and verified by downloading it again. First done on 2026-10-22, before the layout changed |
 | 11 | A published part is revised: a new version of the same Vault file | **Not built** |
 | 12 | A collaborator uses the part from Inventor: the STEP referenced in a native assembly, following its revisions | **Partly**: tried in a disposable copy only. Shown besides: Inventor opens a STEP file of a whole assembly built here with every name and placement right |
 | | **Packaging** | |
@@ -196,7 +196,11 @@ as code are left. The numbers in brackets are the goals above.
    native assembly in a test folder, then a revision published as a new
    version of the same file. Every write to Vault is at Peter's request.
    Before it: the file's name in Vault, the wrapper part, and the Inventor
-   requirement under "Not settled".
+   requirement under "Not settled". The first of the three ran on
+   2026-11-17: the monitor's reference model was added to the test folder
+   and verified. The revision and the reference from an assembly are left;
+   the revision has to be designed first, because nothing built so far
+   checks a file out or in.
 3. **Keeping a mirror current** (2, 3): change detection against Vault,
    read-only; a refresh tried on a real change; a second assembly imported,
    to meet what the exporter refuses. It needs Peter's word for reading
@@ -244,8 +248,54 @@ The first and third read from Vault, which Peter authorized for tests on
 2026-11-16; they were asked of the Windows agent that day. The second writes
 to Vault. Its first part, a dry run of adding an authored part to a test
 folder Peter made, passed on 2026-11-16; on 2026-11-17 he allowed files to
-be read and written in that folder, and the add itself was asked of the
-Windows agent that day.
+be read and written in that folder, and the add itself ran and was verified
+that day.
+
+## Proposed: a library of enclosure shapes (2026-11-17)
+
+Peter on 2026-11-17: a common problem of his is an enclosure around a circuit
+board he has designed, of which he has a STEP file. Besides plain boxes he
+likes polyhedra for enclosures, Platonic and Archimedean solids, a truncated
+octahedron for one. He wants a library of such shapes as solids, shells and
+frames with volume, to be machined, printed or folded from flat stock, and
+parameterized so that a person or an agent sizes one to a board or to
+another use. He is thinking about it; nothing is decided and nothing is in
+the repository.
+
+A trial that day, in a scratch directory, with build123d as packaged here
+and a truncated octahedron given by its 24 vertices and nothing else:
+
+- the solid, with the volume of the closed form to twelve digits;
+- a shell with the same wall at every face, made by moving every face in,
+  not by scaling;
+- a frame of 36 struts and 24 nodes as one solid;
+- a flat pattern of the 14 faces that does not overlap itself;
+- the smallest size that holds a box of given size with a clearance and a
+  wall, which is a formula over the faces and needs no search.
+
+So the geometry is not the hard part. What a first version could be:
+
+- a table of polyhedra by vertex coordinates, the faces found as the convex
+  hull: the five Platonic and thirteen Archimedean solids, prisms and
+  antiprisms, a box being a prism. Each is tested against what is known of
+  it: counts of vertices, edges and faces, equal edges, the volume;
+- sized by an edge, by the distance across two opposite faces, by the
+  sphere around it, or by what it has to hold: a box, or a STEP file with a
+  clearance;
+- forms: solid; shell, with faces left open or made lids; panels, one plate
+  per face with mitred edges, for sheet stock; frame; flat pattern with its
+  fold lines;
+- used from a part's `build.py` like any other code, so that the part is
+  checked, pictured and tested for fit like every authored part.
+
+Not looked at yet, and where the work is: how the board is held and on which
+face; openings for connectors, found from the board's STEP file; how the
+enclosure opens and closes; the allowance for bends when folding; an export
+for cutting (DXF or SVG). A search that day found no polyhedra library for
+build123d or CadQuery; coordinates of these solids are published with the
+`coxeter` Python package, to be read before a table is written here; the
+enclosure generators found take dimensions, not a board's STEP file. None
+of these was examined.
 
 ## Not settled
 
