@@ -385,10 +385,12 @@ Smaller ones:
     the natives of `mouse-joysticks-mech` are in Vault (the folder is in the
     ignored `.agents/handoff.local.md`). Left for him: where the first
     enclosure lives, and how it is made; and, since the Windows reads of
-    that day, whether the second project is mirrored and from which
-    assembly, and whether a published file should carry the lab of its
-    project (docs/direction.md, "For Peter to decide", 3 and 4). The six as
-    they were put:
+    that day, whether a published file should carry the lab of its project,
+    and the live run of W1 once Windows has said what it writes
+    (docs/direction.md, "For Peter to decide", 3 and 4). He answered the
+    question of the second project that day: it may be mirrored for
+    testing, in the shared directory, and `mouse-joysticks-mech` is left
+    alone ("Decided"). The six as they were put:
     - where a supplied file lives (recommended: a third source of a part in
       `designs/parts/<key>/`, as proposed under 6 above);
     - where the first enclosure lives (recommended: a new project
@@ -940,9 +942,18 @@ read-only tests against Vault asked of the Windows agent.
    written, nothing downloaded. The results are in docs/direction.md,
    "Built so far", and in `vault-cad-tools` (`windows/HISTORY.md`,
    `.agents/PLANS.md`); the ids and the folder are in the ignored
-   `.agents/handoff.local.md`. The Windows agent has no task. Its next one
-   waits for Peter: two script changes agreed with it, the mirror of the
-   second project if he wants it, and W1.
+   `.agents/handoff.local.md`.
+
+   **Asked of Windows later that day**, for Peter to start, nothing
+   written to Vault (the message is on the share,
+   `coordination/to-windows/20261117T191339Z-...`): the two script changes
+   agreed with it; the definitions of the two properties the server fills
+   in; the mirror of the second project for testing, by the version id of
+   the one assembly, acquired and exported, in a directory of its own
+   under `mirrors/` on the share; and W1 up to the point where it would write. When it
+   reports: check the evidence, import the package into a scratch project
+   outside every repository (the paths in it name a lab), and put to Peter
+   exactly what the live run of W1 adds to the test folder.
 
    In Guix that day: KiCad 10.0.5, PrusaSlicer 2.9.5, `python-ezdxf`,
    `python-trimesh`, lib3mf; not `bd_warehouse`. The packaged build123d

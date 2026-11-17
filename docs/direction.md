@@ -140,6 +140,12 @@ refreshed.
 - A supplier's file may be in a public repository. (2026-11-17)
 - The generator of a board's geometry files in `kicad-libs` may be used as
   it is, or changed to be of more use here. (2026-11-17)
+- The second project, the one `mouse-joysticks-mech` holds a STEP export of,
+  is not being worked on at the moment. It may serve as an example of a
+  project exported from Vault and worked on with open tools. A mirror of it
+  for testing may be made in the shared directory, where the Linux and the
+  Windows agents both reach it. `mouse-joysticks-mech` itself is left alone
+  unless Peter works on that project again. (2026-11-17)
 
 ## Repositories
 
@@ -548,12 +554,16 @@ ignored notes of this checkout, not here. Still his to decide:
    board's own repository and the mechanical one are left as they are.
 2. How the first enclosure is made. Assumed: printed. Then which printer
    and which material.
-3. Whether the second project is mirrored, and from which assembly (see
-   "Built so far", the Windows tasks). Recommended: the one assembly the
-   mechanical repository holds as a STEP file, reached by its version id,
-   and not the folder's three roots.
-4. Whether a published file should carry the lab of its project. Both
+3. Whether a published file should carry the lab of its project. Both
    published files carry the same lab, which is the lab of neither folder.
+   Windows is asked to read where the value comes from first.
+4. The live run of W1, once Windows has reported exactly which files it
+   adds to the test folder.
+
+Answered on 2026-11-17 and now under "Decided": the second project may be
+mirrored for testing, in the shared directory. The mirror asked for is the
+one assembly the mechanical repository holds as a STEP file, by its version
+id, with what it uses; not the folder's three roots.
 
 ### Built so far
 
@@ -707,6 +717,27 @@ ignored notes of this checkout, not here. Still his to decide:
     check-out is a write of its own, and a run that stops after it leaves
     the file checked out; the design has to say what then.
   - W1 is not begun.
+- **The next Windows task** (asked on 2026-11-17, for Peter to start;
+  nothing in it is written to Vault): the two script changes agreed with
+  Windows; the definitions of the two properties the server fills in; the
+  mirror of the second project for testing, acquired and exported, in the
+  shared directory; and W1 up to the point where it would write: the
+  published STEP file downloaded, a wrapper part and an assembly that
+  reference it made in a scratch workspace, a dry run, and a report of
+  exactly what a live run would add to the test folder. The route is the
+  one `vault-cad-tools` designed and probed in October
+  (`docs/native-checkin-adapter-design.md`, section 5): a wrapper part
+  whose only content is the STEP file as a reference model, placed in an
+  assembly, with both relations declared to Vault when the files are added.
+- **W2, the design** (2026-11-17): written, not built
+  (`vault-cad-tools/docs/update-step-file-design.md`). A revision is a new
+  version of the same file: the request names the version the repository
+  published last, and anything else found in Vault refuses it. It is two
+  writes, a check-out that everyone sees and a check-in, so the journal
+  gets a state for each place a run can stop, and an undo is sent only
+  while nothing has been changed. Windows reads it before anything is
+  built. One point is Peter's before the pilot: which changed file the
+  pilot publishes over the test copy.
 
 ## Not settled
 
