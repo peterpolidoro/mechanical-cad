@@ -26,13 +26,19 @@ The box:
            screw and a counterbore for its head, and an opening above each
            port that is asked for
 
+An opening is asked for by a port's id or reference in `openings`. A port that
+faces away from the board's top gets a window in the lid's plate. One that
+faces sideways, or down, gets a window through the wall on that side: the
+port's extent across its direction and `opening_margin` more, from the port
+outwards. Such a window is in the lid, in the base, or in both, so both halves
+are given the same `openings`.
+
 Four screws go through the lid's posts and the board into the standoffs: they
 hold the board and close the box. The walls follow the outline's rounded
 corners. The halves meet in a step: the inner half of the base's wall stands
 `lip` higher than the board's top face, and the lid's wall is cut back to go
 over it with `lip_clearance` to spare, so that the lid sits where it should.
-What this does not have yet: openings in the walls for ports that face
-sideways, vents, feet.
+What this does not have yet: vents, feet.
 
 The holes are plain cylinders of the diameters in DEFAULTS, which are typed in
 for M3. Name the hardware instead, `screw="M3-0.5"` and
@@ -47,7 +53,15 @@ sizes a solid of mechanical_cad/shapes to hold the board with its parts, a
 clearance and a wall, and returns a base and a lid: the shell divided at the
 board's top face, with the standoffs, the posts, the screw holes and the
 openings of the box, each reaching to whatever wall is there. `halves` does
-that for any closed outer solid and its cavity.
+that for any closed outer solid and its cavity, and gives the base the same
+lip: a ring half a wall thick that stands straight up from the cavity's
+outline at the board's top face, with the lid cut back to go over it. It
+stands straight whatever the walls do there, so the lid lifts off.
+
+A prism (also stage 4.2): `prism_halves(board, sides, ...)` is a right prism
+on a regular polygon with its axis square to the board. Its heights are the
+box's (`levels`), so it is as low as the box; the polygon is the smallest of
+that many sides that holds the board with its clearance.
 
 `Board` and `levels` need no CAD kernel. The functions that make solids build
 with build123d and import it when called.
@@ -226,8 +240,40 @@ def _cylinder(x, y, diameter, z0, z1):
     return Pos(x, y, z0) * Cylinder(diameter / 2, z1 - z0, align=(Align.CENTER, Align.CENTER, Align.MIN))
 
 
+def _faces_up(port):
+    return port["direction"] == [0.0, 0.0, 1.0]
+
+
+def _opening(port, margin, name):
+    """What the opening for a port that does not face up removes: the port's extent across its direction and
+    `margin` more on every side, from the port's inner end outwards without end."""
+    from build123d import Box, Pos
+
+    direction = port["direction"]
+    along = [i for i in range(3) if abs(abs(direction[i]) - 1.0) < 1e-9]
+    if len(along) != 1 or any(abs(direction[i]) > 1e-9 for i in range(3) if i != along[0]):
+        raise ValueError(f"the port {name} faces along none of the board's axes; an opening for it is not built")
+    low = [port["min"][i] - margin for i in range(3)]
+    high = [port["max"][i] + margin for i in range(3)]
+    if direction[along[0]] > 0:
+        low[along[0]], high[along[0]] = port["min"][along[0]], FAR
+    else:
+        low[along[0]], high[along[0]] = -FAR, port["max"][along[0]]
+    return Pos(*[(low[i] + high[i]) / 2 for i in range(3)]) * Box(*[high[i] - low[i] for i in range(3)])
+
+
+def _without_wall_openings(half, board, s):
+    """The half with the windows of the ports in `openings` that do not face up cut through it."""
+    for name in s["openings"]:
+        port = board.port(name)
+        if not _faces_up(port):
+            half -= _opening(port, s["opening_margin"], name)
+    return half
+
+
 def box_base(board, **given):
-    """The base: floor, walls up to the board's top face, and a standoff with an insert hole under each mounting hole."""
+    """The base: floor, walls up to the board's top face, and a standoff with an insert hole under each mounting hole.
+    Of the `openings` it has those of ports that face sideways or down, where they reach it."""
     s, at = settings(given), levels(board, **given)
     if s["standoff_diameter"] <= s["insert_hole_diameter"]:
         raise ValueError("standoff_diameter must be more than insert_hole_diameter")
@@ -258,16 +304,17 @@ def box_base(board, **given):
                              f"{s['standoff_diameter']} mm leaves less than 1.2 mm around it. Make `standoff_diameter` more")
         for hole in board.holes:
             base -= _cylinder(hole["x"], hole["y"], diameter, at["board_bottom"] - depth, at["board_bottom"])
-        return base
+        return _without_wall_openings(base, board, s)
     depth = min(s["insert_hole_depth"], at["board_bottom"] - at["floor_bottom"] - 0.6)      # never through the floor
     for hole in board.holes:
         base -= _cylinder(hole["x"], hole["y"], s["insert_hole_diameter"], at["board_bottom"] - depth, at["board_bottom"])
-    return base
+    return _without_wall_openings(base, board, s)
 
 
 def box_lid(board, **given):
     """The lid: plate, walls down to the base, a post with a screw hole over each mounting hole, and the openings
-    asked for in `openings`, each named by a port's id or reference."""
+    asked for in `openings`, each named by a port's id or reference: a window in the plate over a port that faces
+    up, one through the wall for a port that faces sideways."""
     from build123d import Box, Pos
 
     s, at = settings(given), levels(board, **given)
@@ -302,12 +349,12 @@ def box_lid(board, **given):
     m = s["opening_margin"]
     for name in s["openings"]:
         port = board.port(name)
-        if port["direction"] != [0.0, 0.0, 1.0]:
-            raise ValueError(f"the port {name} does not face away from the board's top; an opening in a wall is not built yet")
+        if not _faces_up(port):
+            continue
         x0, y0, x1, y1 = port["min"][0] - m, port["min"][1] - m, port["max"][0] + m, port["max"][1] + m
         lid -= Pos((x0 + x1) / 2, (y0 + y1) / 2, (at["lid_inside"] + at["lid_top"]) / 2) * Box(
             x1 - x0, y1 - y0, at["lid_top"] - at["lid_inside"] + 0.2)
-    return lid
+    return _without_wall_openings(lid, board, s)
 
 
 FAR = 1.0e4         # further than any enclosure reaches, in millimetres
@@ -320,9 +367,17 @@ def halves(board, outer, cavity, **given):
     The shell between them is divided at the board's top face. The base gets a standoff under each mounting hole,
     from the wall below up to the board, with the hole for an insert; the lid a post over each, from the board up
     to the wall above, with a clearance hole for the screw and a counterbore let into the outside. Each opening
-    asked for is the port's extent and `opening_margin`, cut straight up through whatever wall is above it.
-    Settings are those of the box that apply: the diameters and depths of the standoffs, posts and holes, the
-    named `screw` and `insert`, `openings`. There is no step between the halves yet: they meet flat.
+    asked for is the port's extent and `opening_margin`, cut straight up through whatever wall is above it, or
+    outwards through the wall a port faces that does not face up.
+
+    The halves meet in a step, as the box's do. The base gets a lip: a ring `wall` / 2 thick and `lip` high that
+    stands straight up from the cavity's outline at the board's top face. The lid is cut back to go over it with
+    `lip_clearance` to spare. The ring is upright even where the walls lean, so the lid lifts straight off; where
+    the walls lean inwards so much that the cut would leave less than a quarter of the wall outside it, the lip is
+    refused. `lip=0` makes the halves meet flat.
+
+    Settings are those of the box that apply: `wall` for the lip, the diameters and depths of the standoffs,
+    posts and holes, the named `screw` and `insert`, `openings`, `lip`, `lip_clearance`.
     """
     from build123d import Align, Box, Pos
 
@@ -331,6 +386,27 @@ def halves(board, outer, cavity, **given):
     below = Pos(0, 0, 0) * Box(FAR, FAR, FAR, align=(Align.CENTER, Align.CENTER, Align.MAX))
     above = Pos(0, 0, 0) * Box(FAR, FAR, FAR, align=(Align.CENTER, Align.CENTER, Align.MIN))
     base, lid = shell & below, shell & above
+    lip = around_lip = None
+    if s["lip"] > 0:
+        from build123d import Kind, Plane, extrude, offset, section
+
+        outline = section(cavity, section_by=Plane.XY)
+        if len(outline.faces()) != 1:
+            raise ValueError("the cavity does not cross the board's top face in one piece; a lip cannot follow it. "
+                             "Give lip=0 for halves that meet flat")
+        gap = s["lip_clearance"]
+        lip = extrude(offset(outline, amount=s["wall"] / 2, kind=Kind.INTERSECTION), amount=s["lip"])
+        lip -= extrude(outline, amount=s["lip"])
+        room = extrude(offset(outline, amount=s["wall"] / 2 + gap, kind=Kind.INTERSECTION), amount=s["lip"] + gap)
+        # a quarter of the wall is to be left outside the cut, all the way up
+        kept = extrude(offset(outline, amount=3 * s["wall"] / 4 + gap, kind=Kind.INTERSECTION), amount=s["lip"] + gap)
+        outside = kept - outer
+        if outside is not None and outside.solids() and outside.volume > 1e-6:
+            raise ValueError(f"a lip of {s['lip']} mm would leave less than a quarter of the wall outside it: the walls "
+                             "lean inwards above the board's top face, or `lip_clearance` is much for this wall. Make "
+                             "`lip` lower, or 0 for halves that meet flat")
+        lid -= room                         # everything inside the lip's outline too: no feather of wall is left there
+        around_lip = room - extrude(outline, amount=s["lip"] + gap)
     bottom = -board.thickness
     if s["insert"]:
         from bd_warehouse.fastener import HeatSetNut, InsertHole
@@ -356,23 +432,31 @@ def halves(board, outer, cavity, **given):
         if not standoff.solids() or not post.solids():
             raise ValueError(f"the mounting hole {hole['id']} is not inside the enclosure")
         under = standoff.bounding_box().min.Z
-        if bottom - under < insert_depth + 0.6:
+        depth = insert_depth
+        if not s["insert"]:                 # a typed-in hole ends 0.6 mm short of the outside, as the box's does
+            depth = min(insert_depth, bottom - under - 0.6)
+        if depth <= 0 or bottom - under < depth + 0.6 - 1e-9:
             raise ValueError(f"under the mounting hole {hole['id']} there are {bottom - under:.2f} mm of standoff and "
                              f"wall; the hole for the insert needs {insert_depth + 0.6:.2f} mm")
         base += standoff
-        base -= _cylinder(x, y, insert_diameter, bottom - insert_depth, bottom)
+        base -= _cylinder(x, y, insert_diameter, bottom - depth, bottom)
+        if around_lip is not None:
+            post -= around_lip              # a post that stands in the wall leaves room for the lip
         lid += post
         lid -= _cylinder(x, y, screw_diameter, 0.0, FAR)
         # the head sits below the lowest point of the outside over the post, so its seat is whole where the wall slopes
         lid -= _cylinder(x, y, head_diameter, _head_seat(outer, x, y, s["post_diameter"]) - head_depth, FAR)
+    if lip is not None:
+        base += lip
     m = s["opening_margin"]
     for name in s["openings"]:
         port = board.port(name)
-        if port["direction"] != [0.0, 0.0, 1.0]:
-            raise ValueError(f"the port {name} does not face away from the board's top; an opening in a wall is not built yet")
+        if not _faces_up(port):
+            continue
         x0, y0, x1, y1 = port["min"][0] - m, port["min"][1] - m, port["max"][0] + m, port["max"][1] + m
         lid -= Pos((x0 + x1) / 2, (y0 + y1) / 2, max(port["max"][2], 0.0) + 0.01) * Box(
             x1 - x0, y1 - y0, FAR, align=(Align.CENTER, Align.CENTER, Align.MIN))
+    base, lid = _without_wall_openings(base, board, s), _without_wall_openings(lid, board, s)
     for name, half in (("base", base), ("lid", lid)):
         if len(half.solids()) != 1:
             raise ValueError(f"the {name} came out as {len(half.solids())} solids, not one: a standoff, a post or an "
@@ -410,3 +494,61 @@ def polyhedron_halves(board, name, **given):
     cavity = Pos(*centre) * forms.solid(p.inset(s["wall"]))
     base, lid = halves(board, outer, cavity, **given)
     return base, lid, p.translated(centre)
+
+
+def prism_size(board, sides, turn=None, **given):
+    """(the apothem of the cavity's polygon, the turn used in degrees) of the prism of `prism_halves`.
+
+    The polygon is regular, has `sides` sides and is centred on the board's outline. Without a turn its lowest
+    side, the one of least y, is parallel to the board's x; `turn` turns it counter-clockwise by that many
+    degrees. Left out, the turn is 0 or half a step, whichever makes the smaller polygon. The apothem, the
+    distance of a side from the centre, is the least at which the polygon holds the board's outline and
+    `clearance` around it. Nothing here needs a kernel.
+    """
+    import math
+
+    if isinstance(sides, bool) or not isinstance(sides, int) or sides < 3:
+        raise ValueError("a prism has three sides or more")
+    s = settings(given)
+    half_x, half_y = board.width / 2 + s["clearance"], board.depth / 2 + s["clearance"]
+
+    def apothem(degrees):
+        normals = [math.radians(degrees) - math.pi / 2 + 2 * math.pi * k / sides for k in range(sides)]
+        return max(abs(math.cos(a)) * half_x + abs(math.sin(a)) * half_y for a in normals)
+
+    if turn is None:
+        return min((apothem(t), t) for t in (0.0, 180.0 / sides))
+    if isinstance(turn, bool) or not isinstance(turn, (int, float)):
+        raise ValueError("turn is an angle in degrees")
+    return apothem(float(turn)), float(turn)
+
+
+def prism_halves(board, sides, turn=None, **given):
+    """(base, lid, the prism) of an enclosure that is a right prism on a regular polygon of `sides` sides, its
+    axis square to the board; the prism comes back as a solid of mechanical_cad/shapes.
+
+    Floor, plate and the room under and over the board are the box's (`levels`), and so are the settings; the
+    walls are `wall` thick. The polygon and its `turn` are those of `prism_size`. Four sides make a square box
+    with sharp corners; more sides follow the board less closely than the box and stand no higher.
+    """
+    import math
+
+    from build123d import Pos
+
+    from .shapes import forms, polyhedra
+
+    s, at = settings(given), levels(board, **given)
+    inside, turn = prism_size(board, sides, turn, **given)
+    centre = ((board.min_x + board.max_x) / 2, (board.min_y + board.max_y) / 2)
+    c, k = math.cos(math.radians(turn)), math.sin(math.radians(turn))
+
+    def prism(apothem, low, high):
+        solid = polyhedra.prism(sides, edge=2 * apothem * math.tan(math.pi / sides), height=high - low)
+        if turn:
+            solid = solid.rotated([[c, -k, 0.0], [k, c, 0.0], [0.0, 0.0, 1.0]])
+        return solid.translated((centre[0], centre[1], (low + high) / 2))
+
+    outer = prism(inside + s["wall"], at["floor_bottom"], at["lid_top"])
+    cavity = prism(inside, at["floor_top"], at["lid_inside"])
+    base, lid = halves(board, forms.solid(outer), forms.solid(cavity), **given)
+    return base, lid, outer

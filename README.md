@@ -93,7 +93,9 @@ guix shell --pure -m manifest.scm -- python3 -B -m pytest -q tests
 - `mechanical_cad/enclosures.py` is not a command: a part's program calls it
   to make a plain box around a circuit board from the board's interface, a
   base with standoffs and a lid with posts and openings, or the same inside
-  a polyhedron of `mechanical_cad/shapes/`
+  a polyhedron of `mechanical_cad/shapes/` or a prism on a regular polygon.
+  Ports that face up get a window in the lid, ports that face sideways one
+  through the wall, and the halves meet in a step that locates the lid
   (docs/direction.md, the plan of 2026-11-17).
 - `mechanical_cad/shapes/` is a library of polyhedra for a part's program:
   the Platonic and Archimedean solids, prisms, antiprisms and boxes by their

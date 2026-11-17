@@ -124,8 +124,6 @@ def test_the_lid_has_posts_screw_holes_and_the_openings_asked_for():
         assert lid.bounding_box().min.Z == pytest.approx(0.0) and lid.bounding_box().max.Z == pytest.approx(15.0)
     # the opening is the port's extent, 11 x 9 mm, and half a millimetre more on every side, through the plate
     assert closed.volume - opened.volume == pytest.approx(12.0 * 10.0 * 2.0, rel=1e-6)
-    with pytest.raises(ValueError, match="an opening in a wall is not built yet"):
-        enclosures.box_lid(board, openings=["J2"])
     with pytest.raises(KeyError, match="has no port 'J9'"):
         enclosures.box_lid(board, openings=["J9"])
     # base and lid meet in a step and share no volume: the lid goes over the base's lip with 0.15 mm to spare
@@ -134,6 +132,35 @@ def test_the_lid_has_posts_screw_holes_and_the_openings_asked_for():
     assert base.distance_to(opened) == pytest.approx(0.0, abs=1e-6)      # they touch where the outer walls meet
     with pytest.raises(ValueError, match="the lip is as high"):
         enclosures.box_lid(board, lip=13.0)
+
+
+@with_build123d
+def test_a_port_that_faces_sideways_gets_a_window_through_the_wall_of_both_halves():
+    board = enclosures.Board(interface())
+    base, lid = enclosures.box_base(board), enclosures.box_lid(board)
+    open_base, open_lid = enclosures.box_base(board, openings=["J2"]), enclosures.box_lid(board, openings=["J2"])
+    for half in (open_base, open_lid):
+        assert half.is_valid and len(half.solids()) == 1
+    # J2 faces -x and is 8 mm wide and 3.2 mm high on the board: the window is 9 mm wide, from 0.5 mm under the
+    # board's top face to 3.7 mm over it. Of the lid it takes the wall, 2 mm thick, less what the lip's recess had
+    # taken already (1.15 mm of the wall, 1.65 mm high); of the base the top of the wall and the lip, 1 x 1.5 mm.
+    assert lid.volume - open_lid.volume == pytest.approx(9.0 * (2.0 * 3.7 - 1.15 * 1.65), rel=1e-6)
+    assert base.volume - open_base.volume == pytest.approx(9.0 * (2.0 * 0.5 + 1.0 * 1.5), rel=1e-6)
+    from build123d import Vector
+    for half, solid in ((lid, open_lid), (base, open_base)):
+        z = 2.5 if half is lid else -0.25
+        assert half.is_inside(Vector(-32.5, 0.0, z)) and not solid.is_inside(Vector(-32.5, 0.0, z))
+        assert solid.is_inside(Vector(-32.5, 10.0, z))                 # beside the window the wall is whole
+    # the window is where the port faces: the wall on the other side is whole
+    assert open_lid.is_inside(Vector(32.5, 0.0, 2.5))
+    # asked for with a port that faces up, each gets its own
+    both = enclosures.box_lid(board, openings=["J1", "J2"])
+    assert lid.volume - both.volume == pytest.approx(12.0 * 10.0 * 2.0 + 9.0 * (2.0 * 3.7 - 1.15 * 1.65), rel=1e-6)
+    assert enclosures.box_base(board, openings=["J1"]).volume == pytest.approx(base.volume, rel=1e-9)
+    slanted = interface()
+    next(f for f in slanted["features"] if f["id"] == "j2")["direction"] = [-0.6, 0.8, 0.0]
+    with pytest.raises(ValueError, match="J2 faces along none of the board's axes"):
+        enclosures.box_lid(enclosures.Board(slanted), openings=["J2"])
 
 
 @with_bd_warehouse
@@ -171,10 +198,20 @@ def test_the_board_in_a_polyhedron_gets_the_same_standoffs_posts_and_openings():
     base, lid, solid = enclosures.polyhedron_halves(board, "truncated-octahedron", wall=2.5, clearance=1.5, openings=["J1"])
     for half in (base, lid):
         assert half.is_valid and len(half.solids()) == 1
-    assert base.bounding_box().max.Z == pytest.approx(0.0, abs=1e-6)        # divided at the board's top face
+    # divided at the board's top face, where the base's lip stands 1.5 mm into the lid
+    assert base.bounding_box().max.Z == pytest.approx(1.5, abs=1e-6)
     assert lid.bounding_box().min.Z == pytest.approx(0.0, abs=1e-6)
     common = base & lid
     assert common is None or common.volume == pytest.approx(0.0, abs=1e-6)
+    assert base.distance_to(lid) == pytest.approx(0.0, abs=1e-6)
+    # the lip is upright though the walls lean there, so the lid lifts straight off
+    from build123d import Pos
+    for lift in (0.4, 1.0, 3.0):
+        lifted = base & (Pos(0, 0, lift) * lid)
+        assert lifted is None or lifted.volume == pytest.approx(0.0, abs=1e-6)
+    flat_base, flat_lid, _ = enclosures.polyhedron_halves(board, "truncated-octahedron", wall=2.5, clearance=1.5, lip=0)
+    assert flat_base.bounding_box().max.Z == pytest.approx(0.0, abs=1e-6)
+    assert flat_base.volume < base.volume and flat_lid.volume > lid.volume
     # the solid holds what the board and its parts fill, with the clearance, behind its wall
     cavity = solid.inset(2.5)
     corners = [(x, y, z) for x in (-31.5, 31.5) for y in (-21.5, 21.5) for z in (-1.6 - 2.5 - 1.5, 12.0 + 1.5)]
@@ -190,5 +227,85 @@ def test_the_board_in_a_polyhedron_gets_the_same_standoffs_posts_and_openings():
     assert closed.volume > lid.volume
     top = lid.bounding_box().max.Z
     assert closed.is_inside(Vector(10.0, 10.0, top - 1.0)) and not lid.is_inside(Vector(10.0, 10.0, top - 1.0))
-    with pytest.raises(ValueError, match="an opening in a wall is not built yet"):
-        enclosures.polyhedron_halves(board, "truncated-octahedron", openings=["J2"])
+    # J2 faces -x: its window goes through the wall on that side, which is a square face of the solid
+    wall = solid.distances[solid.face_towards((-1.0, 0.0, 0.0))]
+    side_base, side_lid, _ = enclosures.polyhedron_halves(board, "truncated-octahedron", wall=2.5, clearance=1.5, openings=["J2"])
+    for half in (side_base, side_lid):
+        assert half.is_valid and len(half.solids()) == 1
+    assert closed.is_inside(Vector(-wall + 0.6, 0.0, 2.5)) and not side_lid.is_inside(Vector(-wall + 0.6, 0.0, 2.5))
+    assert side_lid.is_inside(Vector(-wall + 0.6, 12.0, 2.5)) and side_lid.is_inside(Vector(wall - 0.6, 0.0, 2.5))
+    assert side_base.volume < enclosures.polyhedron_halves(board, "truncated-octahedron", wall=2.5, clearance=1.5)[0].volume
+
+
+@with_build123d
+def test_a_lip_is_upright_and_is_refused_where_the_walls_lean_in_too_much():
+    from build123d import Pos
+
+    from mechanical_cad.shapes import forms, polyhedra
+
+    board = enclosures.Board(interface())
+    # an octahedron whose middle is 12 mm under the board's top face: there its walls lean inwards, 54.7 degrees
+    # from the level. The wall is 2 mm thick, 2.45 mm measured level; a lip of 1.5 mm with its clearance takes 1.15
+    # mm of that at the bottom, and the outside comes 1.17 mm nearer by the top of the cut: 0.13 mm would be left.
+    solid = polyhedra.named("octahedron", edge=120.0)
+    outer, cavity = Pos(0, 0, -12) * forms.solid(solid), Pos(0, 0, -12) * forms.solid(solid.inset(2.0))
+    with pytest.raises(ValueError, match="a lip of 1.5 mm would leave less than a quarter of the wall outside it"):
+        enclosures.halves(board, outer, cavity)
+    base, lid = enclosures.halves(board, outer, cavity, lip=0.5)
+    for half in (base, lid):
+        assert half.is_valid and len(half.solids()) == 1
+    assert base.bounding_box().max.Z == pytest.approx(0.5, abs=1e-6)
+    for lift in (0.0, 0.3, 2.0):
+        common = base & (Pos(0, 0, lift) * lid)
+        assert common is None or common.volume == pytest.approx(0.0, abs=1e-6)
+    # the lip stands straight: 0.5 mm high on an outline that is the cavity's at the board's top face, 1 mm wide
+    flat = enclosures.halves(board, outer, cavity, lip=0)[0]
+    reach = 120.0 / math.sqrt(2) - 2.0 * math.sqrt(3) - 12.0              # of the cavity's outline along x and y there
+    assert base.volume - flat.volume == pytest.approx(2 * ((reach + math.sqrt(2)) ** 2 - reach ** 2) * 0.5, rel=1e-6)
+
+
+def test_the_polygon_of_a_prism_is_the_smallest_that_holds_the_board():
+    board = enclosures.Board(interface())                       # 60 x 40 mm; with the clearance 62 x 42
+    assert enclosures.prism_size(board, 4) == (pytest.approx(31.0), 0.0)
+    assert enclosures.prism_size(board, 4, turn=45.0)[0] == pytest.approx((31.0 + 21.0) / math.sqrt(2))
+    # a hexagon with a flat side along x has to reach 37.3 mm; turned by half a step, 33.7 mm
+    assert enclosures.prism_size(board, 6, turn=0)[0] == pytest.approx(math.sqrt(3) / 2 * 31.0 + 21.0 / 2)
+    assert enclosures.prism_size(board, 6) == (pytest.approx(31.0 / 2 + math.sqrt(3) / 2 * 21.0), 30.0)
+    assert enclosures.prism_size(board, 6, clearance=3.0)[0] == pytest.approx(33.0 / 2 + math.sqrt(3) / 2 * 23.0)
+    with pytest.raises(ValueError, match="three sides or more"):
+        enclosures.prism_size(board, 2)
+    with pytest.raises(ValueError, match="turn is an angle in degrees"):
+        enclosures.prism_size(board, 6, turn="30")
+
+
+@with_build123d
+def test_the_board_in_a_prism_is_as_low_as_the_box():
+    board = enclosures.Board(interface())
+    at = enclosures.levels(board)
+    base, lid, prism = enclosures.prism_halves(board, 6, openings=["J1", "J2"])
+    for half in (base, lid):
+        assert half.is_valid and len(half.solids()) == 1
+    assert prism.counts == (12, 18, 8)
+    inside = 31.0 / 2 + math.sqrt(3) / 2 * 21.0
+    assert prism.volume == pytest.approx(2 * math.sqrt(3) * (inside + 2.0) ** 2 * (at["lid_top"] - at["floor_bottom"]))
+    # the heights are the box's; two sides face along x, and the corners are on the y axis
+    assert base.bounding_box().min.Z == pytest.approx(at["floor_bottom"]) and base.bounding_box().max.Z == pytest.approx(1.5)
+    assert lid.bounding_box().min.Z == pytest.approx(0.0, abs=1e-6) and lid.bounding_box().max.Z == pytest.approx(at["lid_top"])
+    assert lid.bounding_box().max.X == pytest.approx(inside + 2.0) and lid.bounding_box().min.X == pytest.approx(-inside - 2.0)
+    assert lid.bounding_box().max.Y == pytest.approx((inside + 2.0) / math.cos(math.pi / 6))
+    common = base & lid
+    assert common is None or common.volume == pytest.approx(0.0, abs=1e-6)
+    from build123d import Vector
+    hole = board.holes[0]
+    assert base.is_inside(Vector(hole["x"] + 2.9, hole["y"], -3.0)) and not base.is_inside(Vector(hole["x"], hole["y"], -3.0))
+    assert lid.is_inside(Vector(hole["x"] + 2.9, hole["y"], 5.0)) and not lid.is_inside(Vector(hole["x"], hole["y"], 5.0))
+    # the plate is open over J1, and the wall J2 faces, a side of the prism, has its window
+    assert not lid.is_inside(Vector(10.0, 10.0, at["lid_top"] - 1.0)) and lid.is_inside(Vector(-10.0, 10.0, at["lid_top"] - 1.0))
+    assert not lid.is_inside(Vector(-inside - 1.5, 0.0, 2.5)) and lid.is_inside(Vector(inside + 1.5, 0.0, 2.5))
+    # four sides, no turn: a square box with sharp corners around the longer side
+    square = enclosures.prism_halves(board, 4, lip=0)
+    assert square[2].counts == (8, 12, 6)
+    assert square[0].bounding_box().max.X == pytest.approx(33.0) and square[0].bounding_box().max.Y == pytest.approx(33.0)
+    shell = 66.0 ** 2 * (at["lid_top"] - at["floor_bottom"]) - 62.0 ** 2 * (at["lid_inside"] - at["floor_top"])
+    standoffs = 4 * math.pi / 4 * (7.0 ** 2 - 4.0 ** 2) * 3.5              # each 3.5 mm high, with its hole 5 mm deep into the floor
+    assert square[0].volume + square[1].volume < shell + standoffs + 4 * math.pi / 4 * 7.0 ** 2 * 13.0

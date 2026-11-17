@@ -384,7 +384,11 @@ Smaller ones:
     above; the board's generator in `kicad-libs` may be used or changed; and
     the natives of `mouse-joysticks-mech` are in Vault (the folder is in the
     ignored `.agents/handoff.local.md`). Left for him: where the first
-    enclosure lives, and how it is made. The six as they were put:
+    enclosure lives, and how it is made; and, since the Windows reads of
+    that day, whether the second project is mirrored and from which
+    assembly, and whether a published file should carry the lab of its
+    project (docs/direction.md, "For Peter to decide", 3 and 4). The six as
+    they were put:
     - where a supplied file lives (recommended: a third source of a part in
       `designs/parts/<key>/`, as proposed under 6 above);
     - where the first enclosure lives (recommended: a new project
@@ -916,9 +920,30 @@ read-only tests against Vault asked of the Windows agent.
    - Stage 4.2, a first cut: `enclosures.halves` and `polyhedron_halves`;
      the board in a truncated octahedron in the kept project (large: 149 mm
      high for a board of 100 x 80 mm).
-   - Next here: openings in walls; a step between the halves of a polyhedron; once the
-     library is reviewed; slicing with a printer's profile once Peter names
-     the printer; the part measured after printing.
+   - Added later that day to `enclosures.py`: windows through a wall for
+     ports that face sideways or down (`_opening`, cut from both halves);
+     the lip in `halves` for any outer solid and cavity, upright from the
+     cavity's outline at the board's top face, refused where the walls
+     lean in too much; `prism_size` and `prism_halves`. The example board
+     in a hexagonal prism in the kept project (`prism-base`, `prism-lid`,
+     `board-in-prism`); the octahedron's halves rebuilt with the lip. A
+     typed-in insert hole in `halves` now stops 0.6 mm short of the
+     outside, as the box's does. Tests on 2026-11-17 after it: 468 without
+     a kernel (70 skipped), 538 with it (2 skipped).
+   - Next here: a polygon with unequal sides that follows a rectangle;
+     vents and feet; slicing with a printer's profile once Peter names the
+     printer; the part measured after printing.
+   **The Windows reads of 2026-11-17** (W3, the rehearsal, a discovery of
+   the second project's folder; reviewed here, 57 checks against the raw
+   answers; the review is on the share under
+   `evidence/2026-11-17-linux-windows-vault-reads-02-review-01/`): nothing
+   written, nothing downloaded. The results are in docs/direction.md,
+   "Built so far", and in `vault-cad-tools` (`windows/HISTORY.md`,
+   `.agents/PLANS.md`); the ids and the folder are in the ignored
+   `.agents/handoff.local.md`. The Windows agent has no task. Its next one
+   waits for Peter: two script changes agreed with it, the mirror of the
+   second project if he wants it, and W1.
+
    In Guix that day: KiCad 10.0.5, PrusaSlicer 2.9.5, `python-ezdxf`,
    `python-trimesh`, lib3mf; not `bd_warehouse`. The packaged build123d
    0.12.0 has the exporters for STL, 3MF, DXF and SVG.

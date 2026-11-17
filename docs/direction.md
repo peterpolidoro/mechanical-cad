@@ -548,6 +548,12 @@ ignored notes of this checkout, not here. Still his to decide:
    board's own repository and the mechanical one are left as they are.
 2. How the first enclosure is made. Assumed: printed. Then which printer
    and which material.
+3. Whether the second project is mirrored, and from which assembly (see
+   "Built so far", the Windows tasks). Recommended: the one assembly the
+   mechanical repository holds as a STEP file, reached by its version id,
+   and not the folder's three roots.
+4. Whether a published file should carry the lab of its project. Both
+   published files carry the same lab, which is the lab of neither folder.
 
 ### Built so far
 
@@ -619,9 +625,8 @@ ignored notes of this checkout, not here. Still his to decide:
   numbers had hidden: the standard M3 insert is 5.7 mm long and needs 6.8
   mm of material, and the box's standoff and floor were 5.4 mm together; the
   generator now refuses that and says what to change, and the example has
-  1.5 mm more room under the board. Not there yet: openings in a wall for
-  ports that face sideways, and a home for the project, which is Peter's to
-  say; until then it is kept in this checkout's ignored
+  1.5 mm more room under the board. Not there yet: a home for the project,
+  which is Peter's to say; until then it is kept in this checkout's ignored
   `tmp/mouse-joystick-box/`. Nothing has been printed.
 - **Stage 4.2, a first cut** (2026-11-17): the same board in a truncated
   octahedron, with the library of stage 3.2: `polyhedron_halves` sizes the
@@ -636,6 +641,31 @@ ignored notes of this checkout, not here. Still his to decide:
   box is 107 x 87 x 28 mm. A cuboctahedron would be 111 mm high. A prism,
   which the library also has, would follow the board more closely. The
   halves meet flat, without a step.
+- **Stage 4.1 and 4.2, three additions** (2026-11-17, later that day):
+  - *Openings in walls.* A port that faces sideways or down gets a window
+    through the wall on that side: the port's extent across its direction
+    and the margin, from the port outwards, cut from both halves, in the
+    box and in any other enclosure. Tested on a board with such a port,
+    the volumes removed to the cubic millimetre. The example board has no
+    such port: every connector on it faces up, so it does not show this.
+  - *A step between the halves of any enclosure.* `halves` gives the base
+    the box's lip: a ring half a wall thick that stands straight up from
+    the cavity's outline at the board's top face, with the lid cut back
+    over it. It is upright whatever the walls do there, so the lid lifts
+    straight off; that is tested by lifting it. Where the walls lean
+    inwards so much that less than a quarter of the wall would be left
+    outside the cut, the lip is refused. The octahedron's halves in the
+    kept project now have it.
+  - *A prism.* `prism_halves(board, sides)` is a right prism on a regular
+    polygon, with the box's heights and the smallest polygon of that many
+    sides that holds the board with its clearance, turned whichever of two
+    ways is smaller. The example board in a hexagon, two parts and an
+    assembly in the kept project: 127 x 146 mm across and 28 mm high, no
+    interference with the board, both meshes closed and manifold to the
+    slicer. What it shows: a prism is as low as the box, and a regular
+    polygon around a board of 100 x 80 mm is wider than the box, which is
+    107 x 87 mm. A polygon that follows a rectangle, with unequal sides,
+    is not built.
 - **Stage 5.1, the first half** (2026-11-17): `tools/print_file.py` and
   `make print` write the mesh to print a part from and check it: every edge
   shared by two triangles, the volume within 0.5 % of the solid's, the same
@@ -648,6 +678,35 @@ ignored notes of this checkout, not here. Still his to decide:
   on a part or a built assembly and has it follow the file. The command is
   written and the viewer has the option; no window was opened from the
   agent's shell, so it is not tried.
+- **The Windows tasks** (2026-11-17): one task of three reads, which wrote
+  nothing to Vault and downloaded nothing; reviewed here against the
+  server's raw answers.
+  - The line corrected on 2026-11-17 counts files: rehearsed offline, nine
+    cases of nine. It has not run against Vault.
+  - W3 is answered. The server gave the file of October and the test file
+    the same lab, and it is the lab of neither folder: the value does not
+    follow the folder. Where it comes from was not read. Everything else
+    the server chose is the same for both. So a published file does not
+    get its project's lab by itself; if it should carry it, that is a
+    property written after the add, and a question for Peter (above).
+  - The folder of the second project, the one `mouse-joysticks-mech` holds
+    a STEP export of: 27 files, three root assemblies. The assembly that
+    repository holds is in it and is not a root, because a later assembly
+    of the folder uses it. It has 14 versions; its closure is 41 files,
+    none checked out, all in that lab's project and the common library, so
+    it can be mirrored as the first project was, by its version id. One of
+    the three roots is checked out by another user and reaches files of
+    three other projects.
+  - Which state the STEP file in `mouse-joysticks-mech` is: its header
+    time lies 222 seconds after the check-out of version 13 of that
+    assembly and 969 seconds before its check-in. It is an export of the
+    working copy that became version 13. Version 14 is later, so a mirror
+    made today would be newer than the repository's file.
+  - For W2, the SDK was read without touching Vault: the connection's file
+    manager can check a file out, check it in, and undo a check-out. A
+    check-out is a write of its own, and a run that stops after it leaves
+    the file checked out; the design has to say what then.
+  - W1 is not begun.
 
 ## Not settled
 
