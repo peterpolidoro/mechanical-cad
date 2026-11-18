@@ -7,7 +7,7 @@ open-source tools to check it, document it and add to it, with the
 free-standing tank enclosure as the test project. The full statement is
 docs/direction.md. Finished checkpoints are in .agents/HISTORY.md.
 
-## Start here (state of 2026-11-18, after the second session of that day)
+## Start here (state of 2026-11-18, when the second session of that day ended)
 
 This section is the short version; everything below it is the longer
 record. Where the work is going, what is decided and what is built are in
@@ -15,7 +15,9 @@ docs/direction.md ("Goals, and where each stands", "Decided", "Plan: parts
 around other parts, enclosures for boards, pictures and motion" with its
 "Built so far"). Paths on this machine, ids, and the state of the shared
 clones are in the ignored `.agents/handoff.local.md` and on the share in
-`coordination/NEXT-AGENT.md` and `coordination/status/`.
+`coordination/NEXT-AGENT.md` and `coordination/status/`. A session that
+begins after this one reads "For the next session" at the end of that
+handoff file first.
 
 **Done and working**, each with tests (commands in docs/adding-a-part.md):
 
@@ -74,9 +76,9 @@ that day:
   answers are a change of numbers and one command.
 
 **Waiting for the Windows agent**, which Peter starts. The shared clones
-were brought level on his word on 2026-11-18 (`vault-cad-tools` 4272f5a,
-`mechanical-cad` 72df45b, the enclosure 57d75b6), so the gate of the task
-on the share now passes. The task has five parts and writes nothing to
+were brought level on his word twice on 2026-11-18, the second time when
+the session ended, with everything he had pushed until then; the gate of
+the task on the share passes. The task has five parts and writes nothing to
 Vault: the two adds of the reference route (W1) rehearsed; one read of
 what Inventor's add-in records for a relation between two files; the
 exporter with model states, run on the mirror of the second project; an
@@ -84,8 +86,9 @@ acquisition that takes a checked-out file at its last version checked in;
 and the design of a revision (W2) read and corrected. When Windows
 delivers, the delivery is checked and answered as
 `coordination/NEXT-AGENT.md` on the share describes. The shared clone of
-this repository is at the pushed commit; what this session changed reaches
-it after Peter's next push and his word.
+this repository lacks only the commit that holds this paragraph, which
+changes documents; it is brought level on Peter's word, and the Windows
+task does not need it.
 
 **Waiting for Peter**:
 
@@ -98,8 +101,12 @@ it after Peter's next push and his word.
   Windows task above.
 - Which changed file the pilot of a revision publishes
   (`vault-cad-tools/docs/update-step-file-design.md`, section 10).
-- The proposals of 2026-11-18 (open decision 18) and the older open
-  decisions, listed under "Open decisions to put to Peter".
+- The monitors' mount in the first project, held until he has spoken with
+  the researcher. A picture of the arm he prefers with the monitor on it,
+  in colour, is in that project's ignored `tmp/monitor-mounts/`.
+- What a part taken out of an assembly file says of where it came from
+  (open decision 19), the proposals of 2026-11-18 (open decision 18) and
+  the older open decisions, listed under "Open decisions to put to Peter".
 
 **Next on Linux, none of it needing Windows**:
 
@@ -109,8 +116,8 @@ it after Peter's next push and his word.
    the brief ends with, once there is a printer.
 2. What the two projects showed missing, in the order of use (open
    decision 18): a project's main assembly; numbers shared by parts; space
-   kept clear and what a fit check should find; how a part is printed; a
-   picture of a section.
+   kept clear and what a fit check should find; how a part is printed.
+   Each touches the layout and waits for Peter's word.
 3. After stage 6, which is built: a rule for a part without a solid;
    comparing the project made from the mechanical example's file with the
    Vault mirror of the same assembly once Windows exports it; and, if Peter
@@ -120,9 +127,12 @@ it after Peter's next push and his word.
    2026-11-18 a project's own colours.
 5. Smaller: vents and feet for enclosures, a polygon that follows a
    rectangular board, flat patterns of `mechanical_cad/shapes/` through
-   the cut file.
+   the cut file, dimensions written into a section drawing.
 6. The Linux half of a revision as a new version (request, plan, journal,
    record, import), after Windows has read the design.
+7. Housekeeping, when Peter wants it: the long record below this section
+   holds many finished checkpoints, which belong in .agents/HISTORY.md, and
+   the README's status line is of 2026-11-11.
 
 Tests on 2026-11-18: 491 pass without a kernel (86 skipped), 575 with
 FreeCAD, the bindings, build123d and bd_warehouse (3 skipped; run before
