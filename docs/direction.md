@@ -562,11 +562,12 @@ ignored notes of this checkout, not here. Still his to decide:
    `enclosures/truncated-octahedron/cad-agent-handoff.md`): reproduce a
    reference model made with FreeCAD and its checks, then design a carrier
    for the board and the optics. The first two of its three sections were
-   done that day in an ignored project of this checkout, and nothing was
-   written in `farseer-mech` ("Built so far"). His to say: whether the model
-   moves into `farseer-mech` as a study directory of its own, which the
-   brief asks for; whether the third section is begun; and still the
-   printer and the material.
+   done that day in an ignored project of this checkout ("Built so far").
+   He then said to move the model into `farseer-mech`, and it is there as
+   `enclosures/eye/`, a project in this layout inside that repository,
+   with targets in that repository's Makefile that hand its commands to
+   this checkout. The third section was begun there the same day. Still
+   his to say: the printer and the material.
 3. Whether a published file should carry the lab of its project. Both
    published files carry the same lab, which is the lab of neither folder.
    Read on 2026-11-17: it is the property's default, the first entry of a
@@ -761,9 +762,9 @@ id, with what it uses; not the folder's three roots.
     edge. And a picture of a section, which was made by hand in a scratch
     directory: `tools/picture.py` has no cut.
 - **The Farseer Eye enclosure reproduced** (2026-11-18; sections 1 and 2 of
-  its brief, by a second agent session and checked here; the project is in
-  this checkout's ignored `tmp/farseer-eye/` with a README of its
-  commands). The reference is a truncated octahedron of 80 mm in two
+  its brief, by a second agent session and checked here; made in this
+  checkout's ignored `tmp/` and moved that day, at Peter's word, into
+  `farseer-mech` as `enclosures/eye/`, with a README of its commands). The reference is a truncated octahedron of 80 mm in two
   halves that print seam-down, with walls of 2 mm, roofs that lean at 45°
   towards a guide opening and four connector passages, a rib, and a board
   on the seam, generated with FreeCAD's Python interface.
@@ -816,6 +817,29 @@ id, with what it uses; not the folder's three roots.
   the mesh's extent failed. `tools/print_file.py` now calls the mesher with
   an absolute deflection. The enclosure halves of 2026-11-17 were small
   enough not to show it.
+- **Two projects, each with one file of numbers** (2026-11-18). Peter asked
+  that the bowls be quickly adjusted when the researcher answers. The first
+  project now has `studies/bowls/study.json` and a script, Python alone,
+  that writes the four parts' parameters, checks and interfaces, the
+  assembly and a summary from it, refuses a layout that does not fit before
+  anything is built, answers a what-if at once, lists which sizes fit, and
+  writes a variant as a project of its own; one `make` command then builds,
+  checks and fits everything. A variant with ten numbers changed went
+  through with no other edit. The Farseer model has the same thing
+  (`study.json`, `scripts/derive.py`), made independently the same day. So
+  the first proposal under open decision 18, numbers shared by parts, has
+  two working instances of the same pattern outside the layout: a study
+  file, a derive script that is the one writer of the generated files, and
+  checks worked out a second way without the kernel. What the layout would
+  add is that a receipt knows of the study and that the validator says when
+  a generated file is older than it.
+- **A fault in `make fit`** (2026-11-18): the Makefile divided the subjects
+  at spaces, so a child named "BOWL FRAME:1" or "TANK SUPPORT FRAME:1" was
+  two names the assembly does not have. `tools/fit_check.py` now takes
+  `--subjects "NAME,NAME"` and the Makefile hands SUBJECT on whole; a test
+  uses the fixture's child whose name has a space. Found when the first
+  project's `make bowls` was run through `make` for the first time; no
+  test runs `make`.
 - **Stage 8** (2026-11-17): `make view PROJECT=DIR KEY=K` opens the viewer
   on a part or a built assembly and has it follow the file. The command is
   written and the viewer has the option; no window was opened from the

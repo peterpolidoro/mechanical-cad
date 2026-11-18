@@ -2,6 +2,10 @@
 
     FreeCADCmd tools/fit_check.py --pass PROJECT KEY -- --subject NAME [--subject NAME ...]
                                                        [-- --clearance MM] [-- --out FILE]
+    FreeCADCmd tools/fit_check.py --pass PROJECT KEY -- --subjects "NAME,NAME" ...
+
+`--subjects` takes several names in one argument, separated by commas: the
+form a Makefile can hand on whole, since a name may hold spaces.
 
 FreeCADCmd reads dashed options itself, even after --pass; put a bare `--`
 before this script's own options.
@@ -63,6 +67,9 @@ def options(argv):
         a = argv[i]
         if a == "--subject" and i + 1 < len(argv):
             opts["subjects"].append(argv[i + 1])
+            i += 1
+        elif a == "--subjects" and i + 1 < len(argv):
+            opts["subjects"].extend(name.strip() for name in argv[i + 1].split(",") if name.strip())
             i += 1
         elif a == "--clearance" and i + 1 < len(argv):
             opts["clearance"] = float(argv[i + 1])

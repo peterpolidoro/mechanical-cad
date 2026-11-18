@@ -321,6 +321,18 @@ def test_what_is_being_designed_is_checked_against_the_rest(project_copy, tmp_pa
     assert "CLOSE" not in out and "1 contact(s), 0 closer than 0.1 mm" in out
 
 
+def test_several_subjects_in_one_argument_and_names_with_spaces(project_copy, tmp_path):
+    """`make fit SUBJECT='A,B'` hands the names on in one argument. A name may hold a space, as FIXTURE ROOT:1
+    does: divided at spaces it was two subjects the assembly does not have."""
+    report = tmp_path / "fit.json"
+    out = run("fit_check.py", project_copy, "fixture-with-spacer", "--", "--subjects", "FIXTURE ROOT:1, SPACER:1",
+              "--", "--out", report)
+    assert "[fit_check] exit status 0" in out, out
+    found = json.loads(report.read_text())
+    assert sorted(found["subjects"]) == ["FIXTURE ROOT:1", "SPACER:1"]
+    assert found["counts"]["interference"] == 0 and found["counts"]["contact"] == 1
+
+
 def test_a_part_moved_into_another_interferes(project_copy):
     def shift(manifest):
         spacer = next(c for c in manifest["children"] if c["name"] == "SPACER:1")

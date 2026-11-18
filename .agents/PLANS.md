@@ -40,17 +40,22 @@ that day:
 
 - **The Farseer Eye enclosure** (`farseer-mech`), which he named as a
   possible test project. Sections 1 and 2 of the brief in that repository
-  are done in this checkout's ignored `tmp/farseer-eye/`: the reference's
-  two shell halves and two boards reproduced as the same solids, its
-  checks repeated with the same results, the island without the rib found,
-  the 90 mm variant equal to the reference generator's. Nothing was
-  written in `farseer-mech`. Section 3, the carrier for the board and the
-  optics and the access to the connectors, is not begun.
+  are done: the reference's two shell halves and two boards reproduced as
+  the same solids, its checks repeated with the same results, the island
+  without the rib found, the 90 mm variant equal to the reference
+  generator's. At his word the model was moved into that repository as
+  `enclosures/eye/`, a project in this layout, with `eye-*` targets in its
+  Makefile that hand the commands to this checkout and this checkout's
+  environment. Section 3, the carrier for the board and the optics and the
+  access to the connectors, was begun there the same day; that
+  repository's plan and `enclosures/eye/README.md` have its state.
 - **The bowls of the first project**: a vacuum formed bowl, the plug it is
   formed over (built against the bowl), the frame that holds six over a
   monitor (built against the monitor, the bowl and the sheet) and an
   assembly, as concepts under that project's `designs/`. Its plan has the
-  state and the questions for the researcher.
+  state and the questions for the researcher. All of them follow from one
+  file of numbers there (`studies/bowls/`), so that the researcher's
+  answers are a change of numbers and one command.
 
 **Waiting for the Windows agent**, which Peter starts. The shared clones
 were brought level on his word on 2026-11-18 (`vault-cad-tools` 4272f5a,
@@ -68,9 +73,8 @@ it after Peter's next push and his word.
 
 **Waiting for Peter**:
 
-- Whether the Farseer model moves into `farseer-mech` as a study directory
-  of its own, which its brief asks for, and whether section 3 is begun.
-  The printer and the material for it.
+- The joint review of the Farseer model with the board's designer, which
+  its brief asks for, and the printer and the material for it.
 - The researcher's answers on the bowls, and who forms them
   (`free-standing-tank-enclosure`, plan, next work 7).
 - His word for the live run of W1, which adds two files to his test folder
@@ -83,12 +87,10 @@ it after Peter's next push and his word.
 
 **Next on Linux, none of it needing Windows**:
 
-1. Farseer, section 3, when he says so: a carrier for the small board as a
-   part built against the board's interface and the front shell, with the
-   bore, the filter seat and the gap as study numbers; connectors as
-   supplied parts with their plugs as space kept clear; the table of
-   recesses; a section and a coordinate table for the board's designer.
-   The return the brief asks for is in its last section.
+1. Farseer, section 3, in `farseer-mech/enclosures/eye/`: what the joint
+   review changes, the real connectors and plugs in place of the assumed
+   envelopes when the board's side names them, and the plastic fit mockup
+   the brief ends with, once there is a printer.
 2. What the two projects showed missing, in the order of use (open
    decision 18): a project's main assembly; numbers shared by parts; space
    kept clear and what a fit check should find; how a part is printed; a
@@ -102,7 +104,7 @@ it after Peter's next push and his word.
 6. The Linux half of a revision as a new version (request, plan, journal,
    record, import), after Windows has read the design.
 
-Tests on 2026-11-18: 472 pass without a kernel (80 skipped), 552 with
+Tests on 2026-11-18: 472 pass without a kernel (81 skipped), 553 with
 FreeCAD, the bindings, build123d and bd_warehouse (2 skipped), 4 with the
 viewer.
 

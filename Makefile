@@ -78,10 +78,10 @@ check:
 	@$(GUIX) -- python3 -B -m mechanical_cad check "$(project)"
 
 # Interference, contact and clearance of some children of an assembly against everything else in it.
-comma := ,
+# SUBJECT goes on whole: a child's name may hold spaces ("TANK SUPPORT FRAME:1"), and the tool divides at the commas.
 fit:
 	@$(GUIX_CAD) -- FreeCADCmd tools/fit_check.py --pass "$(project)" $(if $(KEY),$(KEY),$(error name the assembly: make fit PROJECT=... KEY=K SUBJECT=NAME)) \
-	  $(if $(SUBJECT),$(foreach s,$(subst $(comma), ,$(SUBJECT)),-- --subject "$(s)"),$(error name the children to check: SUBJECT='NAME[,NAME]')) \
+	  $(if $(SUBJECT),-- --subjects "$(SUBJECT)",$(error name the children to check: SUBJECT='NAME[,NAME]')) \
 	  $(if $(CLEARANCE),-- --clearance $(CLEARANCE))
 
 assemblies:
