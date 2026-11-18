@@ -114,7 +114,32 @@ make open KEY=with-my-part                        # the FreeCAD window, for a pe
 `make fit` reports a contact without judging it: parts that are bolted
 together touch. An interference is a fault.
 
-## 5. Commit
+## 5. The file to make it from
+
+A part is made from a file that is derived from its STEP file and checked
+against it. Both go to the project's ignored `.cache/`:
+
+```sh
+make print KEY=<key>      # a printed part: .cache/print/<key>.stl, closed, the solid's volume, shown to a slicer
+make cut KEY=<key>        # a plate cut from sheet: .cache/cut/<key>.dxf, closed loops, the area of the solid's face
+```
+
+`make cut` takes a part that is a plate cut square through, two flat faces
+and nothing between them but what stands square to them, and writes the
+outline of one face with its holes, in millimetres and in the part's own X
+and Y where the plate lies in them. A part with a pocket, a chamfer or a
+leaning wall is refused: it is not made in one pass.
+
+**A tool is a part built against the part it makes.** A forming plug, a
+drilling jig or a fixture names the part as its input and takes its shape
+from that part's solid, so no dimension is typed twice and the tool is
+reported stale when the part changes. For a formed part the tool is the
+space inside it (a block less the part, the piece on the axis), enlarged by
+what the material shrinks. Hold each step to a volume worked out another way.
+One thing to know there: build123d's `scale` enlarges a shape about the
+origin it had before it was moved, so enlarge first and move afterwards.
+
+## 6. Commit
 
 The source, `README.md`, `checks.json` and the three built files go in
 together. What is under `.cache/` is derived and ignored.

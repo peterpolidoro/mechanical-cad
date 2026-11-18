@@ -90,6 +90,13 @@ guix shell --pure -m manifest.scm -- python3 -B -m pytest -q tests
   how its volume compares with the solid's, and, with
   `.guix/manifest-print.scm` in the environment, what PrusaSlicer says of
   the file. It does not slice: that needs a printer and a material.
+- `tools/cut_file.py PROJECT KEY` writes the drawing to cut a part from
+  sheet (`.cache/cut/KEY.dxf`, in millimetres) with a record beside it: for
+  a part that is a plate cut square through, the outline of one face with
+  its holes; that the drawing's lines, arcs and circles join into closed
+  loops, and that the area inside them is the face's. A part with a pocket,
+  a chamfer or a leaning wall is refused. It needs build123d
+  (`make cut PROJECT=DIR KEY=K`).
 - `mechanical_cad/enclosures.py` is not a command: a part's program calls it
   to make a plain box around a circuit board from the board's interface, a
   base with standoffs and a lid with posts and openings, or the same inside
@@ -127,6 +134,7 @@ $B3D FreeCADCmd tools/compare_step_exports.py --pass PROJECT MAP.json NEW_REPORT
 $B3D python3 -B -m pytest -q tests
 guix shell --pure -m .guix/manifest-cad.scm -- FreeCADCmd tools/assembly_step.py --pass PROJECT [KEY]
 guix shell --pure -m .guix/manifest-cad.scm -- FreeCADCmd tools/compare_assembly_step.py --pass PROJECT KEY OTHER.step NEW_REPORT.json
+guix shell --pure -m .guix/manifest-cad.scm -- FreeCADCmd tools/print_check.py --pass PROJECT KEY [-- --up +Z] [-- --angle 45] [-- --step 0.5]
 guix shell --pure -m manifest.scm -m .guix/manifest-cad.scm -- python3 -B -m pytest -q tests
 ```
 
@@ -153,6 +161,18 @@ write nothing, and the tests of them are skipped.
   other solid of the assembly and reports what interferes (shared volume),
   what touches and what is closer than a clearance, with the smallest
   clearance that is left. It needs FreeCAD alone.
+- `print_check.py` says whether a part prints as it lies in its own frame,
+  growing along +Z from its lowest point, or along the axis `--up` names
+  (`make print-check PROJECT=DIR KEY=K`). Three screens: the flat faces that
+  lie on the plate; every face that looks down at less than 45 degrees above
+  the plate, a curved face measured over the part of it that does; and
+  material that starts in mid-air, found by cutting the part into slices
+  every 0.5 mm and asking of every piece of a slice whether it lies over
+  the slice before. Roofs that all pass the angle can still enclose such a
+  piece where they meet from several sides. The record goes beside the
+  print file (`.cache/print/KEY.check.json`). It is a screen of the
+  geometry, not a slicer's verdict; it needs FreeCAD alone, and takes a STEP
+  file in place of a project and a key.
 - `assembly_step.py` builds one STEP file and one FreeCAD document of a whole
   assembly (KEY, one of the keys `assemblies` lists, or the only assembly
   nothing places) from the part files and

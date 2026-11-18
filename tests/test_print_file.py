@@ -2,6 +2,7 @@
 (make test-build123d)."""
 import importlib.util
 import json
+import math
 import struct
 import subprocess
 import sys
@@ -65,3 +66,19 @@ def test_the_print_file_of_a_part_is_closed_and_has_the_solids_volume(project_co
     coarse = run(project_copy, "spacer", "--deflection", "2", "--angle", "1.5")
     assert "MORE THAN 0.5 %" in coarse and "[print_file] exit status 1" in coarse, coarse
     assert "has no part 'nothing'" in run(project_copy, "nothing")
+
+
+@with_build123d
+def test_the_deflection_is_millimetres_whatever_the_size_of_the_part(tmp_path):
+    """build123d's export_stl takes its tolerance as a fraction of an edge's size: on a disc of 200 mm a "0.01"
+    left the triangles 0.03 mm and more from the surface. The tool calls the mesher with an absolute deflection."""
+    from build123d import Cylinder
+
+    assert print_file.write_stl(Cylinder(100, 10), tmp_path / "wide.stl", 0.01, 0.1)
+    mesh = print_file.mesh_facts(print_file.read_stl(tmp_path / "wide.stl"))
+    assert mesh["closed"]
+    low, high = mesh["bounding_box_mm"]["min"], mesh["bounding_box_mm"]["max"]
+    assert all(100 - 0.0101 <= reach <= 100 + 1e-4 for reach in (high[0], high[1], -low[0], -low[1]))
+    # a polygon that stays within 0.01 mm of a circle of 100 mm is short of its area by 1.3 parts in 10 000;
+    # one with sides of 0.1 rad, which is what the angle alone allows, by 17
+    assert mesh["volume_mm3"] == pytest.approx(math.pi * 100 ** 2 * 10, rel=2e-4)

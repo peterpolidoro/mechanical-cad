@@ -556,8 +556,17 @@ ignored notes of this checkout, not here. Still his to decide:
    and which material.
 
    Peter on 2026-11-18, on 1 and 2: he may have an enclosure project that
-   can be used for testing. Which project, and whether the first enclosure
-   is made for it, he has not yet said.
+   can be used for testing. Later that day he named it: the enclosure of
+   the Farseer Eye in his repository `farseer-mech` "may be a good test
+   project". That repository holds a brief written for this (its
+   `enclosures/truncated-octahedron/cad-agent-handoff.md`): reproduce a
+   reference model made with FreeCAD and its checks, then design a carrier
+   for the board and the optics. The first two of its three sections were
+   done that day in an ignored project of this checkout, and nothing was
+   written in `farseer-mech` ("Built so far"). His to say: whether the model
+   moves into `farseer-mech` as a study directory of its own, which the
+   brief asks for; whether the third section is begun; and still the
+   printer and the material.
 3. Whether a published file should carry the lab of its project. Both
    published files carry the same lab, which is the lab of neither folder.
    Read on 2026-11-17: it is the property's default, the first entry of a
@@ -699,6 +708,114 @@ id, with what it uses; not the folder's three roots.
   solids, and manifold to the slicer. It is not sliced: that needs the
   printer and the material, which Peter has not named. The part measured
   after printing, the other half of goal 9, is not begun.
+- **Stage 5.3, the first half** (2026-11-18): `tools/cut_file.py` and
+  `make cut` write the drawing to cut a plate from sheet and check it
+  against the solid. The part has to be a plate cut square through: its
+  volume is the area of its largest flat face times the distance to the
+  face opposite, and its outline is straight lines and circles; anything
+  else is refused, since it is not made in one pass. The outline is written
+  as DXF in millimetres, in the part's own X and Y where the plate lies in
+  them, then read back: its lines, arcs and circles have to join into
+  closed loops, and the area inside the outer loop less the holes has to be
+  the face's. Run on the first project's bowl frame: seven loops, 4.88 m of
+  cut, the same area to sixteen digits. The same part gives the same file,
+  which took two things: the DXF library's fixed metadata, and its class
+  records added in order, because it writes them from a set and their order
+  changed from one run of Python to the next. Not there: ellipses and
+  splines, an allowance for the width of the cut, several parts on one
+  sheet, fold lines, and so the flat patterns of `mechanical_cad/shapes/`.
+- **A formed part, its tool and its frame, in the first project**
+  (2026-11-18). Peter took up the bowls of the first project's brief,
+  vacuum formed and clear, about 16 cm across and 2 cm deep, six to a
+  monitor in a frame, and asked how such parts are made with these tools.
+  As concepts in that project, every number of the bowl beyond those two
+  assumed and marked so:
+  - *The bowl* is a section turned about an axis, with its corners rounded
+    about two centres so that the wall has one thickness. Its volume is held
+    to the section's first moment, worked out without the kernel.
+  - *The plug it is formed over is a part built against the bowl* (goal 15,
+    for the first time in a project that is in a repository): the space
+    inside the bowl's solid, enlarged by a shrinkage allowance, turned over
+    and set on a base with vents. No dimension of the bowl is typed into it.
+    Each step is held to a volume worked out another way, and that stopped
+    the first build: the plug stood 0.105 mm into its base, because
+    build123d's `scale` enlarges a shape about the origin it had before it
+    was moved. A check of the finished part's size would not have shown it.
+  - *The frame is built against three parts*: the monitor's lit area, from
+    an `interface.json` the monitor's model was given (an outline, the first
+    interface of a part that is not a board), the bowl's solid for the
+    width of the holes, and the sheet under it for its outline. Its program
+    refuses a layout that does not fit and says by how much; that is how
+    the project learned that six such bowls fit one display with half a
+    millimetre to spare.
+  - An authored assembly of the monitor, the sheet, the frame and six
+    bowls, checked for fit.
+  - What it showed missing. **A project with two assemblies that nothing
+    places has no default**: `assembly`, `open`, `built` and `flatten`
+    without a key then ask for one, so adding an authored assembly broke
+    the first project's `make assembly` and the script that flattens the
+    scene of its manual, until the project named its mirrored root in its
+    own Makefile and script. Proposed, not built: the layout lets a project
+    name its main assembly. **A circle cannot be stated in an interface**:
+    an outline is a polygon, so the bowl gives its opening as a point at its
+    edge. And a picture of a section, which was made by hand in a scratch
+    directory: `tools/picture.py` has no cut.
+- **The Farseer Eye enclosure reproduced** (2026-11-18; sections 1 and 2 of
+  its brief, by a second agent session and checked here; the project is in
+  this checkout's ignored `tmp/farseer-eye/` with a README of its
+  commands). The reference is a truncated octahedron of 80 mm in two
+  halves that print seam-down, with walls of 2 mm, roofs that lean at 45°
+  towards a guide opening and four connector passages, a rib, and a board
+  on the seam, generated with FreeCAD's Python interface.
+  - Eight parts written with build123d and four assemblies. **The two
+    halves and the two boards are the reference's solids**: no volume in
+    one and not in the other, either way, for all four; the surfaces within
+    1.2e-8 mm; the two assemblies match the reference's STEP files solid
+    for solid. The rear half differs in volume by 7 parts in 10⁸, which is
+    the integration's tolerance: its roofs are cut one at a time and come
+    out as planes where the reference has splines.
+  - The reference's own checks, repeated: one valid solid per half, the
+    seam on the plate, 40 mm high; the large board 0.5 mm from the walls;
+    no passage blocked; no face flatter than 45°; no material that starts
+    in mid-air in 80 slices per half. **With the rib taken out both find
+    the same island**, at 36.25 mm, 0.0664 mm² in area, while every face
+    still passes the angle. The variant the brief asks for (90 mm, walls of
+    1.5 mm, one passage fewer) gives the reference generator's solids and
+    numbers.
+  - A half's own frame is its print orientation, and the assembly turns it
+    into place: the part's STEP file is then the file to print, and it
+    compares directly with the reference's.
+  - What it showed missing, each a proposal and none built: **numbers
+    shared by several parts** (one study has one set of numbers and eight
+    parts; a project script writes every part's parameters, checks and
+    placements from one file, and a variant is a copy of the project);
+    **code shared by parts** (only `build.py` is hashed, so a change in a
+    module a program imports does not make the part stale); **no place for
+    how a part is printed** (which way up, the process, the layer); **space
+    that is kept clear** (an interface has boxes only, so the passages are
+    parts placed as reference children and drawn like material); **what a
+    fit check should find** (it lists contacts and gaps and cannot be told
+    which are wanted); **comparing an authored part with a file from
+    outside**; and pictures of a section and in colour.
+  - Not begun: the third section of the brief, the carrier that holds the
+    board, the guide and the filter, and the access to the connectors.
+- **Stage 5.1, a second screen before printing** (2026-11-18):
+  `tools/print_check.py` and `make print-check` say whether a part prints
+  as it lies in its own frame: what rests on the plate, every face that
+  looks down flatter than an angle (45° unless given), measured by area on
+  the trimmed face, and material that begins above the plate with nothing
+  under it, found in thin slices every half millimetre. Faces that all pass
+  the angle can still enclose such a start, where roofs meet from several
+  sides; that is what the Farseer reference's rib is for. It needs FreeCAD
+  alone. On the first project's forming plug it found twelve flat roofs of
+  3 mm inside the vents; they are cones now and it passes.
+- **Stage 5.1, corrected** (2026-11-18): the print file's deflection was
+  not millimetres. build123d's `export_stl` hands its tolerance to the
+  mesher as a fraction of each edge's size, so on a disc of 200 mm a "0.01"
+  left the triangles 0.03 mm from the surface and the tool's own check of
+  the mesh's extent failed. `tools/print_file.py` now calls the mesher with
+  an absolute deflection. The enclosure halves of 2026-11-17 were small
+  enough not to show it.
 - **Stage 8** (2026-11-17): `make view PROJECT=DIR KEY=K` opens the viewer
   on a part or a built assembly and has it follow the file. The command is
   written and the viewer has the option; no window was opened from the

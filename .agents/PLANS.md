@@ -7,7 +7,7 @@ open-source tools to check it, document it and add to it, with the
 free-standing tank enclosure as the test project. The full statement is
 docs/direction.md. Finished checkpoints are in .agents/HISTORY.md.
 
-## Start here (state of 2026-11-18)
+## Start here (state of 2026-11-18, after the second session of that day)
 
 This section is the short version; everything below it is the longer
 record. Where the work is going, what is decided and what is built are in
@@ -26,48 +26,85 @@ clones are in the ignored `.agents/handoff.local.md` and on the share in
   from the board's repository (`tools/board_interface.py`).
 - Enclosures for a board (`mechanical_cad/enclosures.py`): a box, any solid
   of `mechanical_cad/shapes/`, a prism; standoffs, openings for ports
-  through lid and walls, a lip between the halves; fit checks; print files
-  (`tools/print_file.py`). Shown on the example board in an ignored project
-  of this checkout, which is in no repository.
+  through lid and walls, a lip between the halves; fit checks. Shown on the
+  example board in an ignored project of this checkout.
+- Files to make a part from, each checked against the solid: a mesh to
+  print (`tools/print_file.py`, with an absolute deflection since
+  2026-11-18), a drawing to cut a plate from sheet (`tools/cut_file.py`,
+  2026-11-18), and whether a part prints as it lies, by overhangs and by
+  material that starts in mid-air (`tools/print_check.py`, 2026-11-18).
 - A STEP file published to Vault and verified, twice (`vault-cad-tools`).
 
-**Waiting for the Windows agent**, which Peter starts; its machine was off
-on 2026-11-18. A task of five parts is on the share, nothing in it written
-to Vault: the two adds of the reference route (W1) rehearsed; one read of
+**Two projects worked on with these tools on 2026-11-18**, at Peter's word
+that day:
+
+- **The Farseer Eye enclosure** (`farseer-mech`), which he named as a
+  possible test project. Sections 1 and 2 of the brief in that repository
+  are done in this checkout's ignored `tmp/farseer-eye/`: the reference's
+  two shell halves and two boards reproduced as the same solids, its
+  checks repeated with the same results, the island without the rib found,
+  the 90 mm variant equal to the reference generator's. Nothing was
+  written in `farseer-mech`. Section 3, the carrier for the board and the
+  optics and the access to the connectors, is not begun.
+- **The bowls of the first project**: a vacuum formed bowl, the plug it is
+  formed over (built against the bowl), the frame that holds six over a
+  monitor (built against the monitor, the bowl and the sheet) and an
+  assembly, as concepts under that project's `designs/`. Its plan has the
+  state and the questions for the researcher.
+
+**Waiting for the Windows agent**, which Peter starts. The shared clones
+were brought level on his word on 2026-11-18 (`vault-cad-tools` 4272f5a,
+`mechanical-cad` 72df45b, the enclosure 57d75b6), so the gate of the task
+on the share now passes. The task has five parts and writes nothing to
+Vault: the two adds of the reference route (W1) rehearsed; one read of
 what Inventor's add-in records for a relation between two files; the
 exporter with model states, run on the mirror of the second project; an
 acquisition that takes a checked-out file at its last version checked in;
-and the design of a revision (W2) read and corrected. Its first step stops
-unless the shared clones hold what Peter pushed on 2026-11-18, and they are
-brought level only when he says so. When Windows delivers, the delivery is
-checked and answered as `coordination/NEXT-AGENT.md` on the share
-describes.
+and the design of a revision (W2) read and corrected. When Windows
+delivers, the delivery is checked and answered as
+`coordination/NEXT-AGENT.md` on the share describes. The shared clone of
+this repository is at the pushed commit; what this session changed reaches
+it after Peter's next push and his word.
 
 **Waiting for Peter**:
 
+- Whether the Farseer model moves into `farseer-mech` as a study directory
+  of its own, which its brief asks for, and whether section 3 is begun.
+  The printer and the material for it.
+- The researcher's answers on the bowls, and who forms them
+  (`free-standing-tank-enclosure`, plan, next work 7).
 - His word for the live run of W1, which adds two files to his test folder
   (docs/direction.md, "For Peter to decide", 4). Recommended after the
   Windows task above.
-- The first real enclosure: where it lives, the printer and the material.
-  On 2026-11-18 he said he may have an enclosure project that can be used
-  for testing, and has not yet said which.
 - Which changed file the pilot of a revision publishes
   (`vault-cad-tools/docs/update-step-file-design.md`, section 10).
-- The older open decisions, listed under "Open decisions to put to Peter".
+- The proposals of 2026-11-18 (open decision 18) and the older open
+  decisions, listed under "Open decisions to put to Peter".
 
-**Next on Linux, none of it needing Windows**, in the order recommended to
-Peter on 2026-11-18:
+**Next on Linux, none of it needing Windows**:
 
-1. The enclosure for the project he names: its board or parts as supplied
-   components with interfaces, the enclosure built against them, fit
-   checks, print files, and a slicer run once the printer is known.
-2. Stage 6: a project that begins as one STEP file of an assembly, taken
+1. Farseer, section 3, when he says so: a carrier for the small board as a
+   part built against the board's interface and the front shell, with the
+   bore, the filter seat and the gap as study numbers; connectors as
+   supplied parts with their plugs as space kept clear; the table of
+   recesses; a section and a coordinate table for the board's designer.
+   The return the brief asks for is in its last section.
+2. What the two projects showed missing, in the order of use (open
+   decision 18): a project's main assembly; numbers shared by parts; space
+   kept clear and what a fit check should find; how a part is printed; a
+   picture of a section.
+3. Stage 6: a project that begins as one STEP file of an assembly, taken
    apart into the layout and compared with the file solid for solid.
-3. Stage 7: pictures and motion, in `mechanical-docs`.
-4. Smaller: vents and feet for enclosures, and a polygon that follows a
-   rectangular board.
-5. The Linux half of a revision as a new version (request, plan, journal,
+4. Stage 7: pictures and motion, in `mechanical-docs`.
+5. Smaller: vents and feet for enclosures, a polygon that follows a
+   rectangular board, flat patterns of `mechanical_cad/shapes/` through
+   the cut file.
+6. The Linux half of a revision as a new version (request, plan, journal,
    record, import), after Windows has read the design.
+
+Tests on 2026-11-18: 472 pass without a kernel (80 skipped), 552 with
+FreeCAD, the bindings, build123d and bd_warehouse (2 skipped), 4 with the
+viewer.
 
 ## Current state (2026-11-13)
 
@@ -463,6 +500,44 @@ Smaller ones:
       mating directions and references in the STEP file;
     - decision 6 above, which holds up the monitor arm only;
     - whether the native files of `mouse-joysticks-mech` are in Vault.
+
+18. What two projects showed missing on 2026-11-18 (docs/direction.md,
+    "Built so far": the Farseer Eye enclosure reproduced, and a formed part,
+    its tool and its frame). Each is a proposal; none is built, and where
+    one touches the layout its three descriptions change together:
+    - **A project's main assembly.** With two assemblies that nothing
+      places, `assembly`, `open`, `built` and `flatten` ask for a key. The
+      first project names its mirrored root in its own Makefile and
+      script. Proposed: the layout lets a project say which assembly is
+      meant when none is named.
+    - **Numbers shared by parts.** A study has one set of numbers and many
+      parts; today a project script writes each part's `parameters.json`,
+      `checks.json` and the placements from one file, and a variant is a
+      copy of the project. Proposed: a project parameter file that parts
+      name and receipts hash; or that script as a documented pattern.
+    - **Code shared by parts.** A receipt hashes `build.py` alone, so a
+      change in `mechanical_cad/shapes`, `enclosures.py` or a module of the
+      project does not make a part stale. Proposed: the receipt records the
+      modules the program imported, with their hashes.
+    - **How a part is printed.** Which way up, the process, the layer and
+      the angle have no place; the Farseer halves are written in their
+      print orientation. Proposed: an optional hand-edited file beside a
+      part, read by `print_check.py` and `print_file.py`.
+    - **Space kept clear.** A `port` and a `keep_out` are boxes along the
+      axes; a round or swept clearance cannot be stated, a circle neither
+      (an outline is a polygon), and nothing holds a keep-out against an
+      assembly. Sweeps as parts placed as reference children work and are
+      drawn like material.
+    - **What a fit check should find.** `fit_check.py` lists interference,
+      contact and gaps; it cannot be told that two parts may touch or that
+      a pair keeps half a millimetre, so a person reads the list.
+      Proposed: expectations stated in the assembly.
+    - **The same solid?** Comparing an authored part with a file from
+      outside is a script of the Farseer project (volume in one and not
+      the other, both ways; distance between the surfaces; a control).
+      `compare_step_exports.py` looks under `references/` only.
+    - **Pictures.** No section and no colour; both projects cut their
+      assemblies with a script of their own.
 
 ## Next work, in order
 
@@ -1081,6 +1156,22 @@ read-only tests against Vault asked of the Windows agent.
   checkout whose line endings Git had changed (2026-11-12) and on scratch
   clones without that fault, where both give what Linux gets. The flatten
   step, the tests and the tools under `tools/` have not been run there.
+
+- `tools/cut_file.py` writes straight lines and circles only, one part per
+  drawing, with no allowance for the width of the cut. It has been run on
+  one real part, the first project's bowl frame, and nothing has been cut
+  from its drawing. It reaches into the DXF library for the order of its
+  class records, which another version of that library may arrange
+  differently; the test that runs the tool under two hash seeds would then
+  fail.
+- `tools/print_check.py` samples: slices every half millimetre, and curved
+  faces over a mesh. It has been run on the Farseer halves, where it gives
+  the reference's results, and on one part of the first project. Nothing
+  it passed has been printed.
+- build123d's `scale` enlarges a shape about the origin it had before it
+  was moved, and its `export_stl` takes its tolerance as a fraction of an
+  edge's size. Both were met on 2026-11-18, the first by a volume held in
+  a part's program, the second by the print file's own check.
 
 ## Hazards
 

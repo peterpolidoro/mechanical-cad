@@ -122,6 +122,24 @@ def mesh_facts(triangles):
             "bounding_box_mm": {"min": low, "max": high}}
 
 
+def write_stl(shape, path, deflection, angle):
+    """Mesh a build123d shape and write it as a binary STL file; False when the file could not be written.
+
+    `deflection` is in millimetres: how far a triangle may lie from the
+    surface. build123d's export_stl hands its tolerance to the mesher as a
+    fraction of each edge's size, so on a part of 200 mm a "0.01" let the
+    triangles stand 0.03 mm off and more; the mesher is called here directly,
+    with an absolute deflection.
+    """
+    from OCP.BRepMesh import BRepMesh_IncrementalMesh
+    from OCP.StlAPI import StlAPI_Writer
+
+    BRepMesh_IncrementalMesh(shape.wrapped, deflection, False, angle, True).Perform()
+    writer = StlAPI_Writer()
+    writer.ASCIIMode = False
+    return bool(writer.Write(shape.wrapped, str(path)))
+
+
 def slicer_info(path):
     """What prusa-slicer says of a mesh file, as a dict of its `name = value` lines; None when it is not on PATH."""
     tool = shutil.which("prusa-slicer")
@@ -148,7 +166,7 @@ def main(argv):
     if comp.facts is None or comp.step_sha256 is None or comp.facts.get("step", {}).get("sha256") != comp.step_sha256:
         print(f"[print_file] {key}: no facts.json of the part.step that is there; build or measure the part first")
         return 2
-    from build123d import export_stl, import_step
+    from build123d import import_step
 
     out = Path(out_dir) if out_dir else project_dir.joinpath(*PRINT_DIR)
     out.mkdir(parents=True, exist_ok=True)
@@ -158,7 +176,7 @@ def main(argv):
     if shape is None:
         print(f"[print_file] {key}: the STEP file marks items invisible; a part to print has none")
         return 2
-    if not export_stl(shape, str(stl), tolerance=numbers["deflection"], angular_tolerance=numbers["angle"]):
+    if not write_stl(shape, stl, numbers["deflection"], numbers["angle"]):
         print(f"[print_file] {key}: the mesh could not be written")
         return 1
     mesh = mesh_facts(read_stl(stl))

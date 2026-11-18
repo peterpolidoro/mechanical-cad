@@ -19,7 +19,7 @@ GUIX_PRINT = guix shell --pure -L .guix/modules -m manifest.scm -m .guix/manifes
 project = $(if $(PROJECT),$(abspath $(PROJECT)),$(error name the project repository: make $@ PROJECT=/path/to/project))
 
 .DEFAULT_GOAL := help
-.PHONY: help test test-cad test-build123d test-view validate assemblies assembly open picture view part parts facts check fit print
+.PHONY: help test test-cad test-build123d test-view validate assemblies assembly open picture view part parts facts check fit print print-check cut
 
 help:
 	@echo "make test                        the tests that need no FreeCAD"
@@ -40,6 +40,9 @@ help:
 	@echo "                                 [VIEWS=iso,below,+x] [UP=+Y]: where the camera stands, which axis is up"
 	@echo "make view PROJECT=DIR KEY=K      a viewer window on a part or a built assembly; it follows the file when it is built again"
 	@echo "make print PROJECT=DIR KEY=K     the mesh to print a part from, checked against the solid and shown to a slicer"
+	@echo "make print-check PROJECT=DIR KEY=K   will the part print as it stands: what is on the plate, overhangs, material that starts in mid-air"
+	@echo "                                 [UP=+Z] [ANGLE=45] [STEP=0.5]: the build direction, the flattest overhang allowed, how far apart the slices are"
+	@echo "make cut PROJECT=DIR KEY=K       the drawing to cut a plate from sheet, checked against the solid"
 	@echo "Built files go to PROJECT/.cache/assemblies/. README.md has the commands these run."
 
 test:
@@ -107,6 +110,16 @@ view:
 print:
 	@$(GUIX_PRINT) -- python3 -B tools/print_file.py "$(project)" $(if $(KEY),$(KEY),$(error name the part: make print PROJECT=... KEY=K)) \
 	  $(if $(DEFLECTION),--deflection $(DEFLECTION))
+
+# Whether a part prints as it lies in its own frame: the plate, overhangs and islands, into PROJECT/.cache/print/
+# (tools/print_check.py). FreeCAD alone.
+print-check:
+	@$(GUIX_CAD) -- FreeCADCmd tools/print_check.py --pass "$(project)" $(if $(KEY),$(KEY),$(error name the part: make print-check PROJECT=... KEY=K)) \
+	  $(if $(UP),-- --up $(UP)) $(if $(ANGLE),-- --angle $(ANGLE)) $(if $(STEP),-- --step $(STEP))
+
+# The file to cut a plate from sheet, into PROJECT/.cache/cut/ (tools/cut_file.py).
+cut:
+	@$(GUIX_B3D) -- python3 -B tools/cut_file.py "$(project)" $(if $(KEY),$(KEY),$(error name the part: make cut PROJECT=... KEY=K))
 
 # Pictures of a part or of a built assembly, made without a window (tools/picture.py).
 picture:
