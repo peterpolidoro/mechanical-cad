@@ -55,7 +55,7 @@ editor. As capabilities, each with what shows it done:
 | | **Import** | |
 | 1 | An assembly in Vault is mirrored at exact versions as STEP and metadata that validate | **Done** on the first project; the mirror is Inventor's own export of the assembly, solid for solid |
 | 2 | A mirror is refreshed after Vault changed: what changed is found, only that is exported again, what is gone is removed | **Partly** (2026-11-16). A refresh from an earlier version of the first project's root to the one it holds gives the repository's files byte for byte: one file updated, four new, the rest untouched. `vault-cad sync-status` says file by file what a refresh would change, from a discovery of the Vault folder. and the import removes what is gone when asked. Not built: exporting only what changed. Nothing has changed in Vault since the mirror was made, so no refresh has yet followed a real change there |
-| 3 | A second assembly or project goes through the same commands | **Done once** (2026-11-16), as a test: a second root assembly was acquired, exported, imported, measured, validated and built, with no change to a command. No guard of the exporter has yet stopped a run on real data |
+| 3 | A second assembly or project goes through the same commands | **Done once** (2026-11-16), as a test: a second root assembly was acquired, exported, imported, measured, validated and built, with no change to a command. A second project was acquired on 2026-11-17 and its export stopped at a guard, the first to fire on real data: a sub-assembly used in two model states ("Built so far") |
 | | **View** | |
 | 4 | Any part or assembly opens on Linux | **Done**: a FreeCAD document and a STEP file of any assembly, built from the records. No colour |
 | | **Document** | |
@@ -556,9 +556,20 @@ ignored notes of this checkout, not here. Still his to decide:
    and which material.
 3. Whether a published file should carry the lab of its project. Both
    published files carry the same lab, which is the lab of neither folder.
-   Windows is asked to read where the value comes from first.
-4. The live run of W1, once Windows has reported exactly which files it
-   adds to the test folder.
+   Read on 2026-11-17: it is the property's default, the first entry of a
+   list of 131, given to a file that has no value. A file gets its
+   project's lab only if the property is written, which is a write to
+   Vault of another kind than adding a file. Recommended: leave it, and
+   decide when a file is published for a project and not for a test.
+4. The live run of W1. Windows has reported what it adds to the test
+   folder: two new files, `aw2725q-monitor-reference.ipt` (342 528 bytes)
+   and `reference-pilot-01.iam` (113 152 bytes), each with a comment that
+   names the pilot, the first declared to depend on the published STEP
+   file and the second on the first. Nothing else is written; the STEP
+   file gets no new version. Recommended: his word after the next Windows
+   task, which rehearses the two adds offline and reads what Inventor's
+   own add-in records for such a relation. If the run stops between the
+   two, the wrapper part is in the folder and the assembly is not.
 
 Answered on 2026-11-17 and now under "Decided": the second project may be
 mirrored for testing, in the shared directory. The mirror asked for is the
@@ -729,6 +740,35 @@ id, with what it uses; not the folder's three roots.
   (`docs/native-checkin-adapter-design.md`, section 5): a wrapper part
   whose only content is the STEP file as a reference model, placed in an
   assembly, with both relations declared to Vault when the files are added.
+- **That task, delivered and reviewed** (2026-11-18; 66 checks on Linux
+  against the evidence, the mirror on the share and the raw answers of the
+  day before; nothing was written to Vault: 5 sign-ins, 25 GET, 43
+  downloads):
+  - The two script changes are a patch, applied in `vault-cad-tools`. A
+    file that is checked out is listed by a row that is not a version; the
+    discovery says so and an acquisition refuses it. On Linux `sync-status`
+    calls such a file `checked_out`.
+  - The lab on a published file is the property's default (point 3 above).
+  - **The second project is mirrored**: the one assembly and the 41 files
+    it uses, at the versions read the day before, in the shared directory.
+    **Its export stopped**, at the first guard to fire on real data: the
+    root places one sub-assembly twice, in its primary model state and in
+    a second one, and each state suppresses the parts of the other. One
+    part has no body. What the package holds for model states and
+    suppressed occurrences is decided in
+    [exporter-package.md](exporter-package.md); the layout and the import
+    needed no change, and the exporter is changed on Windows next.
+  - **W1 is ready and was not run.** The wrapper part holds the STEP file
+    by a name relative to itself, and the three files open with the link
+    held after they are moved together to another place, which is what a
+    Vault workspace needs. A live run adds two files (point 4 above).
+- **The Windows task after it** (written on 2026-11-18; nothing in it is
+  written to Vault): the two adds of W1 rehearsed against a stand-in; one
+  read through the Vault client's library of what Inventor's add-in
+  records for a relation between two files; the exporter with model
+  states, run on the mirror of the second project; an acquisition that
+  takes a file a colleague has checked out at its last version checked
+  in; and the design of W2 read and corrected.
 - **W2, the design** (2026-11-17): written, not built
   (`vault-cad-tools/docs/update-step-file-design.md`). A revision is a new
   version of the same file: the request names the version the repository

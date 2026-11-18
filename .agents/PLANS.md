@@ -955,6 +955,28 @@ read-only tests against Vault asked of the Windows agent.
    outside every repository (the paths in it name a lab), and put to Peter
    exactly what the live run of W1 adds to the test folder.
 
+   **Delivered on 2026-11-17 and reviewed on 2026-11-18** (66 checks on
+   Linux, none failed; the review is on the share under
+   `evidence/2026-11-18-linux-windows-mirror-and-reference-route-01-review-01/`).
+   Nothing was written to Vault. The results are in docs/direction.md,
+   "Built so far". For this repository:
+   - There is no package to import: the exporter stopped at a sub-assembly
+     used in two model states. What the package holds for that is decided
+     in docs/exporter-package.md, "Model states and suppressed
+     occurrences"; the layout and the import needed no change (a key
+     `<key>@<state>`; a test in `vault-cad-tools`). The exporter is changed
+     on Windows, in the next task. One part of that project has no body;
+     no rule for it yet.
+   - Peter is told what the live run of W1 adds: two files. His word waits
+     for two checks Windows proposed (a rehearsal of the live branch, and
+     one read of what Inventor's add-in writes into an association).
+   - The next Windows task is on the share
+     (`coordination/to-windows/20261118T140617Z-...`). Its first step stops
+     unless the shared clones hold this repository's and
+     `vault-cad-tools`' next commits, so Peter commits, pushes and says
+     that the clones may be brought level before he starts the agent. The
+     Windows machine was off on 2026-11-18.
+
    In Guix that day: KiCad 10.0.5, PrusaSlicer 2.9.5, `python-ezdxf`,
    `python-trimesh`, lib3mf; not `bd_warehouse`. The packaged build123d
    0.12.0 has the exporters for STL, 3MF, DXF and SVG.

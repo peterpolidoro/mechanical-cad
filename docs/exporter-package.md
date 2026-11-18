@@ -179,9 +179,10 @@ itself defines, read from the document and not from one of its instances:
   read from the document.
 - The exporter stops on a suppressed occurrence. Inventor does not load the
   document of a suppressed occurrence, so nothing can be exported from it in
-  the same session and most of its properties cannot be read. No project has
-  had one; how a suppressed child is written (most likely with `suppressed`
-  true and its component under `not_exported`) waits for a case to try it on.
+  the same session and most of its properties cannot be read. The second
+  project has seven; what the exporter is to write instead of stopping is
+  decided below, under "Model states and suppressed occurrences", and is not
+  built.
 - The exporter stops on a placement that is not a rotation and a translation
   within 1e-9 (a mirrored occurrence), and on a BOM structure the layout does
   not list (Inventor has a seventh value, `Varies`).
@@ -334,6 +335,50 @@ Tried on 2026-11-12 with the first package the exporter wrote, on Linux:
 
 Not done: the import into the enclosure's branch itself.
 
+## Model states and suppressed occurrences
+
+Decided on 2026-11-18. **The exporter does not do this yet**: it stops at
+the first document that is not in its primary model state, and that is what
+stopped the export of the second project on 2026-11-17. That project's root
+places one sub-assembly twice, once in its primary model state and once in
+another, and each state suppresses the occurrences that belong to the other.
+Inventor opens the one file as two documents.
+
+- **A document of the package is a Vault file in a model state.** The tree,
+  `source.json` and a child's identity have had it so since draft 3, and
+  nothing in the format changes. A file used in two model states is two
+  directories, two `source.json` with the same `vault` block, and two sets
+  of children; a child names the state it places. The exporter finds a
+  document by Inventor's full document name, takes the state from that
+  document and not from the state the file was saved in, and binds both
+  documents to the one acquired file.
+- **A level of detail named after the document's own model state** is that
+  state. Any other level of detail that is not the master stops the export,
+  as before.
+- **A suppressed occurrence is not a child.** In a model state, "suppressed"
+  says that the state does not have the occurrence: Inventor loads no
+  document for it and gave nothing but its name when asked (2026-11-17), so
+  it has no identity and no placement to write. The assembly's `source.json`
+  names every one under `native.suppressed_occurrences`, a list of `name`
+  and, only where they can be read without unsuppressing anything,
+  `master_id` and `path` of the file it would place. `package.json` counts
+  them under `counts`. No child an exporter writes has `suppressed` true;
+  the flag stays because the layout has it for authored assemblies.
+- A file of the acquisition that only suppressed occurrences place is under
+  `not_exported`, with that as the reason.
+- The STEP file a count is compared with is the export of the document in
+  its state.
+
+The import needs nothing new, and a test holds it to that
+(`vault-cad-tools/tests/test_package_import.py`, "one file in two model
+states"): a key is found by master id and model state, a state that is not
+the primary one gives the key `<key>@<state>`, and `native` is kept as
+written.
+
+Not decided: a part without a body that an assembly places, which the second
+project also has. What the exporter does with one today is asked of the
+Windows side first.
+
 ## Not in the package
 
 - The BOM views of the assemblies and virtual components. They stay with the
@@ -353,7 +398,10 @@ The exporter's stops for a document with a view, an `INVISIBILITY` in another
 form, a suppressed occurrence, a difference without a flexible occurrence
 above it, instances with other children than their document, and an unknown
 BOM structure have never fired on real data; the ones the package check
-repeats are exercised offline. Not met in the enclosure: a model state other
+repeats are exercised offline. The stop for a model state other than the
+primary one fired on the second project on 2026-11-17, which also has
+suppressed occurrences ("Model states and suppressed occurrences" above).
+Not met in the enclosure: a model state other
 than the primary one, a flexible instance inside a flexible instance, an
 override more than one level below its instance, two instances of one
 document posed differently, a referenced document that no occurrence places,
