@@ -33,6 +33,16 @@ clones are in the ignored `.agents/handoff.local.md` and on the share in
   2026-11-18), a drawing to cut a plate from sheet (`tools/cut_file.py`,
   2026-11-18), and whether a part prints as it lies, by overhangs and by
   material that starts in mid-air (`tools/print_check.py`, 2026-11-18).
+- Pictures without a window, of a part or an assembly, since 2026-11-18
+  also cut open and with every part in a colour of its own
+  (`tools/picture.py --cut +y --colour`).
+- A section as a drawing to scale, every part in its colour
+  (`tools/section.py`, 2026-11-18).
+- A project made of one STEP file of an assembly (`tools/take_apart.py`,
+  stage 6, 2026-11-18): the mechanical example as a project in the ignored
+  `tmp/dual-lever-from-step/`, 152 of 152 solids where its file has them.
+- The Makefile's short commands, looked at by tests that run none of them
+  (`tests/test_makefile.py`, 2026-11-18).
 - A STEP file published to Vault and verified, twice (`vault-cad-tools`).
 
 **Two projects worked on with these tools on 2026-11-18**, at Peter's word
@@ -51,8 +61,10 @@ that day:
   as a supplied part; twenty parts, eleven assemblies, 179 checks. It found
   that the gap asked for between guide and detector leaves too little room
   over the board where the placement has parts, and that the rear half for
-  the placement's ports does not pass the print check. That repository's
-  plan and `enclosures/eye/README.md` have its state.
+  the placement's ports does not pass the print check. Options for both
+  followed while Peter was away (a vault that makes the rear half print;
+  the gap as built variants with a keep-out table). That repository's plan
+  and `enclosures/eye/README.md` have its state.
 - **The bowls of the first project**: a vacuum formed bowl, the plug it is
   formed over (built against the bowl), the frame that holds six over a
   monitor (built against the monitor, the bowl and the sheet) and an
@@ -99,18 +111,23 @@ it after Peter's next push and his word.
    decision 18): a project's main assembly; numbers shared by parts; space
    kept clear and what a fit check should find; how a part is printed; a
    picture of a section.
-3. Stage 6: a project that begins as one STEP file of an assembly, taken
-   apart into the layout and compared with the file solid for solid.
-4. Stage 7: pictures and motion, in `mechanical-docs`.
+3. After stage 6, which is built: a rule for a part without a solid;
+   comparing the project made from the mechanical example's file with the
+   Vault mirror of the same assembly once Windows exports it; and, if Peter
+   says so, the conversion of `mouse-joysticks-mech` itself.
+4. Stage 7: pictures and motion, in `mechanical-docs`. Its first record,
+   finishes curated by a project, would give the coloured pictures of
+   2026-11-18 a project's own colours.
 5. Smaller: vents and feet for enclosures, a polygon that follows a
    rectangular board, flat patterns of `mechanical_cad/shapes/` through
    the cut file.
 6. The Linux half of a revision as a new version (request, plan, journal,
    record, import), after Windows has read the design.
 
-Tests on 2026-11-18: 472 pass without a kernel (81 skipped), 553 with
-FreeCAD, the bindings, build123d and bd_warehouse (2 skipped), 4 with the
-viewer.
+Tests on 2026-11-18: 491 pass without a kernel (86 skipped), 575 with
+FreeCAD, the bindings, build123d and bd_warehouse (3 skipped; run before
+the last test of the Makefile was added), 8 with the viewer and build123d
+together.
 
 ## Current state (2026-11-13)
 
@@ -542,8 +559,22 @@ Smaller ones:
       outside is a script of the Farseer project (volume in one and not
       the other, both ways; distance between the surfaces; a control).
       `compare_step_exports.py` looks under `references/` only.
-    - **Pictures.** No section and no colour; both projects cut their
-      assemblies with a script of their own.
+    - **Pictures.** Built on 2026-11-18, being a tool and no part of the
+      layout: `tools/picture.py --cut` and `--colour` (docs/direction.md,
+      "Built so far"). Left: a section as a drawing with dimensions, and
+      finishes curated by a project.
+
+19. What a part taken out of an assembly file says of where it came from
+    (stage 6, 2026-11-18). `tools/take_apart.py` writes such a part as a
+    supplied part, without a change to the layout, and stretches two of its
+    statements: `received_sha256` in `origin.json` is the hash of the
+    assembly file the part was taken from, where the layout means the file
+    of the part as it came; and `part.step` is written by the kernel, where
+    the layout says a supplied part's data section is what was received.
+    The project as a whole has no record of the file. To accept as it is,
+    or: a kind of origin of its own for a part taken out of a larger file,
+    and a place for the record of that file. Also open there: what a part
+    is that has faces and no solid (one of the 37 in the trial).
 
 ## Next work, in order
 
@@ -1178,6 +1209,16 @@ read-only tests against Vault asked of the Windows agent.
   was moved, and its `export_stl` takes its tolerance as a fraction of an
   edge's size. Both were met on 2026-11-18, the first by a volume held in
   a part's program, the second by the print file's own check.
+
+- `tools/take_apart.py` has been run on one real file. It reads every
+  product in millimetres, keeps no colour, and tells products apart by
+  their identity in the file, not by their shape. A part's `origin.json`
+  then carries the hash of the assembly file as `received_sha256`, which
+  the layout says of a file as it came.
+- `tools/picture.py --cut` and `--colour` and `tools/section.py` put an
+  assembly together with build123d, every occurrence with geometry of its
+  own, so a model of the first project's whole enclosure is 33 MB and
+  takes three minutes. A section's curves are short straight pieces.
 
 ## Hazards
 

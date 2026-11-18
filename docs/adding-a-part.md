@@ -79,6 +79,7 @@ stated where there is material fails.
 ```sh
 make part KEY=<key>                 # writes part.step, receipt.json, facts.json; fails when a check fails
 make picture KEY=<key> UP=+Z        # images in .cache/pictures/; VIEWS=iso,below,+x says where the camera stands
+make picture KEY=<key> CUT=+y VIEWS=+y   # cut open at the middle, seen from the side that was taken away
 make check                          # every authored part's checks, without a kernel
 make validate                       # the whole project against the layout
 ```
@@ -108,11 +109,28 @@ a 4 x 4 transform in the assembly's frame and unit:
 make fit KEY=with-my-part SUBJECT='MY PART:1'     # what interferes, what touches, what is closer than 5 mm
 make assembly KEY=with-my-part                    # one STEP file and one FreeCAD document of it
 make picture KEY=with-my-part                     # pictures of that file
+make picture KEY=with-my-part COLOUR=1 CUT=-x=12.5   # every part in a colour of its own, cut open at X = 12.5
 make open KEY=with-my-part                        # the FreeCAD window, for a person
 ```
 
 `make fit` reports a contact without judging it: parts that are bolted
 together touch. An interference is a fault.
+
+```sh
+make section KEY=with-my-part CUT=+y              # what the plane cuts, as a drawing to scale (SVG), with a legend
+```
+
+A section is a drawing in millimetres of what lies in one plane, every part
+in its colour: the thing to send to someone who has to judge a shape, and to
+measure in or add dimensions to. Its record beside it has the area the plane
+cuts of each part.
+
+A picture that is cut or coloured is put together from the parts' files and
+the placements, so the assembly need not be built for it; it needs
+build123d beside the viewer, which `make picture` sees to. `CUT=+y` takes
+away what lies beyond the middle towards +Y, `CUT=-x=12.5` what is below
+X = 12.5. In grey, parts that touch cannot be told apart; in colour, and cut
+open, what sits in what shows at once.
 
 ## 5. The file to make it from
 

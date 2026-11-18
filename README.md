@@ -113,6 +113,19 @@ guix shell --pure -m manifest.scm -- python3 -B -m pytest -q tests
   URL --commit HASH --path PATH` in place of the supplier). The file is kept
   as it came, with its header normalised, and `origin.json` records where it
   came from and whether it may be published.
+- `tools/take_apart.py ASSEMBLY.step NEW_PROJECT` makes a project of one
+  STEP file of a whole assembly, for a design that exists only as such a
+  file: every product with geometry of its own becomes a supplied part
+  (its shape written out in millimetres, with `origin.json` saying which
+  product of which file it is), and every product made of others an
+  assembly with its children under their usages' names, where the file has
+  them. A product used several times is one part placed several times. Keys
+  come from the products' names; a single part, and a placement that
+  mirrors or scales, are refused. It needs the OCP bindings (`make
+  take-apart FILE=... PROJECT=... ORIGIN='...'`). Measure the result with
+  `step_facts.py`, build its root with `assembly_step.py -- --frame own` and
+  hold it against the file with `compare_assembly_step.py`: every solid has
+  to be where the file has it. Colours are not kept.
 - `build-order` prints the authored parts so that each comes after the parts
   it is built against: a part's `parameters.json` may name other parts as
   `inputs`, and its program then receives their solids and interfaces.
@@ -131,6 +144,7 @@ $B3D FreeCADCmd tools/step_facts.py --pass PROJECT
 $B3D FreeCADCmd tools/build_part.py --pass PROJECT/designs/parts/KEY
 $B3D FreeCADCmd tools/board_interface.py --pass PROJECT/designs/parts/KEY BOARD-GEOMETRY.json [DATUMS.json]
 $B3D FreeCADCmd tools/compare_step_exports.py --pass PROJECT MAP.json NEW_REPORT.json
+$B3D python3 -B tools/take_apart.py ASSEMBLY.step NEW_PROJECT --retrieved DAY --publishable yes --description TEXT
 $B3D python3 -B -m pytest -q tests
 guix shell --pure -m .guix/manifest-cad.scm -- FreeCADCmd tools/assembly_step.py --pass PROJECT [KEY]
 guix shell --pure -m .guix/manifest-cad.scm -- FreeCADCmd tools/compare_assembly_step.py --pass PROJECT KEY OTHER.step NEW_REPORT.json
@@ -154,6 +168,18 @@ write nothing, and the tests of them are skipped.
   stands (`iso`, `iso-back`, `below`, `+x` and so on), `--up` which axis
   points up. A check passes on a shape that is wrong in a way only a picture
   shows, so look at what was built.
+  `--cut +y` takes away what lies beyond the middle towards +Y (`--cut
+  -x=12.5` what is below X = 12.5) so that the inside shows, and `--colour`
+  gives every part of an assembly a colour of its own. Both need build123d
+  beside the viewer and put an assembly together from the project's records,
+  so it need not be built first (`make picture PROJECT=DIR KEY=K CUT=+y
+  COLOUR=1`).
+- `section.py` draws what a plane cuts of a part or of an assembly, true to
+  scale: an SVG file in millimetres with every part filled in the colour a
+  picture gives it, a scale and a legend, and beside it a record of the
+  area the plane cuts of each part (`make section PROJECT=DIR KEY=K
+  CUT=+y`; `CUT=-x=12.5` names the place). It needs build123d and puts an
+  assembly together from the project's records.
 - `fit_check.py` says whether some children of an assembly fit among the
   others. For an assembly KEY, usually an authored one that places what is
   mirrored together with what is being designed, and the names of the

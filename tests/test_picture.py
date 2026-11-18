@@ -1,9 +1,15 @@
 """tools/picture.py: where a camera stands, and pictures made with f3d where it is on PATH with EGL:
 
     guix shell --pure -m manifest.scm -m .guix/manifest-view.scm -- python3 -B -m pytest -q tests/test_picture.py
+
+and, cut open and coloured, where build123d is there as well (make test-view):
+
+    guix shell --pure -L .guix/modules -m manifest.scm -m .guix/manifest-build123d.scm -m .guix/manifest-view.scm -- python3 -B -m pytest -q tests/test_picture.py
 """
 import importlib.util
+import json
 import shutil
+import struct
 import subprocess
 import sys
 
@@ -26,6 +32,8 @@ def egl():
 
 
 draws = pytest.mark.skipif(not egl(), reason="f3d with EGL is not on PATH (use .guix/manifest-view.scm)")
+cuts = pytest.mark.skipif(not egl() or importlib.util.find_spec("build123d") is None,
+                          reason="a cut needs f3d with EGL and build123d (make test-view)")
 
 
 def run(*args):
@@ -41,8 +49,10 @@ def test_a_view_says_where_the_camera_stands():
     # with Y up, the two other axes are Z and X: above is +Y
     assert picture.stands("iso", "+Y") == (-1, 0.8, 1)
     assert picture.stands("iso", "-Z")[2] == -0.8
-    # straight along the up axis the camera leans a little, so that it has an up
-    assert picture.stands("+z", "+Z") == (0.02, 0, 1) and picture.stands("-y", "+Y") == (0, -1, 0.02)
+    # straight along the up axis the camera leans a little, so that it has an up: from above against Y, which
+    # then runs upwards in the picture with X to the right, a plan as it is drawn; from below towards it
+    assert picture.stands("+z", "+Z") == (0, -0.02, 1) and picture.stands("-z", "+Z") == (0, 0.02, -1)
+    assert picture.stands("-y", "+Y") == (0.02, -1, 0)
     with pytest.raises(ValueError, match="unknown view"):
         picture.stands("front", "+Z")
     assert [picture.file_name(v) for v in ("iso", "+x", "-Z")] == ["iso", "plus-x", "minus-z"]
@@ -76,3 +86,73 @@ def test_a_part_is_drawn_from_its_step_file(project_copy, tmp_path):
     # a file by itself, to a directory that is named
     out = run(project_copy / "designs/parts/spacer/part.step", "--views", "below", "--up", "+Y", "--out", tmp_path / "out")
     assert "[picture] exit status 0" in out and (tmp_path / "out" / "part-below.png").read_bytes()[:8] == picture.PNG
+
+
+def test_a_cut_names_an_axis_a_side_and_a_place():
+    assert picture.cut_plane("+y") == (1, 1, None) and picture.cut_plane("y") == (1, 1, None)
+    assert picture.cut_plane("-x=12.5") == (0, -1, 12.5) and picture.cut_plane("+Z=-3") == (2, 1, -3.0)
+    for wrong in ("front", "+w", "xy", "+y=there"):
+        with pytest.raises(ValueError, match="--cut"):
+            picture.cut_plane(wrong)
+
+
+def test_parts_keep_their_colours_and_a_model_is_turned_for_the_viewer():
+    first = picture.colours(["plate", "pin", "spacer", "pin"])
+    assert sorted(first) == ["pin", "plate", "spacer"] and len(set(first.values())) == 3
+    assert picture.colours(["spacer", "plate", "pin"]) == first               # whatever the order they come in
+    assert all(0 <= c <= 1 for colour in first.values() for c in colour)
+    # a glTF file has Y up: what pointed up along Z points up along Y, and Y points towards the viewer's -Z
+    assert picture.to_viewer((0, 0, 1)) == (0, 1, 0) and picture.to_viewer((0, 1, 0)) == (0, 0, -1)
+    assert picture.to_viewer((1, 0, 0)) == (1, 0, 0)
+
+
+def test_a_model_s_materials_are_said_not_to_be_metal(tmp_path):
+    """A GLB file: a header, a chunk of JSON padded to four bytes, a chunk of numbers."""
+    document = json.dumps({"asset": {"version": "2.0"}, "materials": [
+        {"name": "mat_0", "pbrMetallicRoughness": {"baseColorFactor": [0.2, 0.6, 0.8, 1.0]}}, {"name": "bare"}]}).encode()
+    document += b" " * (-len(document) % 4)
+    numbers = struct.pack("<I4s", 8, b"BIN\0") + bytes(range(8))
+    glb = tmp_path / "model.glb"
+    glb.write_bytes(struct.pack("<4sII", b"glTF", 2, 20 + len(document) + len(numbers)) + struct.pack("<I4s", len(document), b"JSON")
+                    + document + numbers)
+    picture.matte(glb)
+    data = glb.read_bytes()
+    magic, version, total = struct.unpack_from("<4sII", data, 0)
+    length, kind = struct.unpack_from("<I4s", data, 12)
+    assert (magic, version, total, kind) == (b"glTF", 2, len(data), b"JSON") and length % 4 == 0
+    materials = json.loads(data[20:20 + length])["materials"]
+    assert [m["pbrMetallicRoughness"]["metallicFactor"] for m in materials] == [0.0, 0.0]
+    assert materials[0]["pbrMetallicRoughness"]["baseColorFactor"] == [0.2, 0.6, 0.8, 1.0]
+    assert data[20 + length:] == numbers                                      # the numbers are as they were
+    (tmp_path / "other.glb").write_bytes(b"not a model at all, whatever its name")
+    with pytest.raises(ValueError, match="not a GLB file"):
+        picture.matte(tmp_path / "other.glb")
+
+
+@cuts
+def test_an_assembly_is_cut_open_and_coloured_without_being_built(project_copy):
+    pictures = project_copy / ".cache" / "pictures"
+
+    def materials(name):
+        glb = (pictures / name).read_bytes()
+        return json.loads(glb[20:20 + struct.unpack_from("<I", glb, 12)[0]])["materials"]
+
+    out = run(project_copy, "fixture-with-spacer", "--colour", "--views", "iso", "--size", "400x300")
+    assert "[picture] exit status 0" in out, out
+    assert (pictures / "fixture-with-spacer-colour-iso.png").read_bytes()[:8] == picture.PNG
+    # the fixture's parts: a base plate, a pin placed twice in the same colour, a spacer
+    whole = materials("fixture-with-spacer-colour.glb")
+    assert len(whole) == 3 and all(m["pbrMetallicRoughness"]["metallicFactor"] == 0.0 for m in whole)
+    assert not (project_copy / ".cache" / "assemblies").exists()              # nothing was built for it
+    # cut open, seen from the side that was taken away; what is left has the colours it had
+    out = run(project_copy, "fixture-with-spacer", "--cut", "+y", "--colour", "--views", "+y", "--size", "400x300")
+    assert "[picture] exit status 0" in out, out
+    assert (pictures / "fixture-with-spacer-cut-plus-y-colour-plus-y.png").read_bytes()[:8] == picture.PNG
+    colours = [m["pbrMetallicRoughness"]["baseColorFactor"] for m in whole]
+    left = materials("fixture-with-spacer-cut-plus-y-colour.glb")
+    assert 1 <= len(left) <= 3 and all(m["pbrMetallicRoughness"]["baseColorFactor"] in colours for m in left)
+    # a part by itself, cut at a place that is named; and a cut that leaves nothing
+    out = run(project_copy, "spacer", "--cut", "-x=0", "--views", "-x", "--size", "400x300")
+    assert "[picture] exit status 0" in out and (pictures / "spacer-cut-minus-x-minus-x.png").is_file(), out
+    assert "the cut takes everything away" in run(project_copy, "spacer", "--cut", "+x=-500")
+    assert "--cut 'sideways'" in run(project_copy, "spacer", "--cut", "sideways")

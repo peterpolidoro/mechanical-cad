@@ -78,6 +78,38 @@ document have run on the first project and its build is under way. Design,
 make and publish have not run for one real part, and a mirror has never been
 refreshed.
 
+### Where the goals stand on 2026-11-18
+
+An agent's reading of "Built so far" below, for Peter to correct; goals 14 to
+20 are those of the plan of 2026-11-17. Nothing in it is a decision.
+
+| | Goal | State on 2026-11-18 |
+| --- | --- | --- |
+| 1 | Mirror an assembly from Vault | Done on the first project |
+| 2 | Refresh a mirror | Partly, as on 2026-11-16: no refresh has followed a real change in Vault |
+| 3 | A second assembly or project | A second assembly done once. The second project is mirrored and its export stopped at a sub-assembly in two model states; the exporter's change is in the Windows task that waits to be started |
+| 4 | Any part or assembly opens on Linux | Done; since 2026-11-18 also drawn in colour, cut open, and as a section to scale |
+| 5 | Inventory and manual | Partly, as on 2026-11-16: waits for the notes from the bench |
+| 6 | A part written as a program, built and checked | Done on real parts: the monitor, the bowl with its plug and frame (concepts), the twenty parts of the Farseer Eye model |
+| 7 | A part designed to fit, and seen | Done, and used on both projects of 2026-11-18: point checks, interfaces, fit checks, pictures |
+| 8 | A drawn part kept like a programmed one | Built; no part of a project has been drawn by hand |
+| 9 | A part made and verified | **Nothing has been made.** What comes before making exists: the mesh to print, the check that a part prints as it lies, the drawing to cut a plate from. No slicer has run with a printer's profile and no made part has been measured |
+| 10 | A new STEP file in Vault | Done, twice |
+| 11 | A published part revised | Designed, not built; Windows reads the design in the task that waits |
+| 12 | A collaborator uses the part from Inventor | Partly: the route is made ready up to the write, by a dry run; its rehearsal is in the Windows task that waits, and the live run waits for Peter's word for one request |
+| 13 | The tools as Guix packages | Done in this repository's channel; not offered to Guix |
+| 14 | A file from outside is a component | Done: a board, and the first placement of the Farseer board |
+| 15 | A part built against other components | Done: enclosure halves, the forming plug, the bowl frame, the Farseer carrier |
+| 16 | A component states its interface | Done for boards and for authored parts; a circle and a swept clearance cannot be stated |
+| 17 | An enclosure generated for a board | Done on the example board as box, polyhedron and prism; the Farseer enclosure reproduced from its reference and extended |
+| 18 | Printed, measured; flat stock cut | As goal 9: the files and the checks, nothing made |
+| 19 | A project that begins as one STEP file | Done on the mechanical example (stage 6) |
+| 20 | Pictured and animated from records | Begun: colour by part, cuts, sections. No finishes kept by a project, no joints, no motion |
+
+What has never run is the stretch from a file to a made part and back to a
+measurement (goals 9 and 18), and that needs a printer, a former or a cutter
+and Peter's choice of one.
+
 ## Decided
 
 - Inventor natives in Vault stay intact and authoritative while they match their
@@ -813,6 +845,13 @@ id, with what it uses; not the folder's three roots.
     are written by scripts into the project: a section with its
     dimensions as a drawing, a table of clearances and recesses, and
     coordinates for the board's designer.
+  - **Options for the two findings** (the same day, while Peter was
+    away): the rear half prints with one added vault, a void with no port
+    whose ridge the project's script found by flooding the roof's underside
+    from the walls, without the kernel, and the print check confirms; and
+    the gap was built as six variants, which give the board's designer a
+    table of what may stand where if the gap stays. Both are in the
+    project's `review/options.md`.
 - **Stage 5.1, a second screen before printing** (2026-11-18):
   `tools/print_check.py` and `make print-check` say whether a part prints
   as it lies in its own frame: what rests on the plate, every face that
@@ -853,6 +892,75 @@ id, with what it uses; not the folder's three roots.
   uses the fixture's child whose name has a space. Found when the first
   project's `make bowls` was run through `make` for the first time; no
   test runs `make`.
+- **Pictures cut open and in colour** (2026-11-18, while Peter was away for
+  an hour and asked for as much as could be done). Both projects of that
+  day had cut their assemblies open with scripts of their own, and every
+  picture until then was one grey. `tools/picture.py` now takes `--cut +y`
+  (what lies beyond the middle towards +Y is taken away; `--cut -x=12.5`
+  names the place) and `--colour` (every part of an assembly in a colour of
+  its own, the same part the same colour wherever it is placed), and `make
+  picture` takes `CUT=` and `COLOUR=1`. The solids are placed as the
+  project's records say, with build123d, cut, and written as a glTF model
+  that the viewer draws, so an assembly need not be built first and the
+  model can be opened in any viewer of such files. Colour stays out of the
+  STEP files, as the plan has it. Two things had to be found: OpenCASCADE
+  writes a material as a colour and nothing else, which a glTF reader takes
+  for polished metal and draws nearly black, so the tool says in the file
+  that it is not metal; and such a file has Y up, so the camera and the up
+  axis are turned with it. The first project's whole enclosure, 155
+  occurrences and 479 solids, is drawn in colour in three minutes. Not
+  there: finishes curated by a project (stage 7.1), a section as a drawing
+  with dimensions (the Farseer project writes one with a script of its
+  own), and edges drawn as lines.
+- **A section as a drawing** (2026-11-18): `tools/section.py` and `make
+  section` draw what a plane cuts of a part or of an assembly, true to
+  scale: an SVG file in millimetres, every part filled in the colour a
+  picture gives it, with a scale and a legend, and beside it a record of
+  the area the plane cuts of each part. It is what one sends to someone who
+  has to judge a shape; a drawing program can measure in it and add
+  dimensions. The first project's bowl is 196.798 mm2 in its plane of
+  symmetry, twice what its program's section has, and the stack of
+  monitor, sheet, frame and bowls shows at a glance what sits in what. The
+  kernel gives the pieces of a cut in an order that changes from run to
+  run; they are written in a settled order, and a test holds the drawing
+  to the same bytes. Not there: dimensions written by the tool, hatching,
+  and what lies behind the plane.
+- **Stage 6** (2026-11-18, by a second agent session and checked here):
+  `tools/take_apart.py`, with its rules in `mechanical_cad/takeapart.py`,
+  makes a project of one STEP file of an assembly. Every product with
+  geometry of its own becomes a supplied part, its shape written out in
+  millimetres, with an `origin.json` that names the product and carries the
+  hash of the file it was taken from; every product made of others becomes
+  an assembly with its children under their usages' names, where the file
+  has them. A product used several times is one part. Keys come from the
+  products' names, numbered where two give the same; a file that is a
+  single part and a placement that mirrors or scales are refused. The
+  layout did not change, with two stretches of meaning that are Peter's to
+  accept: for such a part `received_sha256` is the hash of the file it was
+  taken from, not of a file of its own, and its `part.step` is the kernel's
+  writing, not bytes as they came. Tried on a copy of the mechanical
+  example (22.6 MB, exported from Inventor, products in inches and in
+  millimetres in one file): 43 products became 37 parts and 6 assemblies in
+  20 s; the project validates; its root, built again, has the file's 43
+  products and 112 usages, and compared with the file all 152 solids are
+  where the file has them, within 0.001 mm and 2e-4 of their volume. A
+  second run changes no file. Not kept: the file's 24 colours. One part has
+  faces and no solid; it is kept and placed. The sub-assembly that the file
+  holds in two model states is two products of one name, and the second
+  key is numbered. Not there: a record of the file for the project as a
+  whole, colours, and telling products apart that are alike in shape. What
+  that repository's own registry holds beyond geometry (vendor numbers,
+  datasheets, finishes, the order of an exploded view, the mapping to its
+  display model) has no place in the layout; it is the material of stage
+  7.1. The project is in this checkout's ignored `tmp/`; the repository it
+  came from was read and not changed, and is converted only when Peter
+  says so.
+- **The Makefile is tested** (2026-11-18): `tests/test_makefile.py` looks at
+  what each short command would run, with `make -n`, and runs none of it;
+  `make` is in the base manifest for that. Written after two faults of the
+  Makefile were found by hand that day, it found a third at once: a
+  project whose path holds a space reached the tools in pieces, and is now
+  refused with a sentence.
 - **Stage 8** (2026-11-17): `make view PROJECT=DIR KEY=K` opens the viewer
   on a part or a built assembly and has it follow the file. The command is
   written and the viewer has the option; no window was opened from the
