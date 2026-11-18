@@ -46,9 +46,13 @@ that day:
   generator's. At his word the model was moved into that repository as
   `enclosures/eye/`, a project in this layout, with `eye-*` targets in its
   Makefile that hand the commands to this checkout and this checkout's
-  environment. Section 3, the carrier for the board and the optics and the
-  access to the connectors, was begun there the same day; that
-  repository's plan and `enclosures/eye/README.md` have its state.
+  environment. Section 3 followed there the same day as a concept for
+  joint review: a carrier, an optics cartridge, the first board placement
+  as a supplied part; twenty parts, eleven assemblies, 179 checks. It found
+  that the gap asked for between guide and detector leaves too little room
+  over the board where the placement has parts, and that the rear half for
+  the placement's ports does not pass the print check. That repository's
+  plan and `enclosures/eye/README.md` have its state.
 - **The bowls of the first project**: a vacuum formed bowl, the plug it is
   formed over (built against the bowl), the frame that holds six over a
   monitor (built against the monitor, the bowl and the sheet) and an

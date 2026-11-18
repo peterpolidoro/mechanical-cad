@@ -798,8 +798,21 @@ id, with what it uses; not the folder's three roots.
     fit check should find** (it lists contacts and gaps and cannot be told
     which are wanted); **comparing an authored part with a file from
     outside**; and pictures of a section and in colour.
-  - Not begun: the third section of the brief, the carrier that holds the
-    board, the guide and the filter, and the access to the connectors.
+  - **The third section, as a concept for joint review** (the same day, in
+    `farseer-mech/enclosures/eye/`): a carrier built against the board's
+    interface and seated on corbels added to the front half, an optics
+    cartridge with the guide and a filter, the electrical side's first
+    placement as a supplied part, and stand-ins named as assumed for what
+    is not known. Twenty parts and eleven assemblies, 179 checks. The
+    tools found two things a person would want to know before a board is
+    laid out: the gap asked for between the guide and the detector leaves
+    1.7 mm and less above the board where the placement has parts, and the
+    rear half for the placement's ports has a piece of roof that starts in
+    mid-air, which the print check found and a script of the project
+    predicts from the numbers. The four things the brief asks to return
+    are written by scripts into the project: a section with its
+    dimensions as a drawing, a table of clearances and recesses, and
+    coordinates for the board's designer.
 - **Stage 5.1, a second screen before printing** (2026-11-18):
   `tools/print_check.py` and `make print-check` say whether a part prints
   as it lies in its own frame: what rests on the plate, every face that
