@@ -7,6 +7,68 @@ open-source tools to check it, document it and add to it, with the
 free-standing tank enclosure as the test project. The full statement is
 docs/direction.md. Finished checkpoints are in .agents/HISTORY.md.
 
+## Start here (state of 2026-11-18)
+
+This section is the short version; everything below it is the longer
+record. Where the work is going, what is decided and what is built are in
+docs/direction.md ("Goals, and where each stands", "Decided", "Plan: parts
+around other parts, enclosures for boards, pictures and motion" with its
+"Built so far"). Paths on this machine, ids, and the state of the shared
+clones are in the ignored `.agents/handoff.local.md` and on the share in
+`coordination/NEXT-AGENT.md` and `coordination/status/`.
+
+**Done and working**, each with tests (commands in docs/adding-a-part.md):
+
+- The first project mirrored from Vault, validated and built; its manual
+  is published as a draft.
+- Parts as programs (build123d), drawn parts, supplied parts with
+  `origin.json`, inputs and `interface.json`; a board's interface written
+  from the board's repository (`tools/board_interface.py`).
+- Enclosures for a board (`mechanical_cad/enclosures.py`): a box, any solid
+  of `mechanical_cad/shapes/`, a prism; standoffs, openings for ports
+  through lid and walls, a lip between the halves; fit checks; print files
+  (`tools/print_file.py`). Shown on the example board in an ignored project
+  of this checkout, which is in no repository.
+- A STEP file published to Vault and verified, twice (`vault-cad-tools`).
+
+**Waiting for the Windows agent**, which Peter starts; its machine was off
+on 2026-11-18. A task of five parts is on the share, nothing in it written
+to Vault: the two adds of the reference route (W1) rehearsed; one read of
+what Inventor's add-in records for a relation between two files; the
+exporter with model states, run on the mirror of the second project; an
+acquisition that takes a checked-out file at its last version checked in;
+and the design of a revision (W2) read and corrected. Its first step stops
+unless the shared clones hold what Peter pushed on 2026-11-18, and they are
+brought level only when he says so. When Windows delivers, the delivery is
+checked and answered as `coordination/NEXT-AGENT.md` on the share
+describes.
+
+**Waiting for Peter**:
+
+- His word for the live run of W1, which adds two files to his test folder
+  (docs/direction.md, "For Peter to decide", 4). Recommended after the
+  Windows task above.
+- The first real enclosure: where it lives, the printer and the material.
+  On 2026-11-18 he said he may have an enclosure project that can be used
+  for testing, and has not yet said which.
+- Which changed file the pilot of a revision publishes
+  (`vault-cad-tools/docs/update-step-file-design.md`, section 10).
+- The older open decisions, listed under "Open decisions to put to Peter".
+
+**Next on Linux, none of it needing Windows**, in the order recommended to
+Peter on 2026-11-18:
+
+1. The enclosure for the project he names: its board or parts as supplied
+   components with interfaces, the enclosure built against them, fit
+   checks, print files, and a slicer run once the printer is known.
+2. Stage 6: a project that begins as one STEP file of an assembly, taken
+   apart into the layout and compared with the file solid for solid.
+3. Stage 7: pictures and motion, in `mechanical-docs`.
+4. Smaller: vents and feet for enclosures, and a polygon that follows a
+   rectangular board.
+5. The Linux half of a revision as a new version (request, plan, journal,
+   record, import), after Windows has read the design.
+
 ## Current state (2026-11-13)
 
 On 2026-11-11 Peter decided the layout's three open choices: two roots and
@@ -972,9 +1034,9 @@ read-only tests against Vault asked of the Windows agent.
      one read of what Inventor's add-in writes into an association).
    - The next Windows task is on the share
      (`coordination/to-windows/20261118T140617Z-...`). Its first step stops
-     unless the shared clones hold this repository's and
-     `vault-cad-tools`' next commits, so Peter commits, pushes and says
-     that the clones may be brought level before he starts the agent. The
+     unless the shared clones hold the Windows patch and the decision on
+     model states. Peter pushed both on 2026-11-18; the shared clones are
+     brought level when he says so, and then he starts the agent. The
      Windows machine was off on 2026-11-18.
 
    In Guix that day: KiCad 10.0.5, PrusaSlicer 2.9.5, `python-ezdxf`,

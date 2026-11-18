@@ -554,6 +554,10 @@ ignored notes of this checkout, not here. Still his to decide:
    board's own repository and the mechanical one are left as they are.
 2. How the first enclosure is made. Assumed: printed. Then which printer
    and which material.
+
+   Peter on 2026-11-18, on 1 and 2: he may have an enclosure project that
+   can be used for testing. Which project, and whether the first enclosure
+   is made for it, he has not yet said.
 3. Whether a published file should carry the lab of its project. Both
    published files carry the same lab, which is the lab of neither folder.
    Read on 2026-11-17: it is the property's default, the first entry of a
