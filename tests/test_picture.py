@@ -222,6 +222,52 @@ def test_an_assembly_is_drawn_with_the_finishes_the_project_gives_its_parts(proj
     assert "a file by itself has no finishes" in out and "exit status 2" in out, out
 
 
+def test_a_pose_and_joint_values_are_options_of_their_own():
+    opts = picture.options(["project", "key", "--pose", "open", "--at", "lever=12, slide=-3"])[1]
+    assert opts["pose"] == "open" and opts["at"] == {"lever": 12.0, "slide": -3.0}
+    assert picture.options(["project", "key"])[1]["at"] is None
+    with pytest.raises(ValueError, match="--at 'lever': expected JOINT=VALUE"):
+        picture.options(["project", "key", "--at", "lever"])
+
+
+@cuts
+def test_an_assembly_is_drawn_with_its_joints_moved(project_copy):
+    """The draft of joints and poses: the spacer slid away from its pin, by a pose and by a value."""
+    pictures = project_copy / ".cache" / "pictures"
+    (project_copy / "motion.toml").write_text("""
+schema_version = 1
+
+[joints.slide]
+assembly = "fixture-with-spacer"
+kind = "prismatic"
+origin_mm = [0.0, 0.0, 0.0]
+direction = [1.0, 0.0, 0.0]
+range_mm = [0.0, 40.0]
+moves = ["SPACER:1"]
+
+[poses.away]
+slide = 40.0
+""", encoding="utf-8")
+    out = run(project_copy, "fixture-with-spacer", "--colour", "--views", "iso", "--size", "400x300")
+    assert "[picture] exit status 0" in out, out
+    out = run(project_copy, "fixture-with-spacer", "--colour", "--pose", "away", "--views", "iso", "--size", "400x300")
+    assert "[picture] exit status 0" in out, out
+    assert (pictures / "fixture-with-spacer-colour-pose-away-iso.png").read_bytes()[:8] == picture.PNG
+    out = run(project_copy, "fixture-with-spacer", "--colour", "--at", "slide=40", "--views", "iso", "--size", "400x300")
+    assert "[picture] exit status 0" in out, out
+    still, posed, at = ((pictures / f"fixture-with-spacer-colour{name}.glb").read_bytes() for name in ("", "-pose-away", "-at"))
+    assert posed == at and posed != still                   # the same place said two ways, and not where it stood
+    assert not (project_copy / ".cache" / "assemblies").exists()              # nothing was built for it
+    # without colours as well: the assembly is put together from the records for a pose alone
+    out = run(project_copy, "fixture-with-spacer", "--pose", "away", "--views", "iso", "--size", "400x300")
+    assert "[picture] exit status 0" in out and (pictures / "fixture-with-spacer-pose-away-iso.png").is_file(), out
+    assert "there is no pose 'open'; the poses: away" in run(project_copy, "fixture-with-spacer", "--pose", "open")
+    assert "slide = 41 mm is outside its range, 0 to 40" in run(project_copy, "fixture-with-spacer", "--at", "slide=41")
+    assert "move the joints of an assembly of a project; this is not one" in run(project_copy, "spacer", "--pose", "away")
+    (project_copy / "motion.toml").unlink()
+    assert "a pose or a joint needs the project's motion.toml" in run(project_copy, "fixture-with-spacer", "--pose", "away")
+
+
 @cuts
 def test_an_assembly_is_cut_open_and_coloured_without_being_built(project_copy):
     pictures = project_copy / ".cache" / "pictures"

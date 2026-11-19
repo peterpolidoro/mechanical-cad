@@ -523,6 +523,39 @@ def test_a_prism_on_any_convex_polygon():
             make()
 
 
+def test_a_solid_clipped_by_a_plane_is_the_part_on_its_inner_side():
+    cube = polyhedra.named("cube", 2.0)
+    half = cube.clipped((0, 0, 1), 0.0)
+    assert half.name == "cube" and half.counts == (8, 12, 6)
+    assert half.volume == pytest.approx(4.0, rel=REL) and half.area == pytest.approx(16.0, rel=REL)
+    cut = half.face_towards((0, 0, 1))                              # the cut is a face, where the plane is
+    assert half.normals[cut] == pytest.approx((0.0, 0.0, 1.0)) and half.distances[cut] == pytest.approx(0.0, abs=1e-12)
+    assert half.face_areas[cut] == pytest.approx(4.0, rel=REL) and {v[2] for v in half.polygon(cut)} == {0.0}
+    assert min(v[2] for v in half.vertices) == -1.0
+    # a normal of any length is a direction, and the distance is along it: the plane z = 0.5
+    assert cube.clipped((0, 0, 4), 0.5).volume == pytest.approx(6.0, rel=REL)
+    assert cube.clipped((0, 0, -1), -0.5).volume == pytest.approx(2.0, rel=REL)
+    # one corner cut off through the middles of its three edges: a triangle there, three pentagons, three squares
+    corner = cube.clipped((1, 1, 1), 2 / math.sqrt(3))
+    assert corner.counts == (10, 15, 7) and Counter(map(len, corner.faces)) == {3: 1, 4: 3, 5: 3}
+    assert corner.volume == pytest.approx(8 - 1 / 6, rel=REL)
+    # a truncated octahedron on a hexagon, divided at half its height: the plane crosses six hexagons and leaves
+    # three of them as hexagons and three as quadrilaterals on either side, beside the three squares
+    p = polyhedra.named("truncated-octahedron", 30.0)
+    p = p.resting_on(p.faces_with(6)[0])
+    height = max(v[2] for v in p.vertices)
+    below, above = p.clipped((0, 0, 1), height / 2), p.clipped((0, 0, -1), -height / 2)
+    for part in (below, above):
+        assert part.counts == (18, 27, 11) and Counter(map(len, part.faces)) == {4: 6, 6: 5}
+        assert part.volume == pytest.approx(p.volume / 2, rel=REL)
+    cut = below.face_towards((0, 0, 1))
+    assert below.area + above.area == pytest.approx(p.area + 2 * below.face_areas[cut], rel=REL)
+    # a plane that only touches, or misses, cuts nothing off or leaves nothing
+    for distance, what in ((1.0, "all"), (5.0, "all"), (-1.0, "none"), (-5.0, "none")):
+        with pytest.raises(ValueError, match=f"cube: the plane leaves {what} of the solid"):
+            cube.clipped((0, 0, 1), distance)
+
+
 # ---- the convex hull --------------------------------------------------------------------------------------------
 
 def test_the_hull_takes_corners_only_and_a_polyhedron_refuses_other_points():
@@ -673,6 +706,20 @@ def test_cut_edges_that_are_no_outline_are_refused():
     # two squares apart are two loops, which a pattern of one solid never is: the larger comes first
     apart = unfold.outline(pattern((0.0, 0.0), (1.5, 1.5)))
     assert len(apart) == 2 and unfold.polygon_area(apart[0]) > 0 > unfold.polygon_area(apart[1])
+    # a corner of one face in the middle of a side of another: the cut edges meet two by two at every corner and
+    # still pass that point twice. Two squares side by side, one half a side further up; a square and a kite
+    # that touches its side with one corner
+    with pytest.raises(unfold.UnfoldError, match=r"a corner of the pattern at \(1, 0.5\) lies on a cut edge that does not end there"):
+        unfold.outline(pattern((0.0, 0.0), (1.0, 0.5)))
+    kite = (((1.0, 0.5), (2.0, 0.0)), ((2.0, 0.0), (3.0, 0.5)), ((3.0, 0.5), (2.0, 1.0)), ((2.0, 1.0), (1.0, 0.5)))
+    with pytest.raises(unfold.UnfoldError, match=r"a corner of the pattern at \(1, 0.5\) lies on a cut edge that does not end there"):
+        unfold.outline(pattern((0.0, 0.0), more=kite))
+    # two faces that lie over one another: their sides cross
+    with pytest.raises(unfold.UnfoldError, match=r"two cut edges of the pattern cross at \(1, 0.5\)"):
+        unfold.outline(pattern((0.0, 0.0), (0.5, 0.5)))
+    # a kite that stops short of the square is a second loop
+    short = tuple(((x + 0.001, y), (u + 0.001, v)) for (x, y), (u, v) in kite)
+    assert len(unfold.outline(pattern((0.0, 0.0), more=short))) == 2
 
 
 def test_the_root_face_lies_along_x_and_the_fold_angles_of_a_cube_are_right_angles():
@@ -722,9 +769,139 @@ def test_cutting_the_steepest_edges_leaves_a_tree_of_faces():
 
 def test_a_solid_with_no_pattern_among_the_trees_tried_is_an_error(monkeypatch):
     p = lens()
-    monkeypatch.setattr(unfold, "candidates", lambda polyhedron, root=0: iter([unfold.breadth_first(polyhedron, 48)]))
+    monkeypatch.setattr(unfold, "candidates", lambda polyhedron, root=0, open_faces=(): iter([unfold.breadth_first(polyhedron, 48)]))
     with pytest.raises(unfold.UnfoldError, match="lens: every one of the 1 flat patterns tried lays one face over another"):
         unfold.unfold(p)
+
+
+# ---- a flat pattern with faces left open ------------------------------------------------------------------------
+
+def walked(loop):
+    """How long a loop of points is, round and back to its first."""
+    return math.fsum(math.dist(a, b) for a, b in zip(loop, loop[1:] + loop[:1]))
+
+
+def test_a_box_without_its_top_unfolds_into_a_tray():
+    box = polyhedra.box(100.0, 80.0, 20.0)
+    top, bottom = box.face_towards((0, 0, 1)), box.face_towards((0, 0, -1))
+    pattern = unfold.unfold(box, bottom, [top])
+    assert pattern.open_faces == (top,) and pattern.polygons[top] == () and pattern.root == bottom
+    assert sum(1 for polygon in pattern.polygons if polygon) == 5 and no_two_overlap([p for p in pattern.polygons if p], box.area)
+    # the floor with a wall on each of its sides: four folds of a right angle, none of them to the top
+    assert len(pattern.folds) == 4 and all(fold.angle == pytest.approx(math.pi / 2) and top not in fold.faces for fold in pattern.folds)
+    # the four upright edges are cut between two walls; the four round the top are on one wall only: the rim
+    rim = [cut for cut in pattern.cuts if len(cut.segments) == 1]
+    assert len(pattern.cuts) == 8 and len(rim) == 4 and all(cut.faces[1] == top and cut.faces[0] != top for cut in rim)
+    assert sorted(round(math.dist(*cut.segments[0]), 9) for cut in rim) == [80.0, 80.0, 100.0, 100.0]
+    assert all(len(cut.segments) == 2 and top not in cut.faces for cut in pattern.cuts if cut not in rim)
+    (loop,) = unfold.outline(pattern)
+    assert len(loop) == 12 and unfold.polygon_area(loop) == pytest.approx(100 * 80 + 2 * 20 * (100 + 80), rel=REL)
+    assert walked(loop) == pytest.approx(2 * 4 * 20 + 2 * (100 + 80), rel=REL)
+    assert sorted(pattern.size) == pytest.approx([120.0, 140.0]) and pattern.area == pytest.approx(15200.0, rel=REL)
+    for fold in pattern.folds:                                     # every fold from the outline to the outline
+        assert all(min(math.dist(end, corner) for corner in loop) < 1e-9 for end in fold.segment)
+    # the closed box from the same face is the same with the top hung on one wall
+    closed = unfold.unfold(box, bottom)
+    assert closed.open_faces == () and len(closed.folds) == 5 and len(closed.cuts) == 7
+    assert all(len(cut.segments) == 2 for cut in closed.cuts) and closed.area == pytest.approx(box.area, rel=REL)
+    # the five faces lie as they lay, moved together by what the top adds on the low side of the pattern
+    dx, dy = (closed.polygons[bottom][0][k] - pattern.polygons[bottom][0][k] for k in range(2))
+    for f in range(6):
+        assert f == top or all(a == pytest.approx((b[0] + dx, b[1] + dy)) for a, b in zip(closed.polygons[f], pattern.polygons[f]))
+
+
+@named
+def test_a_pattern_without_one_face_is_one_loop_round_the_faces_that_are_kept(name):
+    p = polyhedra.named(name, 30.0)
+    lengths, count = dict(zip(p.edges, p.edge_lengths)), len(p.faces)
+    # one face of every kind left out, and the first and the last; from the face after it and from the one before
+    for left_out in sorted({p.faces_with(sides)[0] for sides in set(map(len, p.faces))} | {0, count - 1}):
+        for root in ((left_out + 1) % count, (left_out - 1) % count):
+            pattern = unfold.unfold(p, root, [left_out])
+            assert pattern.open_faces == (left_out,) and pattern.polygons[left_out] == () and len(pattern.folds) == count - 2
+            assert no_two_overlap([polygon for polygon in pattern.polygons if polygon], p.area)
+            (loop,) = unfold.outline(pattern)
+            assert unfold.polygon_area(loop) == pytest.approx(p.area - p.face_areas[left_out], rel=REL)
+            assert pattern.area == pytest.approx(p.area - p.face_areas[left_out], rel=REL)
+            # the sides of the face left out are the rim, each on the outline once; every other cut edge twice
+            rim = [cut for cut in pattern.cuts if len(cut.segments) == 1]
+            assert len(rim) == len(p.faces[left_out]) and all(cut.faces[1] == left_out for cut in rim)
+            assert len(pattern.cuts) + len(pattern.folds) == len(p.edges)
+            assert len(loop) == sum(len(cut.segments) for cut in pattern.cuts)
+            assert walked(loop) == pytest.approx(math.fsum(lengths[cut.edge] * len(cut.segments) for cut in pattern.cuts), rel=REL)
+
+
+def test_several_faces_left_open_and_what_cannot_be_left_open():
+    box = polyhedra.box(100.0, 80.0, 20.0)
+    towards = {axis: box.face_towards(direction) for axis, direction in (
+        ("+x", (1, 0, 0)), ("-x", (-1, 0, 0)), ("+y", (0, 1, 0)), ("-y", (0, -1, 0)), ("+z", (0, 0, 1)), ("-z", (0, 0, -1)))}
+    # the four walls without top and floor: a band, three folds, one upright edge cut, eight edges of rim
+    band = unfold.unfold(box, towards["+x"], [towards["+z"], towards["-z"]])
+    (loop,) = unfold.outline(band)
+    assert band.open_faces == tuple(sorted((towards["+z"], towards["-z"]))) and len(band.folds) == 3
+    assert sorted(len(cut.segments) for cut in band.cuts) == [1] * 8 + [2]
+    assert unfold.polygon_area(loop) == pytest.approx(2 * 20 * (100 + 80), rel=REL) and sorted(band.size) == pytest.approx([20.0, 360.0])
+    # top and one wall: the edge between the two faces left out is nowhere in the pattern
+    scoop = unfold.unfold(box, towards["-z"], [towards["+z"], towards["-y"]])
+    assert len(scoop.folds) == 3 and len(scoop.cuts) + len(scoop.folds) == 12 - 1
+    assert sorted(len(cut.segments) for cut in scoop.cuts) == [1] * 6 + [2] * 2
+    assert unfold.polygon_area(unfold.outline(scoop)[0]) == pytest.approx(15200 - 100 * 20, rel=REL)
+    # one face alone: no fold, and its own outline
+    alone = unfold.unfold(box, towards["-z"], [f for axis, f in towards.items() if axis != "-z"])
+    assert alone.folds == () and len(alone.cuts) == 4 and unfold.polygon_area(unfold.outline(alone)[0]) == pytest.approx(8000.0, rel=REL)
+    # floor and top without the walls between them are two pieces
+    with pytest.raises(unfold.UnfoldError, match="box: without the 4 faces left open the others do not hang together"):
+        unfold.unfold(box, towards["-z"], [towards[axis] for axis in ("+x", "-x", "+y", "-y")])
+    with pytest.raises(ValueError, match=f"box: face {towards['+z']} is left open, so it cannot be the face laid first"):
+        unfold.unfold(box, towards["+z"], [towards["+z"]])
+    for wrong in ([6], [-1], ["top"], [1.0]):
+        with pytest.raises(ValueError, match="box has no faces .* to leave open"):
+            unfold.unfold(box, 0, wrong)
+
+
+def test_trees_that_do_not_join_the_faces_kept_are_passed_over(monkeypatch):
+    p = polyhedra.named("dodecahedron", 30.0)
+    # Cutting the steepest edges leaves a tree of all twelve faces. Without one of them the others may fall
+    # apart: such a set of folds cannot be laid out, and the breadth-first ones always can.
+    laid, apart = 0, 0
+    for folds in unfold.candidates(p, 0, [5]):
+        try:
+            polygons, parents = unfold.lay_out(p, folds, 0, [5])
+        except ValueError as exc:
+            assert str(exc) == "these folds do not join all the faces"
+            apart += 1
+            continue
+        laid += 1
+        assert polygons[5] == () and len(parents) == 10 and all(polygons[f] for f in range(12) if f != 5)
+    assert laid >= 11 and apart > 0 and laid + apart == 11 + unfold.STEEPEST_EDGE_DIRECTIONS
+    # `unfold` takes the first that can be laid out and lays no face over another
+    some = [folds for folds in unfold.candidates(p, 0, [5])]
+    first_apart = next(folds for folds in some if len({edge for edge in folds if 5 not in unfold.neighbours(p)[edge]}) < 10)
+    monkeypatch.setattr(unfold, "candidates", lambda polyhedron, root=0, open_faces=(): iter([first_apart, some[0]]))
+    pattern = unfold.unfold(p, 0, [5])
+    assert len(pattern.folds) == 10 and pattern.area == pytest.approx(p.area * 11 / 12, rel=REL)
+    monkeypatch.setattr(unfold, "candidates", lambda polyhedron, root=0, open_faces=(): iter([first_apart]))
+    with pytest.raises(unfold.UnfoldError, match="every one of the 0 flat patterns tried"):
+        unfold.unfold(p, 0, [5])
+
+
+def test_half_of_a_solid_open_where_it_was_divided():
+    p = polyhedra.named("truncated-octahedron", 30.0)
+    p = p.resting_on(p.faces_with(6)[0])
+    height = max(v[2] for v in p.vertices)
+    areas = []
+    for normal, root in (((0, 0, 1), (0, 0, -1)), ((0, 0, -1), (0, 0, 1))):
+        half = p.clipped(normal, (height / 2) * normal[2])
+        cut = half.face_towards(normal)
+        pattern = unfold.unfold(half, half.face_towards(root), [cut])
+        (loop,) = unfold.outline(pattern)
+        assert len(pattern.folds) == 9 and unfold.polygon_area(loop) == pytest.approx(half.area - half.face_areas[cut], rel=REL)
+        rim = [cut_edge for cut_edge in pattern.cuts if len(cut_edge.segments) == 1]
+        # the rim is the cut's outline: six sides, each across a hexagon where it is one and a half edges wide
+        assert len(rim) == 6 and walked(half.polygon(cut)) == pytest.approx(6 * 45.0, rel=REL)
+        assert math.fsum(math.dist(*cut_edge.segments[0]) for cut_edge in rim) == pytest.approx(6 * 45.0, rel=REL)
+        areas.append(unfold.polygon_area(loop))
+    assert sum(areas) == pytest.approx(p.area, rel=REL)                # the two halves are the whole surface
 
 
 # ---- what of the kernel side needs no kernel --------------------------------------------------------------------

@@ -24,6 +24,10 @@ accepted, and the specification is still a draft. What exists:
   pictures without a window, sections as drawings, and a project's
   finishes;
 - a project made of one STEP file of an assembly;
+- as a draft that the layout does not know yet, joints and poses: how the
+  things of an assembly move, the fit check walked over a joint's range,
+  and pictures with the joints moved
+  ([docs/joints-and-poses-draft.md](docs/joints-and-poses-draft.md));
 - a synthetic fixture and a test suite.
 
 It has been used on the first project, an enclosure mirrored from Vault,
@@ -112,9 +116,15 @@ guix shell --pure -m manifest.scm -- python3 -B -m pytest -q tests
   sheet (`.cache/cut/KEY.dxf`, in millimetres) with a record beside it: for
   a part that is a plate cut square through, the outline of one face with
   its holes; that the drawing's lines, arcs and circles join into closed
-  loops, and that the area inside them is the face's. A part with a pocket,
-  a chamfer or a leaning wall is refused. It needs build123d
-  (`make cut PROJECT=DIR KEY=K`). With `--pattern` (`PATTERN=1`) it writes
+  loops, and that the area inside them is the face's. A round corner or
+  the round end of a slot is an arc in the file; a plate with an ellipse
+  or a spline in its outline is refused, and so is a part with a pocket, a
+  chamfer or a leaning wall. It needs build123d
+  (`make cut PROJECT=DIR KEY=K`). `--kerf 0.2` (`KERF=0.2`) allows for a
+  cut that wide: the outline is moved outward and every hole inward by
+  half of it, the drawing is held to the solid's face moved by as much,
+  and the record says the allowance; one that closes a hole or a slot is
+  refused. With `--pattern` (`PATTERN=1`) it writes
   the flat pattern of a part that is a convex solid with flat faces, a
   polyhedron of `mechanical_cad/shapes/`, a box or a prism:
   `.cache/cut/KEY.pattern.dxf` with the outline on the layer `cut` and the
@@ -123,7 +133,12 @@ guix shell --pure -m manifest.scm -- python3 -B -m pytest -q tests
   faces and be as long as the cut edges twice over, and every fold has to
   run from the outline to the outline inside it. It allows nothing for the
   sheet's thickness or a bend's radius and adds no tabs; `--root +x`
-  (`ROOT=+x`) names the face laid first.
+  (`ROOT=+x`) names the face laid first. `--open +z` (`OPEN=+z`, several
+  as `+z,-y`) leaves out the face that faces that way: the pattern of a
+  shell open there, a tray from a box or half of an enclosure from the
+  solid it fills, with the edges round the opening cut once. The part
+  stays the closed solid, and thickness and bends are allowed for no more
+  than before.
 - `mechanical_cad/enclosures.py` is not a command: a part's program calls it
   to make a plain box around a circuit board from the board's interface, a
   base with standoffs and a lid with posts and openings, or the same inside
@@ -139,11 +154,20 @@ guix shell --pure -m manifest.scm -- python3 -B -m pytest -q tests
   field keeps a margin from the edge of the wall's plain part and a web
   between its openings, and is refused, with the reason, when it does not
   fit or comes too near a standoff, a post, the lip or a port's opening.
+  `"stagger": true` sets every second row of a field between the openings
+  of the row before it, and a direction halfway between two walls of the
+  box, `[1, 1, 0]`, names the round corner there, which is cut along its
+  middle.
   `feet` puts round bosses under the base, one towards each corner or
   where `at` says, never under a vent or a port's window; the base has to
   rest on them alone with its centre of mass between them, which
   `enclosures.standing` says of any solid. A base with feet no longer lies
   on its floor, so it prints with support, and the print check says so.
+  With `"kind": "recess"` the feet are pockets in the underside for feet
+  that are stuck on, placed the same way and kept clear of the holes for
+  the inserts, the vents and too thin a floor: such a base lies on its
+  floor, and the print check reports the roofs of its pockets, four
+  bridges of 8.4 mm for feet of 8 mm, and nothing else.
   What is cut and what is added is held to a volume worked out without the
   kernel.
 - `mechanical_cad/shapes/` is a library of polyhedra for a part's program:
@@ -234,6 +258,13 @@ write nothing, and the tests of them are skipped.
   (`MEASURE='...'`) writes dimensions into the drawing between points of the
   model: how far apart two points are across the sheet, up it, or straight,
   each with thin lines to its points and its value in the record.
+  `--hatch` (`HATCH=1`) hatches the cut faces over their colour, parts side
+  by side differently; `--behind` (`BEHIND=1`) draws in thin lines the edges
+  seen behind the plane, by the kernel's hidden-line removal on the exact
+  surfaces, which takes minutes or more on an assembly of many parts, and
+  with `--quick` (`BEHIND=quick`) on a mesh, which takes seconds; `--arcs`
+  (`ARCS=1`) writes circular cut edges as arcs. The record says what each
+  added.
 - `fit_check.py` says whether some children of an assembly fit among the
   others. For an assembly KEY, usually an authored one that places what is
   mirrored together with what is being designed, and the names of the
@@ -241,6 +272,19 @@ write nothing, and the tests of them are skipped.
   other solid of the assembly and reports what interferes (shared volume),
   what touches and what is closer than a clearance, with the smallest
   clearance that is left. It needs FreeCAD alone.
+- `sweep_check.py` is the fit check over the range of a joint, and
+  `axes.py` lists the lines that round faces turn about, where a joint
+  could be. Both belong to a draft that the layout does not know yet,
+  joints and poses in a project's `motion.toml`
+  ([docs/joints-and-poses-draft.md](docs/joints-and-poses-draft.md)):
+  `make sweep PROJECT=DIR KEY=K JOINT=NAME` sets the joint to thirteen
+  values across its range, moves what it moves, compares that with
+  everything that stands still, and prints the stretch around the assembled
+  position that is free and what blocks it at either end; `picture.py
+  --pose NAME` (`POSE=NAME`) draws an assembly with its joints where a pose
+  puts them; `python3 -m mechanical_cad motion PROJECT` checks the record
+  and writes `motion.json` beside a flattened scene, for `mechanical-docs`
+  to make a video of a joint from. All need FreeCAD alone but the picture.
 - `print_check.py` says whether a part prints as it lies in its own frame,
   growing along +Z from its lowest point, or along the axis `--up` names
   (`make print-check PROJECT=DIR KEY=K`). Three screens: the flat faces that
@@ -249,7 +293,11 @@ write nothing, and the tests of them are skipped.
   material that starts in mid-air, found by cutting the part into slices
   every 0.5 mm and asking of every piece of a slice whether it lies over
   the slice before. Roofs that all pass the angle can still enclose such a
-  piece where they meet from several sides. The record goes beside the
+  piece where they meet from several sides. With `--bridge MM` (`BRIDGE=8`)
+  a flat ceiling that is no wider than that where it is narrowest, with a
+  wall under both ends, is listed as a bridge and not held against the
+  part: the roof of a pocket for a stick-on foot, of a slot. No width is
+  assumed without it. The record goes beside the
   print file (`.cache/print/KEY.check.json`). It is a screen of the
   geometry, not a slicer's verdict; it needs FreeCAD alone, and takes a STEP
   file in place of a project and a key.
@@ -308,13 +356,18 @@ repository is used with: OpenCASCADE 7.9.3 and Python 3.12.
 
 | Package | What it is |
 | --- | --- |
-| `python-ocp` 7.9.3.1 | The OCP bindings of OpenCASCADE, compiled from the binding sources upstream generates for each release, with the type stubs. Its check builds a box, measures it and sends it through a STEP file |
+| `python-ocp` 7.9.3.1 | The OCP bindings of OpenCASCADE, generated in the build from OCP's repository and the headers of Guix's own OpenCASCADE, then compiled, with the type stubs written from the module. Its check builds a box, measures it and sends it through a STEP file |
+| `python-pywrap`, `python-clang-21`, `python-pybind11-stubgen-for-ocp` | What generates them: the generator OCP is made with, the Python bindings of the libclang it needs, and the fork of the stub writer OCP is released with |
 | `python-build123d` 0.12.0 | build123d, the last release for OpenCASCADE 7.9. Its own tests run in the build |
-| `python-ocpsvg`, `python-ocp-gordon`, `python-svgpathtools`, `python-trianglesolver`, `python-bd-materials`, `python-threejs-materials`, `python-pygltflib`, `python-dataclasses-json`, `python-lib3mf` | What build123d needs and Guix does not have |
+| `python-ocpsvg`, `python-ocp-gordon`, `python-svgpathtools`, `python-trianglesolver`, `python-bd-materials`, `python-threejs-materials`, `python-pygltflib`, `python-dataclasses-json`, `python-lib3mf`, `lib3mf-2.5` | What build123d needs and Guix does not have, or has in an older release |
 
-Nothing builds these for you: the first use compiles the bindings, about
-twenty minutes on sixteen cores, and an update of Guix that changes Python,
-OpenCASCADE, VTK or pybind11 compiles them again.
+Nothing builds these for you: the first use generates and compiles the
+bindings, about thirty-five minutes on sixteen cores (seventeen to
+generate, fourteen to compile, two for the stubs), and an update of Guix
+that changes Python, OpenCASCADE, VTK, pybind11 or Clang does it again.
+Until 2026-11-19 the generated sources were fetched from upstream's
+release; generated here they give the same 319 submodules and 10268 names,
+and build123d's 2437 tests and bd_warehouse's 1105 pass on them as before.
 
 Without adding the channel:
 
@@ -326,8 +379,9 @@ guix shell --pure -L .guix/modules -m manifest.scm -m .guix/manifest-build123d.s
 
 `.guix/manifest-build123d.scm` is the FreeCAD role with build123d added;
 `make test-build123d` runs the last line. What each definition changes
-against its upstream, and why, is written beside the change. They are not
-yet fit for Guix itself; `.agents/PLANS.md` lists what is missing.
+against its upstream, and why, is written beside the change. Three of them
+stand for changes to Guix's own packages and say so. They have not been
+offered to Guix; `.agents/PLANS.md` lists what is left before that.
 
 ## Related repositories
 

@@ -290,7 +290,8 @@ as code are left. The numbers in brackets are the goals above.
   and `runtype`, which Guix lacks, a newer `multimethod`, and VTK's Python
   modules.
 - **For Guix itself**, what step 6 needs is in `.agents/PLANS.md`: the
-  bindings generated in the build, lib3mf 2.4.1, fewer inputs.
+  bindings generated in the build, lib3mf 2.4.1, fewer inputs. (Done on
+  2026-11-19 but for the offering: "Built so far" below.)
 
 ## Proposed: tests with Inventor and Vault (2026-11-16)
 
@@ -541,15 +542,18 @@ here; L).
 - 7.1 Records in the layout that a picture needs and CAD does not give
   reliably: the finish of each component, curated like quantities and
   materials; joints between components, an axis and its limits, and named
-  poses; views. (The finish is built, as one file for the project: "Built
-  so far" below.)
+  poses; views. (The finish is built, as one file for the project; joints
+  and poses are built as a draft outside the layout, for Peter to decide:
+  "Built so far" below, and [joints-and-poses-draft.md](joints-and-poses-draft.md).)
 - 7.2 In `mechanical-docs`, which has the meshes, the Blender stage and the
   exploded view already: a still of any view outside a manual, a turntable,
   an exploded sequence that follows the manual's steps, a joint moved
-  through its range, each written as video. (All but the joint are built:
-  "Built so far" below.)
+  through its range, each written as video. (All are built, the joint
+  against the draft: "Built so far" below.)
 - 7.3 The fit check run over the range of a joint, which the monitor arm
-  needs.
+  needs. (Built against the draft, `tools/sweep_check.py`, and run on the
+  mechanical example; not yet on the arm, which is not in the first
+  project.)
 - What this asks of the earlier stages is small: a supplied component may
   bring its display model (1.1), every solid keeps its name into the scene,
   which the layout does already, and colour is not put into STEP files,
@@ -1064,9 +1068,82 @@ id, with what it uses; not the folder's three roots.
     `.cache/pictures/`: at the manual's exposure light finishes stay white
     and black plastic comes out grey; a stop and a half darker the colours
     read and the pages stay light.
-  - Not there: joints, poses and views as records; a finish for one solid
-    of a part or for one occurrence; a manual drawn with a project's
-    finishes; a joint in motion.
+  - **Joints and poses, as a draft outside the layout** (the same day, a
+    third round, at Peter's word to go on with as much of it as was
+    recommended; he had said he was not sure what the words meant, and
+    [joints-and-poses-draft.md](joints-and-poses-draft.md) is written to
+    say it). A hand-edited `motion.toml` at the top of a project says
+    which children of an assembly turn about a line or slide along one,
+    how far either way from the assembled position, which joint follows
+    another at a ratio as meshing gears do, and names positions.
+    `mechanical_cad/motion.py` checks it against the project and works
+    out, for a flattened scene, every joint as a line in the scene's
+    frame and every occurrence that moves with the joints that move it,
+    outermost first; `python3 -m mechanical_cad motion` writes that as
+    `motion.json` beside `scene.json`. The validator does not read the
+    record and the flatten step does not write the derived file: both
+    wait for his word. Three tools use it. `tools/axes.py` lists the
+    lines that round faces turn about, which is where a joint's numbers
+    come from. `tools/sweep_check.py` is the fit check over a joint's
+    range (7.3): the joint at thirteen values, what it moves compared
+    with what stands still, the assembled position's own overlaps
+    measured first and not held against the motion, and the free stretch
+    around zero found to a thirty-second of a step. `tools/picture.py
+    --pose` and `--at` draw an assembly with its joints moved.
+  - **On the mechanical example** (its record written from the geometry
+    and the names alone): `make axes` gave one lever unit's three lines
+    at once, and walking five joints found what nobody had written down.
+    Each unit turns on the base plate through 39° between the ends of
+    its arc slot, 11.6° one way and 27.5° the other for the first and
+    the mirror of that for the second, so both are assembled about 8°
+    off the middle. The lever has a stop 10° one way, where its gear
+    meets a post on the motor's plate, and none that the solids show in
+    120° the other way. The stage's halves meet at once in one
+    direction: the micrometer's tip is one solid with the half that
+    carries it. Both gears have 70 teeth, so the motor's gear follows
+    the lever's at -1, and walked together they kept their mesh. A walk
+    takes one to seven minutes, and sixteen to twenty where the two
+    gears are compared at every step.
+  - **A part that is faces and no solid** showed there too: the
+    example's switch. `tools/fit_check.py` and `tools/sweep_check.py`
+    compare solids, and now name such parts as not compared.
+    `mechanical-docs`' mesh stage refused the scene for it; it takes
+    `--surface-parts KEY` now, which meshes a named part from its faces
+    and records that, and is strict as before without it.
+  - **A joint as video** (in `mechanical-docs`, by further agent
+    sessions): `motion.py joint NAME` takes a joint from one limit to
+    the other and back with what follows it, `pose A B` goes from one
+    named pose to another, and `still.py --pose` draws one. Of the
+    example: the lever with its two gears turning against each other,
+    the unit turning through its slot, and a still with both units at
+    their slots' ends, in that project's ignored
+    `.cache/pictures/poses/`. Looked at here frame by frame: the gears
+    mesh, the rod stays on its gear, the slot passes over the knob's
+    screw from end to end. That is the third of the three videos goal
+    20 asks for.
+  - **Outlines on whole assemblies** (in `mechanical-docs`, the same
+    day): Grease Pencil Line Art is built into the renderer behind
+    `"lines": {"outliner": "freestyle" | "line-art" | "mixed"}`,
+    Freestyle as before unless a project says otherwise. The first
+    project's overview with outlines takes 14 s with the faster engine,
+    where Freestyle took 32 minutes. The broken edges of the thin tank
+    were not its wall: strokes were drawn without anti-aliasing, every
+    face of a mesh was outlined as a patch of its own, and edges only
+    marked sharp were drawn; all three are corrected. Whether the first
+    project's manual uses it is Peter's, from
+    `line-art-comparison.png` in that project's ignored
+    `.cache/pictures/`.
+  - **The earlier video code, read line by line**: four defects
+    corrected in `mechanical-docs` (a looping sequence showed its first
+    frame twice; the lights of a turntable of one subassembly went
+    round another axis than the camera; a video from an earlier run
+    stayed beside a receipt that did not describe it; the mesh stage's
+    bare `--` failed with one argument).
+  - Not there: joints and poses as records of the layout, and views at
+    all; a finish for one solid of a part or for one occurrence; a
+    manual drawn with a project's finishes; a project made of one STEP
+    file saying which way is up (the example stands Y up and is taken
+    as Z up, so every picture of it is told).
 - **Vents, feet, a prism that follows the board, and flat patterns to
   cut** (2026-11-19, the smaller items of the plan, by a second agent
   session and looked at here). All four are settings and functions of
@@ -1106,9 +1183,59 @@ id, with what it uses; not the folder's three roots.
     four feet; 165 checks pass, nothing interferes, the four halves give
     closed meshes the slicer calls manifold. The six enclosure parts that
     were there build to the same bytes with the changed module.
-  - Not there: recesses for stick-on feet; vents on round corners,
-    staggered or as louvres; a pattern of a shell with open faces or of an
-    enclosure half; nothing has been printed, cut or folded.
+  - **A second pass, the same day** (three more agent sessions and this
+    one; each began by reading what the first had written, line by line).
+    - *What the reading found.* In the enclosures: two vent fields in one
+      wall kept only the later one's web; a round vent took a slot's
+      sizes and ignored them; a triangular prism was refused its feet; a
+      screw too large for its post surfaced as a lid in five solids.
+      In the patterns: a fold line drawn along the outline was not
+      found; an outline that touched itself was not refused; a solid
+      with round edges too small to show in its volume passed as flat.
+      Each has a test that failed first. No wrong geometry was found in
+      about 2,500 vents compared with the built halves.
+    - *Pockets for stick-on feet*: `"feet": {"kind": "recess", ...}`,
+      round pockets in the underside of the floor, refused where they
+      leave too little floor or come too near an insert, a port or a
+      vent. The base then lies on its floor. The print check still
+      failed it, on the pockets' roofs, because it knew no bridge:
+      `tools/print_check.py --bridge MM` now lists a flat ceiling that
+      is no wider than that where it is narrowest, with a wall under
+      both ends, as a bridge and does not hold it against the part. On
+      the example the base with pockets passes with `--bridge 9` (four
+      ceilings 8.4 mm across) and the base with bosses fails as before.
+      No width is assumed without the option.
+    - *Vents*: `"stagger": true` sets every second row between the
+      openings of the row before; and a field can lie on a round corner
+      of the box, cut level along the corner's middle.
+    - *The cut file*: it wrote arcs as arcs all along, which the plan
+      had wrong. `--kerf MM` moves the outline outward and every hole
+      inward by half the width of the cut, checks the drawing against
+      the solid's face moved by as much, and refuses a cut that closes
+      a hole or a slot. Found on the way: OpenCASCADE 7.9.3 misplaces
+      the offset of a one-circle wire on a moved face; the allowance's
+      own check caught it.
+    - *A pattern of something open*: `--pattern --open +z` leaves out
+      the faces that look squarely along an axis, and
+      `Polyhedron.clipped` cuts a solid at a plane, so the outside of a
+      polyhedron enclosure's half unfolds as a tray does. What
+      `enclosures.halves` returns is still refused: walls, lip and
+      standoffs are not sheet.
+    - *A section as a drawing proper* (`tools/section.py`): `--hatch`
+      hatches every cut face over its colour, neighbours told apart by
+      angle and spacing; `--behind` draws, in thin lines beneath the
+      cut, the edges seen behind the plane; `--arcs` writes a circular
+      cut edge as an arc. The kernel's exact hidden-line projection
+      draws the fixture in a tenth of a second and did not finish the
+      mechanical example from one side in 45 minutes, so `--behind
+      --quick` finds the edges on a fine mesh, in half a minute there.
+      Without the options a drawing is byte for byte what it was. Met on
+      the way and corrected: the area a plane cuts of a part in three
+      or more pieces moved in its last digit from run to run, the kernel
+      handing the pieces over in an order of its own.
+  - Not there: louvres; a pocket's place chosen clear of the standoffs
+    without being told; openings, a lip or flanges in a pattern, and
+    the sheet's thickness; nothing has been printed, cut or folded.
 - **Dimensions in a section** (2026-11-19): `tools/section.py --measure`
   writes a dimension into the drawing between two points of the model,
   taken into the plane: how far apart they are across the sheet, up it, or
@@ -1123,6 +1250,24 @@ id, with what it uses; not the folder's three roots.
   test compared them. One does now, in `vault-cad-tools`
   (`tests/test_index_agreement.py`): a first import, a new version with a
   new file, and one file in two model states. They agree.
+- **The Guix packages, to where they can be offered** (2026-11-19, by a
+  further agent session on a copy, checked here before the module was
+  changed). `python-ocp` no longer fetches the sources upstream
+  generates for each release: the build generates them, from OCP's
+  repository and the headers of Guix's own OpenCASCADE, with OCP's
+  generator and the Python bindings of Clang 21, compiles them and
+  writes the type stubs from the module. Generated here they have the
+  same 319 submodules, 10268 names and 132708 class attributes as the
+  fetched ones. It takes about thirty-five minutes on sixteen cores
+  where compiling alone took twenty. With it: lib3mf 2.5.0, which
+  build123d asks for, so that its patched binding and one deselected
+  test go; `python-anytree` giving its version, so that build123d's
+  requirement stands as upstream wrote it; the tests of two libraries
+  run that were switched off; `python-ocp` compiled without debugging
+  symbols and with three inputs fewer. On these packages build123d's
+  own 2437 tests and bd_warehouse's 1105 pass, as before, and so do
+  this repository's. Not done: offering anything to Guix, which is
+  Peter's, and what the plan lists before that.
 - **The Makefile is tested** (2026-11-18): `tests/test_makefile.py` looks at
   what each short command would run, with `make -n`, and runs none of it;
   `make` is in the base manifest for that. Written after two faults of the

@@ -8,7 +8,7 @@ GUIX      = guix shell --pure -m manifest.scm
 GUIX_CAD  = guix shell --pure -m .guix/manifest-cad.scm
 GUIX_BOTH = guix shell --pure -m manifest.scm -m .guix/manifest-cad.scm
 # With build123d and the OCP bindings as well, from the channel module in this repository. The first use builds
-# them; the bindings take about twenty minutes on sixteen cores.
+# them; the bindings are generated and compiled in the build, about thirty-five minutes on sixteen cores.
 GUIX_B3D  = guix shell --pure -L .guix/modules -m manifest.scm -m .guix/manifest-build123d.scm
 # With f3d, the viewer that draws a STEP file to an image without a display.
 GUIX_VIEW = guix shell --pure -m manifest.scm -m .guix/manifest-view.scm
@@ -22,7 +22,7 @@ GUIX_PRINT = guix shell --pure -L .guix/modules -m manifest.scm -m .guix/manifes
 project = $(if $(PROJECT),$(if $(word 2,$(PROJECT)),$(error the path of the project holds a space, which make cannot hand on: $(PROJECT)),$(abspath $(PROJECT))),$(error name the project repository: make $@ PROJECT=/path/to/project))
 
 .DEFAULT_GOAL := help
-.PHONY: help test test-cad test-build123d test-view validate assemblies assembly open picture view part parts facts check fit print print-check cut take-apart section
+.PHONY: help test test-cad test-build123d test-view validate assemblies assembly open picture view part parts facts check fit print print-check cut take-apart section motion axes sweep
 
 help:
 	@echo "make test                        the tests that need no FreeCAD"
@@ -43,15 +43,24 @@ help:
 	@echo "                                 [VIEWS=iso,below,+x] [UP=+Y]: where the camera stands, which axis is up"
 	@echo "                                 [CUT=+y] [CUT=-x=12.5] [COLOUR=1]: cut open at the middle or at a place; each part in a colour of its own"
 	@echo "                                 [FINISH=1]: each part as the project's finishes.toml says, in place of COLOUR"
+	@echo "                                 [POSE=NAME] [AT='JOINT=VALUE,JOINT=VALUE']: an assembly with its joints moved (a draft, as the next three)"
+	@echo "make motion PROJECT=DIR [KEY=K]  check the project's motion.toml and list its joints and poses in the assembly K"
+	@echo "make axes PROJECT=DIR KEY=K [CHILD=NAME] [MIN_RADIUS=MM]   the lines round faces turn about: where a joint could be"
+	@echo "make sweep PROJECT=DIR KEY=K JOINT=NAME [STEPS=13] [POSE=NAME]   walk a joint through its range: where is what it moves blocked"
 	@echo "make section PROJECT=DIR KEY=K CUT=+y   what a plane cuts, as a drawing in millimetres with every part in its colour (SVG)"
 	@echo "                                 [FINISH=1]: every part in the colour of its finish"
 	@echo "                                 [MEASURE='across 0,0,0 40,0,12 gap; up 0,0,0 0,0,21']: dimensions between points of the model"
+	@echo "                                 [HATCH=1] [BEHIND=1] [ARCS=1]: the cut faces hatched; the edges seen behind the plane, thin; circular edges as arcs"
+	@echo "                                 [BEHIND=quick]: those edges found on a mesh, in seconds where the exact surfaces take minutes"
 	@echo "make view PROJECT=DIR KEY=K      a viewer window on a part or a built assembly; it follows the file when it is built again"
 	@echo "make print PROJECT=DIR KEY=K     the mesh to print a part from, checked against the solid and shown to a slicer"
 	@echo "make print-check PROJECT=DIR KEY=K   will the part print as it stands: what is on the plate, overhangs, material that starts in mid-air"
 	@echo "                                 [UP=+Z] [ANGLE=45] [STEP=0.5]: the build direction, the flattest overhang allowed, how far apart the slices are"
+	@echo "                                 [BRIDGE=8]: a flat ceiling no wider than that, with a wall under both ends, is a bridge and not an overhang"
 	@echo "make cut PROJECT=DIR KEY=K       the drawing to cut a plate from sheet, checked against the solid"
+	@echo "                                 [KERF=0.2]: allow for a cut that wide: the outline moved outward and the holes inward by half of it"
 	@echo "                                 [PATTERN=1] [ROOT=-z]: the flat pattern of a solid with flat faces instead, to cut and fold; the face laid first"
+	@echo "                                 [OPEN=+z] [OPEN=+z,-y]: with PATTERN=1, the faces left out: a shell open there, a tray or half of an enclosure"
 	@echo "make take-apart FILE=A.step PROJECT=NEW_DIR ORIGIN='--retrieved DAY --publishable yes --description TEXT'"
 	@echo "                                 a project from one STEP file of an assembly: its products as parts, its structure as assemblies"
 	@echo "Built files go to PROJECT/.cache/assemblies/. README.md has the commands these run."
@@ -126,7 +135,7 @@ print:
 # (tools/print_check.py). FreeCAD alone.
 print-check:
 	@$(GUIX_CAD) -- FreeCADCmd tools/print_check.py --pass "$(project)" $(if $(KEY),$(KEY),$(error name the part: make print-check PROJECT=... KEY=K)) \
-	  $(if $(UP),-- --up $(UP)) $(if $(ANGLE),-- --angle $(ANGLE)) $(if $(STEP),-- --step $(STEP))
+	  $(if $(UP),-- --up $(UP)) $(if $(ANGLE),-- --angle $(ANGLE)) $(if $(STEP),-- --step $(STEP)) $(if $(BRIDGE),-- --bridge $(BRIDGE))
 
 # A project from one STEP file of an assembly (tools/take_apart.py): every product with geometry a supplied
 # part, every product made of others an assembly. PROJECT is a new directory; ORIGIN holds the options that
@@ -135,18 +144,36 @@ take-apart:
 	@$(GUIX_B3D) -- python3 -B tools/take_apart.py "$(abspath $(if $(FILE),$(FILE),$(error name the file: make take-apart FILE=A.step PROJECT=NEW_DIR ORIGIN='...')))" "$(project)" $(ORIGIN)
 
 # The file to cut a plate from sheet, into PROJECT/.cache/cut/ (tools/cut_file.py). With PATTERN=1, the flat
-# pattern of a part that is a convex solid with flat faces: its outline to cut and its fold lines.
+# pattern of a part that is a convex solid with flat faces: its outline to cut and its fold lines. KERF is the
+# width of the cut to allow for round a plate; OPEN names the faces a pattern leaves out.
 cut:
 	@$(GUIX_B3D) -- python3 -B tools/cut_file.py "$(project)" $(if $(KEY),$(KEY),$(error name the part: make cut PROJECT=... KEY=K)) \
-	  $(if $(PATTERN),--pattern) $(if $(ROOT),--root $(ROOT))
+	  $(if $(PATTERN),--pattern) $(if $(ROOT),--root $(ROOT)) $(if $(OPEN),--open $(OPEN)) $(if $(KERF),--kerf $(KERF))
 
 # What a plane cuts of a part or an assembly, as a drawing to scale, into PROJECT/.cache/pictures/ (tools/section.py).
 section:
 	@$(GUIX_B3D) -- python3 -B tools/section.py "$(project)" $(if $(KEY),$(KEY),$(error name the component: make section PROJECT=... KEY=K CUT=+y)) \
 	  $(if $(CUT),--cut $(CUT),$(error name the plane: CUT=+y for the middle seen from +Y, CUT=-x=12.5 for X = 12.5 seen from -X)) $(if $(UP),--up $(UP)) \
-	  $(if $(FINISH),--finish) $(if $(MEASURE),--measure "$(MEASURE)")
+	  $(if $(FINISH),--finish) $(if $(MEASURE),--measure "$(MEASURE)") $(if $(HATCH),--hatch) $(if $(BEHIND),--behind$(if $(filter quick,$(BEHIND)), --quick)) $(if $(ARCS),--arcs)
 
 # Pictures of a part or of a built assembly, made without a window (tools/picture.py).
 picture:
-	@$(if $(CUT)$(COLOUR)$(FINISH),$(GUIX_VIEW_B3D),$(GUIX_VIEW)) -- python3 -B tools/picture.py "$(project)" $(if $(KEY),$(KEY),$(error name the component: make picture PROJECT=... KEY=K)) \
-	  $(if $(VIEWS),--views $(VIEWS)) $(if $(UP),--up $(UP)) $(if $(CUT),--cut $(CUT)) $(if $(COLOUR),--colour) $(if $(FINISH),--finish)
+	@$(if $(CUT)$(COLOUR)$(FINISH)$(POSE)$(AT),$(GUIX_VIEW_B3D),$(GUIX_VIEW)) -- python3 -B tools/picture.py "$(project)" $(if $(KEY),$(KEY),$(error name the component: make picture PROJECT=... KEY=K)) \
+	  $(if $(VIEWS),--views $(VIEWS)) $(if $(UP),--up $(UP)) $(if $(CUT),--cut $(CUT)) $(if $(COLOUR),--colour) $(if $(FINISH),--finish) \
+	  $(if $(POSE),--pose $(POSE)) $(if $(AT),--at "$(AT)")
+
+# A draft that the layout does not know yet (mechanical_cad/motion.py): the joints and poses of PROJECT/motion.toml.
+# `motion` checks the file and lists what it says of an assembly; `axes` lists the lines round faces turn about,
+# where a joint could be; `sweep` walks a joint through its range and says where what it moves is blocked.
+# CHILD and JOINT go on whole: a name may hold spaces.
+motion:
+	@$(GUIX) -- python3 -B -m mechanical_cad motion "$(project)" $(if $(KEY),--root $(KEY))
+
+axes:
+	@$(GUIX_CAD) -- FreeCADCmd tools/axes.py --pass "$(project)" $(if $(KEY),$(KEY),$(error name the assembly or the part: make axes PROJECT=... KEY=K)) \
+	  $(if $(CHILD),-- --child "$(CHILD)") $(if $(MIN_RADIUS),-- --min-radius $(MIN_RADIUS)) $(if $(TOP),-- --top $(TOP))
+
+sweep:
+	@$(GUIX_CAD) -- FreeCADCmd tools/sweep_check.py --pass "$(project)" $(if $(KEY),$(KEY),$(error name the assembly: make sweep PROJECT=... KEY=K JOINT=NAME)) \
+	  $(if $(JOINT),-- --joint "$(JOINT)",$(error name the joint to walk: JOINT=NAME)) \
+	  $(if $(STEPS),-- --steps $(STEPS)) $(if $(POSE),-- --pose $(POSE)) $(if $(AT),-- --at "$(AT)") $(if $(CLEARANCE),-- --clearance $(CLEARANCE))

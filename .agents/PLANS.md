@@ -30,22 +30,28 @@ the next session" at the end of that handoff file first.
   of `mechanical_cad/shapes/`, a prism on a regular polygon, and since
   2026-11-19 a prism that follows the board's rectangle (`octagon_halves`);
   standoffs, openings for ports through lid and walls, a lip between the
-  halves, and since 2026-11-19 vents through any flat wall and feet under
-  the base; fit checks. Shown on the example board in an ignored project
-  of this checkout.
+  halves, and since 2026-11-19 vents through any flat wall or a round
+  corner of the box, in rows or staggered, and feet under the base, as
+  bosses or as pockets for stick-on feet; fit checks. Shown on the example
+  board in an ignored project of this checkout.
 - Files to make a part from, each checked against the solid: a mesh to
   print (`tools/print_file.py`, with an absolute deflection since
   2026-11-18), a drawing to cut a plate from sheet (`tools/cut_file.py`,
-  2026-11-18), the flat pattern of a solid with flat faces, with its fold
-  lines (`tools/cut_file.py --pattern`, 2026-11-19), and whether a part
-  prints as it lies, by overhangs and by material that starts in mid-air
-  (`tools/print_check.py`, 2026-11-18).
+  2026-11-18; with an allowance for the width of the cut, `--kerf`,
+  2026-11-19), the flat pattern of a solid with flat faces, with its fold
+  lines, closed or with faces left open (`tools/cut_file.py --pattern`,
+  `--open`, 2026-11-19), and whether a part prints as it lies, by
+  overhangs and by material that starts in mid-air
+  (`tools/print_check.py`, 2026-11-18; a flat ceiling that a printer
+  lays across is a bridge when `--bridge MM` says how far, 2026-11-19).
 - Pictures without a window, of a part or an assembly, since 2026-11-18
   also cut open and with every part in a colour of its own
   (`tools/picture.py --cut +y --colour`).
 - A section as a drawing to scale, every part in its colour
   (`tools/section.py`, 2026-11-18), with dimensions between named points
-  of the model (`--measure`, 2026-11-19).
+  of the model (`--measure`), hatching (`--hatch`), the edges seen behind
+  the plane (`--behind`, `--behind --quick` for an assembly) and arcs as
+  arcs (`--arcs`), all 2026-11-19.
 - A project made of one STEP file of an assembly (`tools/take_apart.py`,
   stage 6, 2026-11-18): the mechanical example as a project in the ignored
   `tmp/dual-lever-from-step/`, 152 of 152 solids where its file has them.
@@ -66,11 +72,30 @@ the next session" at the end of that handoff file first.
   its finish unless the project's `render.json` names a look for it, and
   `mechanical_docs/still.py` draws a scene alone from a named side, the
   first item of stage 7.2 (that repository's plan has the state).
-- Moving pictures, stage 7.2 but for a joint (2026-11-19, in
-  `mechanical-docs`): a turntable, the subassemblies moving apart and
-  back, and a project's steps in the manual's order, each as video. Four
-  videos of the first project are in its ignored `.cache/pictures/`.
+- Moving pictures, stage 7.2 (2026-11-19, in `mechanical-docs`): a
+  turntable, the subassemblies moving apart and back, and a project's
+  steps in the manual's order, each as video. Four videos of the first
+  project are in its ignored `.cache/pictures/`. A joint through its
+  range is drawn too, against the draft below.
+- Outlines on whole assemblies (2026-11-19, in `mechanical-docs`): Line
+  Art behind a setting that is off unless a project switches it on.
 - A STEP file published to Vault and verified, twice (`vault-cad-tools`).
+
+**Built as a draft, outside the layout, for Peter to decide** (2026-11-19;
+open decision 21): joints and poses. A project's hand-edited `motion.toml`
+says which children of an assembly turn about a line or slide along one,
+how far, which joint follows another, and names positions
+(`mechanical_cad/motion.py`, docs/joints-and-poses-draft.md, which is
+written for him: he had said he was not sure what the words meant). The
+validator does not read it and the flatten step does not write what is
+derived from it. `make axes` lists the lines a joint could be, `make sweep`
+walks a joint through its range and says where what it moves is blocked
+(stage 7.3), `make picture POSE=NAME` draws an assembly with its joints
+moved, and `python3 -m mechanical_cad motion` writes `motion.json` beside a
+flattened scene, from which `mechanical-docs` draws a joint as video. Tried
+on the mechanical example: its record, the walks' records, pictures and
+three videos are in the ignored `tmp/dual-lever-from-step/` (`motion.toml`,
+`.cache/sweep/`, `.cache/pictures/poses/`).
 
 **Two projects worked on with these tools on 2026-11-18**, at Peter's word
 that day:
@@ -100,7 +125,9 @@ that day:
   file of numbers there (`studies/bowls/`), so that the researcher's
   answers are a change of numbers and one command.
 
-**Waiting for the Windows agent**, which Peter starts. The shared clones
+**Waiting for the Windows agent**, which Peter starts; on 2026-11-19 he
+said his Windows laptop is down, so nothing there moves until it is back.
+The shared clones
 were brought level on his word twice on 2026-11-18, the second time when
 the session ended, with everything he had pushed until then; the gate of
 the task on the share passes. The task has five parts and writes nothing to
@@ -114,8 +141,8 @@ delivers, the delivery is checked and answered as
 this repository lacks the last commit of 2026-11-18, which changes
 documents, and the work of 2026-11-19; it is brought level on Peter's word,
 and the Windows task needs neither. On 2026-11-19 the share was not mounted
-in the agent's session: whether Windows has delivered was not looked at,
-and the share's coordination plan and status file were not refreshed.
+in the agent's session, in any of its three rounds: the share's
+coordination plan and status file were not refreshed.
 
 **Waiting for Peter**:
 
@@ -123,7 +150,15 @@ and the share's coordination plan and status file were not refreshed.
   `finishes.toml`): a draft that gives 31 of its 43 parts a finish, each
   from the part's name or from the material CAD claims for it. The twelve
   without one, the panels among them, and every colour are his to correct;
-  and whether its manual is drawn with them (open decision 20).
+  and whether its manual is drawn with them (open decision 20). On
+  2026-11-19 he said there is no need for another full-quality render of
+  that manual just yet.
+- Joints and poses: whether they become records of the layout (open
+  decision 21; docs/joints-and-poses-draft.md ends with what is his to
+  decide).
+- Whether the first project's manual gets outlines from Line Art where
+  Freestyle draws none (`mechanical-docs`, plan, next work 5; the sheet
+  `line-art-comparison.png` in that project's ignored `.cache/pictures/`).
 - The joint review of the Farseer model with the board's designer, which
   its brief asks for, and the printer and the material for it.
 - The researcher's answers on the bowls, and who forms them
@@ -154,18 +189,27 @@ and the share's coordination plan and status file were not refreshed.
    comparing the project made from the mechanical example's file with the
    Vault mirror of the same assembly once Windows exports it; and, if Peter
    says so, the conversion of `mouse-joysticks-mech` itself.
-4. Stage 7 goes on. Finishes, stills, a turntable, an exploded sequence
-   and a steps sequence are built (above). What is left of it touches the
-   layout and waits for Peter's word: joints between components with an
-   axis and its limits, named poses, views (7.1); then a joint moved
-   through its range as video (7.2) and the fit check over that range,
-   which the monitor arm needs (7.3).
-5. Smaller, none needing a word: recesses for stick-on feet, since a base
-   with bosses under it no longer prints lying on its floor; vents on
-   round corners or staggered; a flat pattern of a shell with open faces
-   or of an enclosure half; hatching in a section and what lies behind its
-   plane; outlines on whole assemblies in `mechanical-docs` with Line Art
-   (its plan, next work 5).
+4. Stage 7: everything in it is built, the joints and what uses them as
+   a draft. Left: Peter's word on that draft (open decision 21), and then
+   the record in the layout, the validator and the flatten step; the fit
+   check over a range run on the monitor's arm, once the arm is a part of
+   the first project with its links as components; views, when something
+   needs a picture by name.
+5. Smaller, none needing a word:
+   - a project made of one STEP file saying which way is up
+     (`tools/take_apart.py` writes no frame, and the mechanical example,
+     which stands Y up, is taken as Z up by everything that draws it);
+   - the second lever unit's lever and stage in the example's record, and
+     the walk of a joint made quicker where two gears are compared at
+     every step (sixteen to twenty minutes there);
+   - a pocket for a foot placed clear of the standoffs without being
+     told; louvres;
+   - openings, a lip and flanges in a flat pattern, and the sheet's
+     thickness;
+   - hidden edges dashed in a section, and its header kept on a narrow
+     sheet;
+   - in `mechanical-docs` (its plan, next work 5): outlines on parts
+     behind ghosted ones; a whole manual built once with Line Art.
 6. The Linux half of a revision as a new version (request, plan, journal,
    record, import), after Windows has read the design.
 
@@ -174,12 +218,23 @@ on this list: the colours of a file that is taken apart, vents and feet,
 the prism that follows a rectangular board, flat patterns through the cut
 file, dimensions in a section, a test of the index derived in two places,
 and the housekeeping (the plan's record moved to .agents/HISTORY.md, the
-README's status).
+README's status). And in a third round that day, at his word to complete
+as much as could be of six things: the day's code read line by line and
+eleven defects corrected, each with a test (docs/direction.md, "Built so
+far", has them); pockets for stick-on feet and the bridge the print check
+needed to pass them; staggered vents and vents on round corners; the
+width of the cut and a pattern of something open in the cut file;
+hatching, the edges behind the plane and arcs in a section; Line Art in
+`mechanical-docs`; the joints and poses draft with its tools, and a joint
+as video; a part that is faces and no solid named by the fit checks and
+allowed by name in `mechanical-docs`' mesh stage. And the Guix packages
+brought to where they can be offered ("Next work" has what is left).
 
-Tests at the end of 2026-11-19: 557 pass without a kernel (95 skipped), 650
-with FreeCAD, the bindings, build123d and bd_warehouse (4 skipped), and the
-12 of `tests/test_picture.py` with the viewer and build123d together. In
-`mechanical-docs`, 168 (4 skipped) and 172 with FreeCAD; in
+Tests at the end of 2026-11-19: 639 pass without a kernel (121 skipped), 757
+with FreeCAD, the bindings, build123d and bd_warehouse (5 skipped), and the
+14 of `tests/test_picture.py` with the viewer and build123d together. In
+`mechanical-docs`, 221 (6 skipped) and 227 with FreeCAD, and its three
+fixtures build at preview quality with every check passed; in
 `vault-cad-tools`, 113 when run from this checkout.
 
 ## Open decisions to put to Peter
@@ -402,7 +457,12 @@ Smaller ones:
     The project as a whole has no record of the file. To accept as it is,
     or: a kind of origin of its own for a part taken out of a larger file,
     and a place for the record of that file. Also open there: what a part
-    is that has faces and no solid (one of the 37 in the trial).
+    is that has faces and no solid (one of the 37 in the trial). Since
+    2026-11-19 the tools say what they do with one, and no rule is
+    written: `fit_check.py` and `sweep_check.py` name it as not compared,
+    and `mechanical-docs`' mesh stage refuses it unless it is named with
+    `--surface-parts`, then meshes its faces and records that. The layout
+    still says nothing of it.
 
 20. What the finishes left open (2026-11-19; docs/direction.md, "Built so
     far", stage 7). Peter decided the one thing asked: one file for the
@@ -431,8 +491,30 @@ Smaller ones:
     - **The colour a part gets when a file is taken apart**: the one most
       of its surface has. Three parts of the mechanical example have
       several colours in their file and are drawn in one.
-    - **Feet under an enclosure are bosses**, which a printer has to
-      support; recesses for stick-on feet are not built.
+    - **Feet under an enclosure** are bosses, which a printer has to
+      support, or since the third round of 2026-11-19 pockets for
+      stick-on feet, with which the base lies on its floor. The print
+      check passes such a base only when it is told how far the printer
+      bridges (`--bridge 9` for pockets 8.4 mm across); no width is
+      assumed, and which width is right for a printer is his.
+
+21. Joints and poses (2026-11-19; docs/joints-and-poses-draft.md, which
+    ends with these). Built as a draft outside the layout, at his word to
+    go on with as much as was recommended:
+    - **Whether they belong in the layout at all.** A yes means a section
+      in the specification, `validate` reading `motion.toml`, `flatten`
+      writing `motion.json`, a record in the fixture; a no removes one
+      module, two tools, two options of the picture tool and three
+      Makefile targets here, and a reader and two kinds of video in
+      `mechanical-docs`.
+    - **One file for the project or one beside each assembly.** Built as
+      one, as he chose for finishes.
+    - **A joint's line as numbers**, which `make axes` finds, or as a
+      named feature of a part.
+    - **A joint that follows another** (`follows`, `ratio`) was added
+      because the example's lever is gear-driven; it stands for gears, a
+      rack, a belt, and nothing else couples two joints.
+    - **Views** are not built and not proposed yet.
 
 ## Next work
 
@@ -451,16 +533,32 @@ the record that moved to .agents/HISTORY.md on 2026-11-19, each still open:
   `tmp/monitor-mounts/`.
 - **A part that is made, and measured against its STEP file** (goals 9 and
   18): nothing has been made yet.
-- **Before the packages can be offered to Guix itself**: the OCP bindings
-  generated in the build, from OCP's repository and the headers of
-  `opencascade-occt`, with pywrap and libclang 20 or 21 (Guix defines the
-  Python bindings of clang for version 13 only); lib3mf 2.4.1 in Guix,
-  which build123d asks for; `python-anytree` in Guix giving its version as
-  0.0.0; the tests of `python-dataclasses-json` and `python-pygltflib`; the
-  inputs of `python-ocp` pruned to what the build uses, and a build type
-  without debugging symbols. To watch before anything is submitted: the
-  issue Open Cascade SAS opened on 2026-11-12 about OCP's licence
-  compliance.
+- **Before the packages can be offered to Guix itself.** Done on
+  2026-11-19, and built and tested here: the OCP bindings generated in
+  the build from OCP's repository and the headers of `opencascade-occt`,
+  with pywrap and the Python bindings of Clang 21; lib3mf 2.5.0 beside
+  Guix's 2.2.0; `python-anytree` giving its version; the tests of
+  `python-dataclasses-json` and `python-pygltflib` run, but for those
+  that need mypy or the Khronos sample models; the inputs of
+  `python-ocp` pruned, and compiled without debugging symbols. Left:
+  - three definitions stand for changes to Guix's own packages and are
+    to be offered as that: `clang-python-bindings` entering
+    `clang/bindings/python` for the later releases, with a
+    `python-clang-21`; a phase for `python-anytree` that hands
+    pdm-backend the version; `lib3mf` updated;
+  - lib3mf 2.5.0 is built from the sources its own generator wrote,
+    which Guix's release of that generator does not reproduce;
+  - a second build of `python-ocp` compared with the first
+    (`guix build --check`), other architectures, and Guix's other users
+    of lib3mf;
+  - the issue Open Cascade SAS opened on 2026-11-12 about OCP's licence
+    compliance (CadQuery/OCP, 234): the maintainer agreed and added the
+    licence texts on 2026-11-14; the notices in every generated file and
+    the wheels' metadata were not released when it was read on
+    2026-11-19, and it is open. What is generated here carries what
+    upstream's generator writes, so the notices come with a later
+    release of it.
+  Offering anything to Guix is Peter's.
 - **CadQuery 2.8.0**, if wanted: it needs `casadi` and `runtype`, which
   Guix lacks, a newer `multimethod`, and VTK's Python modules. And a kernel
   module on OCP that measures and writes without FreeCADCmd.
@@ -473,8 +571,10 @@ the record that moved to .agents/HISTORY.md on 2026-11-19, each still open:
   enclosure. The tolerances for comparing geometry facts are provisional (one
   kernel version).
 - Measuring needs the OCP bindings since 2026-11-13, which nothing builds
-  for anyone: about twenty minutes after each update of Guix that changes
-  what they depend on. The fingerprint's tolerances (1e-6) are tighter than
+  for anyone: about thirty-five minutes after each update of Guix that
+  changes what they depend on, since 2026-11-19, when the build began to
+  generate them (twenty before, with upstream's generated sources). The
+  fingerprint's tolerances (1e-6) are tighter than
   the integration reaches for one part of the enclosure (2.3e-5), and have
   not been tried between two exports of a part since the change.
 - `import-snapshot` reads the package `Export-Package.ps1` writes
@@ -506,31 +606,51 @@ the record that moved to .agents/HISTORY.md on 2026-11-19, each still open:
   clones without that fault, where both give what Linux gets. The flatten
   step, the tests and the tools under `tools/` have not been run there.
 
-- `tools/cut_file.py` writes straight lines and circles only, one part per
-  drawing, with no allowance for the width of the cut. It has been run on
-  one real part, the first project's bowl frame, and nothing has been cut
-  from its drawing. It reaches into the DXF library for the order of its
+- `tools/cut_file.py` writes lines, arcs and circles, one part per
+  drawing; an ellipse or a spline in an outline is refused. `--kerf`
+  refuses a slot exactly as wide as the cut, draws sharp inside corners
+  sharp and counts them, and adds no relief or lead-in. `--open` names
+  only faces square to an axis, of a closed convex solid; a pattern has
+  no holes, flanges, tabs, thickness, bend allowance or kerf. It has been
+  run on one real part, the first project's bowl frame, and nothing has
+  been cut or folded from any drawing. It reaches into the DXF library
+  for the order of its
   class records, which another version of that library may arrange
   differently; the test that runs the tool under two hash seeds would then
   fail.
 - `tools/print_check.py` samples: slices every half millimetre, and curved
   faces over a mesh. It has been run on the Farseer halves, where it gives
   the reference's results, and on one part of the first project. Nothing
-  it passed has been printed.
+  it passed has been printed. A bridge is judged by a ceiling's width,
+  measured every five degrees round, and by what is under its two ends,
+  not along its whole edge.
+- `tools/sweep_check.py` samples a joint's range: something thinner than
+  a step's motion can be passed through unseen. It compares solids, so a
+  part that is faces only is not seen (the mechanical example's switch).
+  What moves together is said by hand in the draft record; a child
+  wrongly put into a joint is not seen at all. It has been run on one
+  real assembly, and nothing it found has been compared with the thing
+  itself.
 - build123d's `scale` enlarges a shape about the origin it had before it
   was moved, and its `export_stl` takes its tolerance as a fraction of an
   edge's size. Both were met on 2026-11-18, the first by a volume held in
   a part's program, the second by the print file's own check.
 
 - `tools/take_apart.py` has been run on one real file. It reads every
-  product in millimetres, keeps no colour, and tells products apart by
+  product in millimetres, gives a part the one colour most of its surface
+  has, writes no frame (which way is up), and tells products apart by
   their identity in the file, not by their shape. A part's `origin.json`
   then carries the hash of the assembly file as `received_sha256`, which
   the layout says of a file as it came.
 - `tools/picture.py --cut` and `--colour` and `tools/section.py` put an
   assembly together with build123d, every occurrence with geometry of its
   own, so a model of the first project's whole enclosure is 33 MB and
-  takes three minutes. A section's curves are short straight pieces.
+  takes three minutes. A section's curves are short straight pieces
+  unless `--arcs` is given, and then only circular ones are arcs. The
+  edges behind the plane come from the kernel's exact projection, which
+  did not finish one side of the mechanical example in 45 minutes, or
+  with `--quick` from a mesh, where edges that lie one behind the other
+  are both drawn and a ball's outline had gaps in a trial.
 
 ## Hazards
 

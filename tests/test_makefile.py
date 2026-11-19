@@ -75,6 +75,29 @@ def test_a_picture_takes_the_kernel_only_when_it_is_cut_or_coloured():
     assert "manifest-build123d.scm" in out and "manifest-view.scm" in out
 
 
+def test_a_pose_takes_the_kernel_and_a_joint_is_walked_with_its_name_whole():
+    out, status = would_run("picture", f"PROJECT={PROJECT}", "KEY=machine", "POSE=open", "AT=lever=12,slide=-3")
+    assert status == 0 and '--pose open --at "lever=12,slide=-3"' in out, out
+    assert "manifest-build123d.scm" in out and "manifest-view.scm" in out
+    out, status = would_run("sweep", f"PROJECT={PROJECT}", "KEY=machine", "JOINT=pin@ROOT:1/PIN PAIR:1", "STEPS=25", "POSE=open")
+    assert status == 0 and f'tools/sweep_check.py --pass "{PROJECT}" machine' in out, out
+    assert '-- --joint "pin@ROOT:1/PIN PAIR:1"' in out and "-- --steps 25" in out and "-- --pose open" in out
+    assert "manifest-cad.scm" in out
+    out, status = would_run("sweep", f"PROJECT={PROJECT}", "KEY=machine")
+    assert status != 0 and "name the joint to walk" in out
+    out, status = would_run("axes", f"PROJECT={PROJECT}", "KEY=machine", "CHILD=LEVER ARM:1", "MIN_RADIUS=2")
+    assert status == 0 and '-- --child "LEVER ARM:1"' in out and "-- --min-radius 2" in out, out
+    out, status = would_run("motion", f"PROJECT={PROJECT}", "KEY=machine")
+    assert status == 0 and f'-m mechanical_cad motion "{PROJECT}" --root machine' in out, out
+
+
+def test_the_print_check_is_told_how_far_a_printer_bridges():
+    out, status = would_run("print-check", f"PROJECT={PROJECT}", "KEY=machine", "BRIDGE=8", "UP=-Z")
+    assert status == 0 and "-- --up -Z" in out and "-- --bridge 8" in out, out
+    out, status = would_run("print-check", f"PROJECT={PROJECT}", "KEY=machine")
+    assert status == 0 and "--bridge" not in out, out
+
+
 def test_a_file_is_taken_apart_into_a_project_with_what_says_where_it_came_from():
     out, status = would_run("take-apart", "FILE=tmp/a.step", f"PROJECT={PROJECT}",
                             "ORIGIN=--retrieved 2026-11-18 --publishable unknown --description 'a file'")
@@ -93,6 +116,13 @@ def test_a_section_needs_its_plane():
     # dimensions go on whole, however many there are in the one value
     out, status = would_run("section", f"PROJECT={PROJECT}", "KEY=machine", "CUT=+y", "MEASURE=across 0,0,0 40,0,12 gap; up 0,0,0 0,0,21")
     assert status == 0 and '--measure "across 0,0,0 40,0,12 gap; up 0,0,0 0,0,21"' in out, out
+    assert "--hatch" not in out and "--behind" not in out and "--arcs" not in out
+    # the cut faces hatched, the edges behind the plane, circular edges as arcs: each a word handed on
+    out, status = would_run("section", f"PROJECT={PROJECT}", "KEY=machine", "CUT=+y", "HATCH=1", "BEHIND=1", "ARCS=1")
+    assert status == 0 and "--cut +y" in out and "--hatch --behind --arcs" in out and "--finish" not in out, out
+    assert "--quick" not in out
+    out, status = would_run("section", f"PROJECT={PROJECT}", "KEY=machine", "CUT=+y", "BEHIND=quick")
+    assert status == 0 and "--behind --quick" in out and "--hatch" not in out, out    # the edges behind the plane, found on a mesh
     out, status = would_run("section", f"PROJECT={PROJECT}", "KEY=machine")
     assert status != 0 and "name the plane" in out
 
@@ -100,8 +130,14 @@ def test_a_section_needs_its_plane():
 def test_the_files_to_make_a_part_from_and_the_print_check():
     out, _ = would_run("cut", f"PROJECT={PROJECT}", "KEY=plate")
     assert f'tools/cut_file.py "{PROJECT}" plate' in out and "--pattern" not in out and "--root" not in out, out
+    assert "--kerf" not in out and "--open" not in out, out
     out, _ = would_run("cut", f"PROJECT={PROJECT}", "KEY=solid", "PATTERN=1", "ROOT=+x")
-    assert f'tools/cut_file.py "{PROJECT}" solid' in out and "--pattern --root +x" in out, out
+    assert f'tools/cut_file.py "{PROJECT}" solid' in out and "--pattern --root +x" in out and "--open" not in out, out
+    # the width of the cut round a plate; the faces a pattern leaves open
+    out, _ = would_run("cut", f"PROJECT={PROJECT}", "KEY=plate", "KERF=0.2")
+    assert f'tools/cut_file.py "{PROJECT}" plate' in out and "--kerf 0.2" in out and "--pattern" not in out, out
+    out, _ = would_run("cut", f"PROJECT={PROJECT}", "KEY=solid", "PATTERN=1", "OPEN=+z,-y", "ROOT=-z")
+    assert "--pattern --root -z --open +z,-y" in out and "--kerf" not in out, out
     out, _ = would_run("print", f"PROJECT={PROJECT}", "KEY=plug", "DEFLECTION=0.05")
     assert f'tools/print_file.py "{PROJECT}" plug' in out and "--deflection 0.05" in out and "manifest-print.scm" in out, out
     out, _ = would_run("print-check", f"PROJECT={PROJECT}", "KEY=plug", "UP=-X", "ANGLE=50", "STEP=0.2")

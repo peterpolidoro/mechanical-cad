@@ -1,7 +1,7 @@
 """Will a part print as it stands: what rests on the plate, which faces hang over, and what starts in mid-air.
 
-    FreeCADCmd tools/print_check.py --pass PROJECT KEY [-- --up +Z] [-- --angle 45] [-- --step 0.5] [-- --out DIR]
-    FreeCADCmd tools/print_check.py --pass FILE.step   [-- --up +Z] [-- --angle 45] [-- --step 0.5] [-- --out FILE.json]
+    FreeCADCmd tools/print_check.py --pass PROJECT KEY [-- --up +Z] [-- --angle 45] [-- --step 0.5] [-- --bridge MM] [-- --out DIR]
+    FreeCADCmd tools/print_check.py --pass FILE.step   [-- --up +Z] [-- --angle 45] [-- --step 0.5] [-- --bridge MM] [-- --out FILE.json]
 
 FreeCADCmd reads dashed options itself, even after --pass; put a bare `--`
 before each of this script's own options. It needs FreeCAD alone
@@ -28,7 +28,12 @@ Three screens of the geometry, each recorded:
                the part of a face that hangs over is found and measured where
                the rest of it does not. An allowance
                of 0.05 degree keeps a face made at exactly the angle from
-               failing on the last digit.
+               failing on the last digit. With `--bridge MM` a flat ceiling
+               is not held against the part when a printer can lay it across:
+               it is no wider than MM where it is narrowest, and at both ends
+               of that width there is a wall under its edge. Such a ceiling
+               is listed as a bridge. Without the option every flat ceiling
+               hangs over, as before.
     islands    material that begins above the plate with nothing under it. The
                part is cut into thin slices (0.02 mm) every `--step` (0.5 mm)
                from half a step up; every separate piece of a slice has to
@@ -43,9 +48,12 @@ What this is not: a slicer's verdict or a process qualification. The slices
 are samples: a piece thinner than the sideways shift of one step (a leaning
 wall thinner than `step / tan(angle)`) can be reported without cause, and a
 start between two samples is seen only once it has grown into the next one.
-Bridges, minimum walls, heat and warping, adhesion and supports chosen by a
-slicer are not looked at. Use the printer's layer height as `--step` before
-a real print, and a slicer after.
+Minimum walls, heat and warping, adhesion and supports chosen by a slicer are
+not looked at, and a bridge only as `--bridge` says: by its width, measured
+every five degrees round, and by what is under its two ends, not along its
+whole edge. How far a printer bridges is the printer's and the material's;
+no width is assumed. Use the printer's layer height as `--step` before a
+real print, and a slicer after.
 
 The record, `KEY.check.json` beside the print file in PROJECT/.cache/print/,
 carries no timestamp, so checking an unchanged part again writes the same
@@ -83,11 +91,14 @@ SUBDIVIDE = 3                   # how often a triangle of a mesh that lies acros
 SLICE_MM = 0.02
 PIECE_MIN_MM3 = 1e-8            # a piece of a slice smaller than this is not a piece
 SUPPORT_MIN_MM3 = 1e-9          # ... and it is held when it shares more than this with the slice before
+FLAT_TOL = 1e-9                 # a normal this near straight down is a flat ceiling
+BRIDGE_PROBE_MM = 0.05          # how far beyond and below a ceiling's edge the wall that carries it is looked for
+BRIDGE_TOL_MM = 1e-6
 
 
 def options(argv):
     argv = [a for a in argv if a != "--"]
-    opts = {"up": "+Z", "angle": 45.0, "step": 0.5, "deflection": 0.1, "out": None}
+    opts = {"up": "+Z", "angle": 45.0, "step": 0.5, "deflection": 0.1, "bridge": 0.0, "out": None}
     positional = []
     i = 0
     while i < len(argv):
@@ -106,9 +117,9 @@ def options(argv):
         i += 1
     if len(positional) not in (1, 2) or opts["up"] not in FRAMES:
         raise SystemExit(__doc__)
-    if not (0.0 < opts["angle"] <= 90.0 and opts["step"] > SLICE_MM and opts["deflection"] > 0.0):
+    if not (0.0 < opts["angle"] <= 90.0 and opts["step"] > SLICE_MM and opts["deflection"] > 0.0 and opts["bridge"] >= 0.0):
         raise SystemExit("[print_check] the angle is above 0 and at most 90 degrees, the step more than the slice of "
-                         f"{SLICE_MM} mm, the deflection positive")
+                         f"{SLICE_MM} mm, the deflection positive, a bridge's width not negative")
     return positional, opts
 
 
@@ -190,17 +201,53 @@ def looks(face, angle, deflection):
     return [(z, area * scale, q) for z, area, q in out]
 
 
-def overhang_screen(shape, angle, deflection, back):
-    """(what lies on the plate, the faces that look down, those below the angle)."""
+def bridge_of(shape, face):
+    """A flat ceiling as a bridge: (how wide it is where it is narrowest, whether a wall stands under its edge
+    at both ends of that width). The width is the least of the face's extents in directions five degrees
+    apart, each the face's own and not a mesh's; the wall is looked for a little beyond each end and a little
+    below the ceiling."""
+    best = None
+    for step in range(36):
+        turned = face.copy()
+        turned.rotate(App.Vector(0, 0, 0), App.Vector(0, 0, 1), -5.0 * step)       # the direction looked along is now X
+        box = turned.optimalBoundingBox(True, False)
+        if best is None or box.XLength < best[0] - BRIDGE_TOL_MM:
+            best = (box.XLength, step, box.XMin, box.XMax)
+    width, step, low, high = best
+    angle = math.radians(5.0 * step)
+    d = App.Vector(math.cos(angle), math.sin(angle), 0.0)
+    points = [q for edge in face.OuterWire.Edges for q in edge.discretize(Number=120)]
+    z = points[0].z
+    held = True
+    for end, sign in ((low, -1.0), (high, 1.0)):
+        q = min(points, key=lambda q: sign * (end - q.dot(d)))                       # the point of the edge furthest that way
+        probe = q + d * (end - q.dot(d) + sign * BRIDGE_PROBE_MM)
+        held = held and shape.isInside(App.Vector(probe.x, probe.y, z - BRIDGE_PROBE_MM), BRIDGE_TOL_MM, False)
+    return width, held
+
+
+def overhang_screen(shape, angle, deflection, back, bridge=0.0):
+    """(what lies on the plate, the faces that look down, those below the angle). With `bridge`, a width in
+    millimetres, flat ceilings no wider than it and held at both ends are listed as bridges instead."""
     plate_area, plate_faces = 0.0, 0
     down_faces, down_area, lowest = 0, 0.0, 90.0
-    below = []
+    below, bridges = [], []
     for number, face in enumerate(shape.Faces):
         if face.Vertexes and max(v.Point.z for v in face.Vertexes) <= LEVEL_TOL_MM:
             if isinstance(face.Surface, Part.Plane):
                 plate_area += face.Area
                 plate_faces += 1
             continue
+        if bridge > 0.0 and isinstance(face.Surface, Part.Plane):
+            (z, area, point), = looks(face, angle, deflection)
+            if z <= -1.0 + FLAT_TOL:
+                width, held = bridge_of(shape, face)
+                if held and width <= bridge + BRIDGE_TOL_MM:
+                    down_faces += 1
+                    down_area += area
+                    lowest = 0.0
+                    bridges.append({"face": number, "area_mm2": area, "width_mm": width, "at": back(point)})
+                    continue
         face_down, face_below, face_lowest, worst = 0.0, 0.0, 90.0, None
         for z, area, point in looks(face, angle, deflection):
             if z >= -DOWN_TOL:
@@ -225,6 +272,8 @@ def overhang_screen(shape, angle, deflection, back):
               "lowest_angle_deg": lowest if down_faces else None,
               "area_below_the_angle_mm2": math.fsum(f["area_below_the_angle_mm2"] for f in below),
               "below_the_angle": below}
+    if bridge > 0.0:                    # a record made without the option is what it was
+        screen.update(bridge_mm=bridge, bridges=bridges)
     return plate, screen
 
 
@@ -248,10 +297,10 @@ def layer_screen(shape, height, step, back):
     return {"step_mm": step, "slice_mm": SLICE_MM, "first_sample_mm": step / 2.0, "samples": samples, "islands": islands}
 
 
-def check(shape, up, angle, step, deflection):
+def check(shape, up, angle, step, deflection, bridge=0.0):
     turned, level, back = stood_up(shape, up)
     height = round(turned.optimalBoundingBox(True, False).ZMax, 9)
-    plate, overhang = overhang_screen(turned, angle, deflection, back)
+    plate, overhang = overhang_screen(turned, angle, deflection, back, bridge)
     layers = layer_screen(turned, height, step, back)
     checks = {"plate": plate["area_mm2"] > 0.0, "overhang": not overhang["below_the_angle"],
               "islands": not layers["islands"]}
@@ -287,7 +336,7 @@ def main(argv):
     if not shape.Solids:
         print(f"[print_check] {name}: the file has no solid")
         return 2
-    result = check(shape, opts["up"], opts["angle"], opts["step"], opts["deflection"])
+    result = check(shape, opts["up"], opts["angle"], opts["step"], opts["deflection"], opts["bridge"])
     plate, overhang, layers = result["plate"], result["overhang"], result["layers"]
     print(f"[print_check] {name}: grows along {opts['up']} from {plate['level_mm']:g} mm, {plate['build_height_mm']:.4f} mm high; "
           + (f"{plate['faces']} flat face(s) of {plate['area_mm2']:.3f} mm2 on the plate" if result["checks"]["plate"]
@@ -295,11 +344,16 @@ def main(argv):
     for f in overhang["below_the_angle"]:
         print(f"OVERHANG      face {f['face']} ({f['surface']}): {f['area_below_the_angle_mm2']:.3f} mm2 at down to "
               f"{f['lowest_angle_deg']:.2f} degrees above the plate, at {[round(c, 3) for c in f['at']]}")
+    for f in overhang.get("bridges", ()):
+        print(f"BRIDGE        face {f['face']}: a flat ceiling of {f['area_mm2']:.3f} mm2, {f['width_mm']:.3f} mm across where it "
+              f"is narrowest, at {[round(c, 3) for c in f['at']]}")
     lowest = overhang["lowest_angle_deg"]
+    bridged = len(overhang.get("bridges", ()))
     print(f"[print_check] {name}: {overhang['faces_looking_down']} face(s) look down, {overhang['area_looking_down_mm2']:.3f} mm2, "
           + ("none of them" if lowest is None else f"the flattest at {lowest:.4f} degrees") + "; "
           + (f"{len(overhang['below_the_angle'])} BELOW {opts['angle']:g} degrees, {overhang['area_below_the_angle_mm2']:.3f} mm2"
-             if overhang["below_the_angle"] else f"none below {opts['angle']:g} degrees"))
+             if overhang["below_the_angle"] else f"none below {opts['angle']:g} degrees")
+          + (f", {bridged} flat ceiling(s) taken as bridges of up to {opts['bridge']:g} mm" if bridged else ""))
     for island in layers["islands"]:
         print(f"ISLAND        at {island['height_mm']:g} mm above the plate: {island['area_mm2']:.4f} mm2 with nothing "
               f"under it, at {[round(c, 3) for c in island['at']]}")

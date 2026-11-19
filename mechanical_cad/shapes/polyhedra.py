@@ -5,8 +5,9 @@ tuples of vertex indices, counter-clockwise seen from outside. Everything
 else is derived from those: edges, face normals and distances, volume, area
 and the three radii. A polyhedron is never changed; `scaled`, `with_edge`,
 `rotated`, `translated`, `mirrored` and `resting_on` return new ones with the
-same faces under the same indices. `inset` and `panel` return other
-polyhedra: the cavity behind a wall, and the plate of one face.
+same faces under the same indices. `inset`, `panel` and `clipped` return
+other polyhedra: the cavity behind a wall, the plate of one face, and the
+part of the solid on one side of a plane.
 
     from mechanical_cad.shapes import polyhedra
 
@@ -483,6 +484,29 @@ class Polyhedron:
     def panels(self, thickness):
         """`panel` for every face, in the order of the faces."""
         return tuple(self.panel(f, thickness) for f in range(len(self.faces)))
+
+    def clipped(self, normal, distance):
+        """The part of the solid on the inner side of a plane: its points x with normal . x <= distance, for a
+        unit `normal`; one of any other length is taken as its direction, with `distance` along that.
+
+        The cut is a face of what is returned, the one `face_towards(normal)` finds, and the other faces are
+        those of the solid that the plane leaves, whole or in part, under other indices. Half of an enclosure
+        that is divided at a plane is this, seen from outside. A plane that leaves all of the solid, or none
+        of it, is refused.
+        """
+        n = unit(normal)
+        flat = TOLERANCE * self.circumradius
+        heights = [dot(n, v) - distance for v in self.vertices]
+        if max(heights) <= flat or min(heights) >= -flat:
+            raise ValueError(f"{self.name}: the plane leaves {'all' if max(heights) <= flat else 'none'} of the solid")
+        # A point inside what is kept: the mean of its corners, the solid's own below the plane and those the
+        # plane makes on the edges it crosses.
+        corners = [v for v, h in zip(self.vertices, heights) if h < 0.0]
+        for a, b in self.edges:
+            if (heights[a] < 0.0) != (heights[b] < 0.0):
+                t = heights[a] / (heights[a] - heights[b])
+                corners.append(add(self.vertices[a], times(sub(self.vertices[b], self.vertices[a]), t)))
+        return intersection(self.name, list(zip(self.normals, self.distances)) + [(n, distance)], mean(corners))
 
 
 # ---- the named solids -------------------------------------------------------------------------------------------

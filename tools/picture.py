@@ -5,6 +5,7 @@
     python3 tools/picture.py PROJECT KEY --where       print the STEP file that would be drawn, and draw nothing
     python3 tools/picture.py PROJECT KEY --cut +y [--colour] ...       cut open, and each part in a colour of its own
     python3 tools/picture.py PROJECT KEY --finish ...                  each part as the project's finishes.toml says
+    python3 tools/picture.py PROJECT KEY --pose NAME [--at "JOINT=VALUE,..."] ...   an assembly with its joints moved (a draft)
 
 Run it where `f3d` is on PATH (.guix/manifest-view.scm). f3d is a viewer built
 on VTK and OpenCASCADE that reads a STEP file and renders it to an image
@@ -46,6 +47,13 @@ pictures, which any viewer of glTF files opens as well). An assembly need not
 be built first for that. The pictures are then named KEY-cut-plus-y-VIEW.png,
 KEY-colour-VIEW.png and KEY-finish-VIEW.png.
 
+`--pose NAME` draws an assembly with its joints where a pose of the project's
+motion.toml puts them, and `--at "lever=12,slide=-3"` with the joints it names
+at those values, over the pose when both are given (mechanical_cad/motion.py:
+joints and poses are a draft that the layout does not know yet). The assembly
+is put together from the records as for a cut, so the same environment is
+needed, and the pictures are named KEY-pose-NAME-VIEW.png or KEY-at-VIEW.png.
+
 A numerical check passes on a shape that is wrong in a way only a picture
 shows: the first build of a lofted housing was twisted and passed every check.
 Look at what was built.
@@ -69,7 +77,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from mechanical_cad import assemblies, finishes, flatten, layout, solids, stepfile  # noqa: E402
+from mechanical_cad import assemblies, finishes, flatten, layout, motion, solids, stepfile  # noqa: E402
 from mechanical_cad import transforms as T  # noqa: E402
 
 AXES = {"+X": (1, 0, 0), "-X": (-1, 0, 0), "+Y": (0, 1, 0), "-Y": (0, -1, 0), "+Z": (0, 0, 1), "-Z": (0, 0, -1)}
@@ -260,11 +268,12 @@ def finishes_for(positional, names):
     return given, sorted(set(bare))
 
 
-def placed_solids(positional, scratch):
+def placed_solids(positional, scratch, pose=None, at=None):
     """Every solid of what is to be drawn, where it belongs: [(the name that gives it its colour, the solid)].
 
     An assembly is put together from its parts' files and the placements the project records, in the frame its
-    built file has (Z up), and a solid's name is its part's key. A part or a file is read as it is, and its
+    built file has (Z up), and a solid's name is its part's key; with `pose` (a name) or `at` ({joint: value})
+    its joints are where the project's motion.toml puts them. A part or a file is read as it is, and its
     solids are numbered. `scratch` is a directory a file may be written to for a moment. Needs build123d.
     """
     try:
@@ -291,7 +300,10 @@ def placed_solids(positional, scratch):
     if comp is not None and comp.kind == "assembly":
         try:
             scene, assets, _ = flatten.flatten(project, flatten.find_root(project, comp.key).key)
-        except flatten.FlattenError as exc:
+            if pose is not None or at:
+                derived = motion.of_scene(project, scene, comp.key)
+                scene = motion.posed(derived, scene, motion.values(derived, pose, at))
+        except (flatten.FlattenError, motion.MotionError) as exc:
             raise SystemExit(f"[picture] {exc}") from None
         shapes = {part: read(path) for part, path in assets}
         upright = solids.frame_matrix(scene, "z-up")
@@ -300,6 +312,8 @@ def placed_solids(positional, scratch):
             trsf = gp_Trsf()
             trsf.SetValues(*[float(m[r][c]) for r in range(3) for c in range(4)])
             placed += [(occurrence["part_id"], solid.moved(Location(trsf))) for solid in shapes[occurrence["part_id"]]]
+    elif pose is not None or at:
+        raise SystemExit("[picture] --pose and --at move the joints of an assembly of a project; this is not one")
     else:
         step = source(positional)[0]
         placed = [(f"solid {n + 1:04d}", solid) for n, solid in enumerate(read(step))]
@@ -317,11 +331,11 @@ def extent(placed):
     return ([min(lo[i] for lo, _ in spans) for i in range(3)], [max(hi[i] for _, hi in spans) for i in range(3)]), spans
 
 
-def model(positional, cut, shading, out, stem):
-    """The model the viewer is shown when a cut, colours or finishes are asked for: a GLB file, written with
-    build123d. `shading` is "colour", "finish" or nothing. Returns (its path, whether anything in it lets
-    through what lies behind)."""
-    placed = placed_solids(positional, out)
+def model(positional, cut, shading, out, stem, pose=None, at=None):
+    """The model the viewer is shown when a cut, colours, finishes or moved joints are asked for: a GLB file,
+    written with build123d. `shading` is "colour", "finish" or nothing. Returns (its path, whether anything in
+    it lets through what lies behind)."""
+    placed = placed_solids(positional, out, pose, at)
     from build123d import Align, Box, Color, Compound, Pos, export_gltf
 
     if cut:
@@ -367,7 +381,7 @@ def model(positional, cut, shading, out, stem):
 
 def options(argv):
     opts = {"views": ",".join(DEFAULT_VIEWS), "up": "+Z", "size": "1400x900", "out": None, "where": False,
-            "cut": None, "colour": False, "finish": False}
+            "cut": None, "colour": False, "finish": False, "pose": None, "at": None}
     positional = []
     i = 0
     while i < len(argv):
@@ -395,6 +409,10 @@ def options(argv):
         opts["cut"] = cut_plane(opts["cut"])
     if opts["colour"] and opts["finish"]:
         raise ValueError("--colour gives every part a colour of its own and --finish the project's finishes: one or the other")
+    try:
+        opts["at"] = motion.given(opts["at"]) or None
+    except motion.MotionError as exc:
+        raise ValueError(f"--at {exc}") from None
     return positional, opts
 
 
@@ -452,7 +470,8 @@ def main(argv):
         print("[picture] f3d is not on PATH; run this in the environment of .guix/manifest-view.scm")
         return 2
     shading = "colour" if opts["colour"] else "finish" if opts["finish"] else None
-    made = opts["cut"] is not None or shading is not None
+    moved = opts["pose"] is not None or opts["at"] is not None
+    made = opts["cut"] is not None or shading is not None or moved
     through = False
     if made and len(positional) == 2:
         # an assembly is put together from the records, so it need not be built for this
@@ -472,7 +491,9 @@ def main(argv):
             stem += "-cut-" + file_name(("+" if side > 0 else "-") + "xyz"[axis])
         if shading:
             stem += "-" + shading
-        step, through = model(positional, opts["cut"], shading, out, stem)
+        if moved:
+            stem += f"-pose-{opts['pose']}" if opts["pose"] is not None else "-at"
+        step, through = model(positional, opts["cut"], shading, out, stem, opts["pose"], opts["at"])
         print(f"[picture] {step}")
         # the model is a glTF file, which has Y up: the camera and the up axis are turned with it
         directions = [(view, to_viewer(direction)) for view, direction in directions]

@@ -8,6 +8,8 @@ check PROJECT               evaluate the checks of the authored parts, and what 
 add-supplied PROJECT KEY FILE ...   put a STEP file from outside into the project as a supplied part
 build-order PROJECT [KEY ...]       the authored parts, each after the parts it is built against
 lock PROJECT                print the index vault-lock.json must equal
+motion PROJECT [--out DIR]  a draft: check the project's motion.toml, list its joints and poses, and write
+                            motion.json beside a flattened scene
 compare-scenes OLD NEW      are two flattened scenes the same assembly?
 step-info FILE              what a STEP file says about itself
 normalise-header IN OUT     rewrite a STEP header to fixed values
@@ -20,7 +22,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import assemblies, compare, facts, flatten, interfaces, jsonio, layout, stepfile, supplied
+from . import assemblies, compare, facts, flatten, interfaces, jsonio, layout, motion, stepfile, supplied
 
 
 def _validate(args):
@@ -175,6 +177,48 @@ def _lock(args):
     return 0 if project.ok else 1
 
 
+def _motion(args):
+    """A draft (mechanical_cad/motion.py): the layout does not know this file, so this command is what checks it."""
+    project = layout.load(args.project)
+    path = Path(args.file) if args.file else project.dir / motion.FILE
+    try:
+        top = flatten.find_root(project, args.root)
+        scene = flatten.flatten(project, top.key)[0]
+        data = motion.read(path)
+    except (flatten.FlattenError, motion.MotionError) as exc:
+        for line in project.errors:
+            print("ERROR  ", line)
+        print("ERROR  ", exc)
+        return 1
+    wrong = motion.problems(data, project)
+    for line in wrong:
+        print("ERROR  ", f"{path.name}: {line}")
+    if wrong:
+        return 1
+    try:
+        derived = motion.resolve(data, project, scene, top.key, stepfile.sha256_file(path))
+    except motion.MotionError as exc:
+        print("ERROR  ", f"{path.name}: {exc}")
+        return 1
+    for line in motion.table(derived):
+        print(line)
+    absent = sorted(set(data.get("joints", {})) - {name.split("@")[0] for name in derived["joints"]})
+    if absent:
+        print(f"not in {top.key}, whose scene this is: {', '.join(absent)}")
+    print(f"{path.name} (a draft, not part of the layout): {len(derived['joints'])} joint(s) and "
+          f"{len(derived['poses'])} pose(s) in {top.key}; {len(derived['moved'])} of {len(scene['occurrences'])} "
+          "occurrence(s) move")
+    if args.out:
+        out = Path(args.out)
+        there = out / "scene.json"
+        if not there.is_file() or there.read_bytes() != jsonio.dumps(scene).encode("utf-8"):
+            print("ERROR  ", f"{there} is not the scene of {top.key} as the project stands; flatten it again")
+            return 1
+        jsonio.write(out / motion.DERIVED, derived)
+        print(f"wrote {out / motion.DERIVED}")
+    return 0
+
+
 def _compare(args):
     old = jsonio.load(args.old, allow_bom=True)
     new = jsonio.load(args.new, allow_bom=True)
@@ -296,6 +340,15 @@ def main(argv=None):
     p = sub.add_parser("lock", help="print the index vault-lock.json must equal")
     p.add_argument("project")
     p.set_defaults(func=_lock)
+
+    p = sub.add_parser("motion", help="a draft: check motion.toml, list the joints and poses, write motion.json "
+                                      "beside a flattened scene")
+    p.add_argument("project")
+    p.add_argument("--root", help="key of the assembly whose scene it is (default: the only unplaced assembly)")
+    p.add_argument("--file", help="the record, when it is not PROJECT/motion.toml")
+    p.add_argument("--out", help="a directory that holds the flattened scene of that assembly; motion.json is "
+                                 "written beside its scene.json")
+    p.set_defaults(func=_motion)
 
     p = sub.add_parser("compare-scenes", help="are two flattened scenes the same assembly?")
     p.add_argument("old")

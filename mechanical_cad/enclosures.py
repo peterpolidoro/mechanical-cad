@@ -87,27 +87,57 @@ for the lid and the floor; for any other wall u runs level, to the right as
 the wall is seen from outside, and v up the wall, from the foot of the
 perpendicular that falls from the frame's origin onto the wall's outside, so
 that on an upright wall v is the board's z. A field that does not fit, or
-that would leave less than `web` to a standoff, a post, the opening of a port
-or an earlier field, is refused and the reason says which. `vent_fields` lays
+that would leave less than `web` to a standoff, a post or the opening of a
+port, is refused and the reason says which; so is one that comes nearer to an
+earlier field in its wall than the wider `web` of the two. `vent_fields` lays
 the fields out without a kernel and gives every opening's place; what the
 kernel cuts is held to the volume worked out there.
 
-Feet. `feet` in the settings puts round bosses under the base, which then
-stands on them: `"feet": {"diameter": 8.0, "height": 1.5, "inset": 2.0}`.
-Four of them, one towards each corner of the underside's outline and as far
-out as `inset` allows between a foot and the outline; or wherever `at` says,
-a list of [x, y]. A foot is never under an opening: a vent in the floor, or
-the window of a port that goes through it. They are bosses and not recesses
-for stick-on feet because of how the base is built: the feet belong in the
-corners, where the load of a plug pushed in comes down, and there the
-standoffs stand with their insert holes ending 0.6 mm short of the outside,
-so a recess would break into them while a boss adds material under them. The
-price is in the making: a base with feet no longer lies on its floor, so
-printed as it stands its floor hangs `height` above the plate, which
-tools/print_check.py reports as an overhang: such a base is printed with
-support, or without `feet` and stood on feet that are stuck on.
-`foot_places` says where they stand without a kernel, and `standing` says of
-any solid what it stands on and whether its centre of mass is over that.
+`"stagger": true` sets every second row of a field between the openings of
+the row before it, where it has one opening fewer, and brings the rows as near
+to each other as leaves `web` between neighbours: round holes then stand in
+triangles, and a wall holds more of them.
+
+The box has round corners between its walls, and a direction halfway between
+two walls names the corner: `"wall": [1, 1, 0]`. A field there is cut level
+and along that direction, the corner's middle, so its openings are those of a
+flat wall as seen that way, through a wall that is `wall` thick in the
+corner's middle and deeper towards its ends. The corner's plain part is as
+wide as the round of the cavity is across. A post or a standoff that stands
+in the corner, where mounting holes often are, is in such a field's way as it
+is in any other's.
+
+Feet. `feet` in the settings gives the base one of two kinds. Bosses,
+`"feet": {"diameter": 8.0, "height": 1.5, "inset": 2.0}`, are round and part
+of the base, which then stands on them. Pockets for feet that are stuck on,
+`"feet": {"kind": "recess", "diameter": 8.0, "depth": 1.0, "clearance": 0.2,
+"inset": 8.0}`, are cut into the underside: each as wide as the foot and
+`clearance` more all round, and `depth` deep. There are four of either, three
+under a triangle, one towards each corner of the underside's outline and as
+far out as `inset` allows between a foot or a pocket and the outline; or
+they are wherever `at` says, a list of [x, y].
+
+A boss is never under an opening: a vent in the floor, or the window of a
+port that goes through it. A pocket leaves POCKET_LEAVES, 0.8 mm, of the floor
+over it and between it and the window of a port, and the `web` of a field to
+a vent of the floor. It keeps as far from the hole for the insert under a
+mounting hole, which ends 0.6 mm short of the underside where the standoff is
+low: from the hole itself when its size is typed in, and may lie under it
+when it ends 0.8 mm over the pocket or more; from the whole standoff when the
+insert is named, since how wide and how deep its hole is only bd_warehouse's
+tables say. The standoffs stand towards the corners, so pockets want more
+`inset` than bosses, or their places said.
+
+What each costs in the making: a base on bosses no longer lies on its floor,
+so printed as it stands its floor hangs `height` above the plate, which
+tools/print_check.py reports as an overhang: it is printed with support. A
+base with pockets lies on its floor as one without feet does, and is as
+high. The roof of each pocket is a flat ceiling `depth` over the plate, as
+wide as the pocket, and the print check, which knows no bridges, reports
+those too: 55 mm2 each for a foot of 8 mm, where a base on bosses has its
+whole floor reported. `foot_places` says where feet or pockets are without a
+kernel, and `standing` says of any solid what it stands on and whether its
+centre of mass is over that.
 
 `Board`, `levels`, `prism_size`, `octagon_size`, the `..._walls` functions,
 `vent_fields` and `foot_places` need no CAD kernel. The functions that make
@@ -150,15 +180,22 @@ VENT_DEFAULTS = {
     "web": 2.0,                     # what is left between two openings, and between one and a standoff, a post or a port's opening
     "margin": 3.0,                  # between the openings and the edge of the wall's plain part
     "along": "v",                   # the way a slot's length runs: "u", level along a wall, or "v", up it
+    "stagger": False,               # True: every second row stands between the openings of the row before it
 }
 WALLS = {"lid": (0.0, 0.0, 1.0), "floor": (0.0, 0.0, -1.0), "+x": (1.0, 0.0, 0.0), "-x": (-1.0, 0.0, 0.0),
          "+y": (0.0, 1.0, 0.0), "-y": (0.0, -1.0, 0.0)}
 
 FEET_DEFAULTS = {
-    "diameter": 8.0,
-    "height": 1.5,                  # how far a foot stands out under the base
-    "inset": 2.0,                   # between a foot and the edge of the underside
+    "kind": "boss",                 # "boss", a foot that is part of the base, or "recess", a pocket for a stick-on foot
+    "diameter": 8.0,                # of a boss, or of the stick-on foot
+    "height": 1.5,                  # how far a boss stands out under the base
+    "depth": 1.0,                   # how deep a pocket is
+    "clearance": 0.2,               # between a stick-on foot and the side of its pocket
+    "inset": 2.0,                   # between a foot, or its pocket, and the edge of the underside
 }
+# What a pocket for a stick-on foot leaves, at least, in millimetres: of the floor over it, and between it and the
+# hole of an insert or the window of a port.
+POCKET_LEAVES = 0.8
 
 FAR = 1.0e4         # further than any enclosure reaches, in millimetres
 # A vent is cut by a tool that begins this far inside the wall's inner face and ends this far outside its outer one.
@@ -239,8 +276,12 @@ class Board:
                        + ", ".join(p["reference"] or fid for fid, p in sorted(self.ports.items())))
 
 
+def _number(value):
+    return not isinstance(value, bool) and isinstance(value, (int, float)) and math.isfinite(value)
+
+
 def _positive(value):
-    return not isinstance(value, bool) and isinstance(value, (int, float)) and math.isfinite(value) and value > 0
+    return _number(value) and value > 0
 
 
 def settings(given):
@@ -278,47 +319,55 @@ def vent_settings(given):
 
         wall       "lid", "floor", "+x", "-x", "+y", "-y", or a direction [x, y, z]
         half       "base" or "lid": needed for a wall that is divided between the two
-        rows, columns   how many openings up the wall (along v) and along it (along u); the most that fit when left out
+        rows, columns   how many openings up the wall (along v) and along it (along u); the most that fit when left out.
+                   Of a staggered field every second row has one fewer than `columns`
         centre     [u, v], where the middle of the field is; the middle of the wall's plain part when left out
 
-    `towards` is added: the direction the wall faces. An unknown name or a value that cannot be is refused."""
+    An unknown name or a value that cannot be is refused, and so is a size of the other shape, which would say
+    nothing: a slot comes back without `diameter`, a round hole without `width`, `length` and `along`."""
     if not isinstance(given, dict):
         raise ValueError("a field of vents is given by its settings, the wall it is in among them")
-    unknown = sorted(set(given) - set(VENT_DEFAULTS) - {"wall", "half", "rows", "columns", "centre", "towards"})
+    unknown = sorted(set(given) - set(VENT_DEFAULTS) - {"wall", "half", "rows", "columns", "centre"})
     if unknown:
         raise ValueError(f"not a setting of a field of vents: {', '.join(unknown)}; they are: "
                          f"{', '.join(sorted(VENT_DEFAULTS))}, wall, half, rows, columns, centre")
     out = dict(VENT_DEFAULTS, **given)
     wall = out.get("wall")
-    if isinstance(wall, str) and wall in WALLS:
-        out["towards"] = WALLS[wall]
-    elif isinstance(wall, (list, tuple)) and len(wall) == 3 and all(
-            isinstance(c, (int, float)) and not isinstance(c, bool) for c in wall) and any(wall):
-        out["towards"] = unit(tuple(float(c) for c in wall))
+    if isinstance(wall, (list, tuple)) and len(wall) == 3 and all(_number(c) for c in wall) and any(wall):
         out["wall"] = [float(c) for c in wall]
-    else:
+    elif not (isinstance(wall, str) and wall in WALLS):
         raise ValueError(f"a field of vents names its wall: {', '.join(WALLS)}, or a direction [x, y, z]; not {wall!r}")
     if out["shape"] not in ("slot", "round"):
         raise ValueError(f'the shape of a vent is "slot" or "round", not {out["shape"]!r}')
-    for name in ("width", "length", "diameter", "web", "margin"):
+    slot = out["shape"] == "slot"
+    for name in ("diameter",) if slot else ("width", "length", "along"):
+        if name in given:
+            raise ValueError(f"{name} is a setting of a round hole; a slot has its `width` and `length`" if slot
+                             else f"{name} is a setting of a slot; a round hole has its `diameter`")
+        del out[name]
+    for name in (("width", "length") if slot else ("diameter",)) + ("web", "margin"):
         if not _positive(out[name]):
             raise ValueError(f"{name} of a field of vents must be a positive number")
-    if out["shape"] == "slot" and out["length"] <= out["width"]:
+    if slot and out["length"] <= out["width"]:
         raise ValueError(f"a slot is longer than it is wide, not {out['length']} by {out['width']} mm; "
                          'a round hole is the shape "round"')
-    if out["along"] not in ("u", "v"):
+    if slot and out["along"] not in ("u", "v"):
         raise ValueError('along is "u", level along the wall, or "v", up it')
+    if not isinstance(out["stagger"], bool):
+        raise ValueError("stagger of a field of vents is true or false")
     for name in ("rows", "columns"):
         out.setdefault(name, None)
         if out[name] is not None and (isinstance(out[name], bool) or not isinstance(out[name], int) or out[name] < 1):
             raise ValueError(f"{name} of a field of vents is a whole number, 1 or more")
+        if out["stagger"] and out[name] == 1:
+            raise ValueError("a staggered field has 2 rows and 2 columns or more: every second row stands between "
+                             "the openings of the row before it")
     out.setdefault("half", None)
     if out["half"] not in (None, "base", "lid"):
         raise ValueError('half is "base" or "lid"')
     centre = out.setdefault("centre", None)
     if centre is not None:
-        if not (isinstance(centre, (list, tuple)) and len(centre) == 2 and all(
-                isinstance(c, (int, float)) and not isinstance(c, bool) for c in centre)):
+        if not (isinstance(centre, (list, tuple)) and len(centre) == 2 and all(_number(c) for c in centre)):
             raise ValueError("centre of a field of vents is [u, v], a place in the wall")
         out["centre"] = (float(centre[0]), float(centre[1]))
     return out
@@ -326,21 +375,31 @@ def vent_settings(given):
 
 def feet_settings(given):
     """FEET_DEFAULTS with what is given put over them, and `at`: a list of [x, y], where the feet stand, or None
-    for one towards each corner of the underside. An unknown name or a value that cannot be is refused."""
+    for one towards each corner of the underside. An unknown name or a value that cannot be is refused, and so
+    is a size of the other kind, which would say nothing: bosses come back without `depth` and `clearance`,
+    pockets without `height`."""
     if not isinstance(given, dict):
-        raise ValueError("feet are given by their settings: diameter, height, inset, at; {} for the usual ones")
+        raise ValueError("feet are given by their settings: kind, diameter, height or depth, inset, at; {} for the "
+                         "usual ones")
     unknown = sorted(set(given) - set(FEET_DEFAULTS) - {"at"})
     if unknown:
         raise ValueError(f"not a setting of feet: {', '.join(unknown)}; they are: {', '.join(sorted(FEET_DEFAULTS))}, at")
     out = dict(FEET_DEFAULTS, **given)
+    if out["kind"] not in ("boss", "recess"):
+        raise ValueError(f'the kind of feet is "boss" or "recess", not {out["kind"]!r}')
+    boss = out["kind"] == "boss"
+    for name in ("depth", "clearance") if boss else ("height",):
+        if name in given:
+            raise ValueError(f"{name} is a setting of a recess for a stick-on foot; a boss has its `height`" if boss
+                             else f"{name} is a setting of a boss; a recess has its `depth` and `clearance`")
+        del out[name]
     for name in FEET_DEFAULTS:
-        if not _positive(out[name]):
+        if name in out and name != "kind" and not _positive(out[name]):
             raise ValueError(f"{name} of the feet must be a positive number")
     at = out.setdefault("at", None)
     if at is not None:
         if not (isinstance(at, (list, tuple)) and at and all(
-                isinstance(p, (list, tuple)) and len(p) == 2 and all(
-                    isinstance(c, (int, float)) and not isinstance(c, bool) for c in p) for p in at)):
+                isinstance(p, (list, tuple)) and len(p) == 2 and all(_number(c) for c in p) for p in at)):
             raise ValueError("at is a list of [x, y], where the feet stand")
         out["at"] = [(float(p[0]), float(p[1])) for p in at]
     return out
@@ -519,11 +578,15 @@ def _wall(walls, vent, half, s):
     A dict: `origin`, `u`, `v` and `normal`, the wall's frame on its outer face; `thickness`; `outline`, a
     convex polygon in (u, v), counter-clockwise, and `radius`: the plain part is everything within `radius` of
     the polygon; `split`, the v at which the part ends towards the other half, or None; `face`, the index of
-    the face of `walls.outer`.
+    the face of `walls.outer`. A direction halfway between two walls of a box with round corners names the
+    corner between them, and `_corner` says what its plain part is.
     """
     outer, cavity, name = walls.outer, walls.cavity, _named(vent)
-    facing = [dot(n, vent["towards"]) for n in outer.normals]
+    towards = WALLS[vent["wall"]] if isinstance(vent["wall"], str) else unit(vent["wall"])
+    facing = [dot(n, towards) for n in outer.normals]
     nearest = [f for f, value in enumerate(facing) if value >= max(facing) - 1e-9]
+    if len(nearest) == 2 and walls.inner_radius > 0.0 and all(abs(outer.normals[f][2]) < 1e-9 for f in nearest):
+        return _corner(walls, vent, half, s, nearest)       # a box: where two of its walls meet, the corner is round
     if len(nearest) != 1:
         raise ValueError(f"{len(nearest)} walls face equally towards {vent['wall']}; name the wall by the "
                          "direction it faces, [x, y, z]")
@@ -577,6 +640,75 @@ def _wall(walls, vent, half, s):
     return {"name": name, "half": half, "face": face, "origin": origin, "u": u, "v": v, "normal": n,
             "thickness": thickness, "outline": outline, "radius": radius, "split": split,
             "lip": half == "lid" and s["lip"] > 0}
+
+
+def _corner(walls, vent, half, s, faces):
+    """The plain part of a round corner of a box, between its two walls `faces`, in one half, as `_wall` gives
+    that of a wall; None when the field is in the other half.
+
+    A cut goes through the corner level and along its middle, the direction halfway between the two walls. The
+    frame stands on the corner's outside where that direction leaves it, and the part is as wide as the round
+    of the cavity is across, seen that way. `thickness` is how deep a cut has to go: the wall measures less in
+    the middle of the corner and that much at the ends of the part. `arc` is added: the radii of the corner's
+    inside and outside, which have one upright axis.
+    """
+    outer, cavity = walls.outer, walls.cavity
+    name = _named(vent).replace("the wall", "the round corner", 1)
+    if vent["half"] is None:
+        raise ValueError(f"{name} is divided between the base and the lid: say in which `half` its vents are")
+    if vent["half"] != half:
+        return None
+    normals = [outer.normals[f] for f in faces]
+    behind = [[g for g, m in enumerate(cavity.normals) if norm(sub(m, n)) < 1e-9] for n in normals]
+    inner, outside = walls.inner_radius, walls.outer_radius
+    if any(len(found) != 1 for found in behind) or abs(dot(*normals)) > 1e-9 or outside <= inner:
+        raise ValueError(f"{name}: two walls with a cavity behind each do not meet square there")
+    axis = add(*[times(n, cavity.distances[found[0]] - inner) for n, found in zip(normals, behind)])
+    out_axis = add(*[times(n, outer.distances[f] - outside) for n, f in zip(normals, faces)])
+    if norm(sub(axis, out_axis)) > 1e-9 * outer.circumradius:
+        raise ValueError(f"{name}: the wall is not of one thickness round the corner")
+    n = unit(add(*normals))
+    u, v = _axes(n)
+    heights = [p[2] for p in cavity.polygon(behind[0][0])]
+    low, high, reach = min(heights), max(heights), inner * math.sqrt(0.5)
+    if half == "lid":
+        low = split = max(low, s["lip"] + s["lip_clearance"] if s["lip"] > 0 else 0.0)     # as in a wall
+    else:
+        high = split = min(high, 0.0)
+    if high - low < 1e-9:
+        raise ValueError(f"the {half} has nothing of {name}")
+    return {"name": name, "half": half, "face": ("corner", *sorted(faces)), "origin": add(axis, times(n, outside)),
+            "u": u, "v": v, "normal": n, "thickness": outside - reach, "arc": (inner, outside),
+            "outline": [(-reach, low), (reach, low), (reach, high), (-reach, high)], "radius": 0.0, "split": split,
+            "lip": half == "lid" and s["lip"] > 0}
+
+
+def _through_arc(arc, u, rho, reach, level):
+    """What one opening takes out of a round corner whose inside and outside have the radii `arc`, cut along
+    the corner's middle with its own middle `u` to the side of that: an opening of half the width `rho` about
+    a middle line that reaches `reach` to each side, level when `level` and upright otherwise.
+
+    To the side by x the wall is sqrt(outside^2 - x^2) - sqrt(inside^2 - x^2) deep. The straight part of the
+    opening has the sum of that in closed form; its two round ends are added up by Simpson's rule, over the
+    angle, in which they are smooth.
+    """
+    def before(radius, x):                  # the integral of sqrt(radius^2 - x^2)
+        return (x * math.sqrt(radius * radius - x * x) + radius * radius * math.asin(x / radius)) / 2.0
+
+    def between(a, b):
+        return before(arc[1], b) - before(arc[1], a) - before(arc[0], b) + before(arc[0], a)
+
+    def end(middle, side, steps=128):       # half a disc about `middle`, on one side of it
+        def at(k):
+            angle = math.pi / 2.0 * k / steps
+            x = middle + side * rho * math.sin(angle)
+            return 2.0 * (rho * math.cos(angle)) ** 2 * (math.sqrt(arc[1] ** 2 - x * x) - math.sqrt(arc[0] ** 2 - x * x))
+        return math.pi / 6.0 / steps * math.fsum((1 if k in (0, steps) else 4 if k % 2 else 2) * at(k)
+                                                 for k in range(steps + 1))
+
+    if level:
+        return 2.0 * rho * between(u - reach, u + reach) + end(u - reach, -1.0) + end(u + reach, 1.0)
+    return 2.0 * reach * between(u - rho, u + rho) + end(u, -1.0) + end(u, 1.0)
 
 
 def _round(x, y, diameter, sides=24):
@@ -652,11 +784,16 @@ def _field(wall, vent, obstacles, earlier):
     du, dv = (1.0, 0.0) if not slot or vent["along"] == "u" else (0.0, 1.0)
     half_u, half_v = rho + reach * du, rho + reach * dv
     pitch_u, pitch_v = 2.0 * half_u + web, 2.0 * half_v + web
-    outline, radius = wall["outline"], wall["radius"]
+    stagger = vent["stagger"]
+    if stagger:                             # the rows come as near as leaves the web between an opening and the two
+        aside = max(0.0, pitch_u / 2.0 - 2.0 * reach * du)                 # of the next row it stands between
+        pitch_v = 2.0 * reach * dv + math.sqrt((2.0 * rho + web) ** 2 - aside ** 2)
+    outline, radius, arc = wall["outline"], wall["radius"], wall.get("arc")
     low_u, high_u = min(p[0] for p in outline) - radius, max(p[0] for p in outline) + radius
     low_v, high_v = min(p[1] for p in outline) - radius, max(p[1] for p in outline) + radius
     centre = vent["centre"] or ((low_u + high_u) / 2.0, (low_v + high_v) / 2.0)
     what = (f"slots of {vent['width']:g} x {vent['length']:g} mm" if slot else f"holes of {vent['diameter']:g} mm")
+    kind = "staggered field" if stagger else "field"
 
     def ends(u, v):
         return (u - reach * du, v - reach * dv), (u + reach * du, v + reach * dv)
@@ -667,16 +804,21 @@ def _field(wall, vent, obstacles, earlier):
     def place(k, count, pitch, middle):
         return middle + (k - (count - 1) / 2.0) * pitch
 
-    def worst(rows, columns):               # the plain part is convex, so the four corners of a field decide
-        return min(room(place(i, columns, pitch_u, centre[0]), place(j, rows, pitch_v, centre[1]))
-                   for i in (0, columns - 1) for j in (0, rows - 1))
+    def across(j, columns):                 # how many openings row j has: one fewer in every second staggered row
+        return columns - (j % 2 if stagger else 0)
+
+    def worst(rows, columns):               # the plain part is convex, so the ends of the outermost rows decide:
+        return min(room(place(i, across(j, columns), pitch_u, centre[0]), place(j, rows, pitch_v, centre[1]))
+                   for j in {0, min(1, rows - 1), max(0, rows - 2), rows - 1}     # two at each end when staggered
+                   for i in (0, across(j, columns) - 1))
 
     def most(extent, opening, pitch):
         return max(0, int((extent - 2.0 * margin - opening) / pitch + 1e-9) + 1) if extent >= 2.0 * margin + opening else 0
 
-    rows = [vent["rows"]] if vent["rows"] else range(1, most(high_v - low_v, 2.0 * half_v, pitch_v) + 1)
-    columns = [vent["columns"]] if vent["columns"] else range(1, most(high_u - low_u, 2.0 * half_u, pitch_u) + 1)
-    fitting = [(r * c, c, r) for r in rows for c in columns if worst(r, c) >= margin - 1e-9]
+    fewest = 2 if stagger else 1
+    rows = [vent["rows"]] if vent["rows"] else range(fewest, most(high_v - low_v, 2.0 * half_v, pitch_v) + 1)
+    columns = [vent["columns"]] if vent["columns"] else range(fewest, most(high_u - low_u, 2.0 * half_u, pitch_u) + 1)
+    fitting = [(sum(across(j, c) for j in range(r)), c, r) for r in rows for c in columns if worst(r, c) >= margin - 1e-9]
     if not fitting:
         part = f"{name}, whose plain part in the {wall['half']} is {high_u - low_u:.2f} x {high_v - low_v:.2f} mm"
         if vent["rows"] and vent["columns"]:
@@ -691,21 +833,22 @@ def _field(wall, vent, obstacles, earlier):
                     edge, least = ("the lip, which the lid goes over" if wall["lip"] else "where the halves meet"), spare
             reaches = (f"comes within {least:.2f} mm of {edge}" if least >= 0.0
                        else f"reaches {-least:.2f} mm beyond {edge}")
-            raise ValueError(f"a field of {vent['rows']} x {vent['columns']} {what} with a web of {web:g} mm does not fit "
+            raise ValueError(f"a {kind} of {vent['rows']} x {vent['columns']} {what} with a web of {web:g} mm does not fit "
                              f"{part}: about ({centre[0]:.2f}, {centre[1]:.2f}) it {reaches}, and a margin of "
                              f"{margin:g} mm is asked for")
-        raise ValueError(f"no field of {what} fits {part}, with a margin of {margin:g} mm about "
+        raise ValueError(f"no {kind} of {what} fits {part}, with a margin of {margin:g} mm about "
                          f"({centre[0]:.2f}, {centre[1]:.2f})")
     _, columns, rows = max(fitting)
     openings = []
     for j in range(rows):
-        for i in range(columns):
-            u, v = place(i, columns, pitch_u, centre[0]), place(j, rows, pitch_v, centre[1])
-            middle = add(add(wall["origin"], times(wall["u"], u)),
-                         add(times(wall["v"], v), times(wall["normal"], -wall["thickness"] / 2.0)))
+        for i in range(across(j, columns)):
+            u, v = place(i, across(j, columns), pitch_u, centre[0]), place(j, rows, pitch_v, centre[1])
+            depth = wall["thickness"] / 2.0 if arc is None else arc[1] - (
+                math.sqrt(arc[1] ** 2 - u * u) + math.sqrt(arc[0] ** 2 - u * u)) / 2.0     # halfway through a round corner
+            middle = add(add(wall["origin"], times(wall["u"], u)), add(times(wall["v"], v), times(wall["normal"], -depth)))
             openings.append({"centre": (u, v), "ends": ends(u, v), "point": middle})
 
-    def refuse(opening, gap, other):
+    def refuse(opening, gap, other, web=web):
         u, v = opening["centre"]
         does = f"would come within {gap:.2f} mm of {other}" if gap > 0.0 else f"would cut into {other}"
         raise ValueError(f"the vent at ({u:.2f}, {v:.2f}) of the field in {name} {does}; {web:g} mm is to be left "
@@ -719,16 +862,20 @@ def _field(wall, vent, obstacles, earlier):
             if gap < web - 1e-9:
                 refuse(opening, gap, other)
     for field in earlier:
+        between = max(web, field["web"])    # each field asks for its web: the wider of the two is left
         for opening in openings:
             for there in field["openings"]:
                 gap = _segments_apart(*opening["ends"], *there["ends"]) - rho - field["radius"]
-                if gap < web - 1e-9:
-                    refuse(opening, gap, "a vent of an earlier field in the same wall")
+                if gap < between - 1e-9:
+                    refuse(opening, gap, "a vent of an earlier field in the same wall", between)
     area = vent["width"] * (vent["length"] - vent["width"]) + math.pi * rho * rho if slot else math.pi * rho * rho
+    volume = (len(openings) * area * wall["thickness"] if arc is None else
+              math.fsum(_through_arc(arc, opening["centre"][0], rho, reach, slot and du > 0.0) for opening in openings))
     return {"wall": vent["wall"], "half": wall["half"], "face": wall["face"], "shape": vent["shape"],
-            "rows": rows, "columns": columns, "radius": rho, "reach": reach, "direction": (du, dv),
+            "rows": rows, "columns": columns, "stagger": stagger, "radius": rho, "reach": reach,
+            "direction": (du, dv), "web": web,
             "openings": openings, "area_mm2": area, "thickness": wall["thickness"],
-            "volume_mm3": len(openings) * area * wall["thickness"],
+            "volume_mm3": volume,
             "frame": {key: wall[key] for key in ("origin", "u", "v", "normal")}}
 
 
@@ -736,14 +883,17 @@ def vent_fields(board, walls, half, **given):
     """The fields of vents the settings ask for in one half, "base" or "lid", of an enclosure with those
     `Walls`, laid out without a kernel; a list in the order of `vents`, without the fields of the other half.
 
-    A field is a dict: `wall` and `half`; `rows` and `columns`; `openings`, row by row from the lowest v, each
+    A field is a dict: `wall` and `half`; `rows` and `columns`, and whether it is one with `stagger`, of which
+    every second row has one opening fewer than `columns`; `openings`, row by row from the lowest v, each
     with its `centre` (u, v), the two `ends` of its middle line, which are one point for a round hole, and
     `point`, its middle in the board's frame halfway through the wall, which a check can ask to be empty;
-    `radius`, half the width of a slot or the radius of a hole; `area_mm2` of one opening; `thickness` of the
-    wall; `volume_mm3`, what the field takes out; and `frame`, the wall's origin, u, v and normal.
+    `radius`, half the width of a slot or the radius of a hole; `area_mm2` of one opening; its `web`;
+    `thickness` of the wall, or in a round corner of a box how deep a cut goes there; `volume_mm3`, what the
+    field takes out; and `frame`, the wall's origin, u, v and normal.
 
     A field that does not fit the plain part of its wall inside its margin, or that would leave less than its
-    web to a standoff, a post, the opening of a port or a field before it, is a ValueError that says which.
+    web to a standoff, a post or the opening of a port, or less than its web and that of a field before it in
+    the same wall to that field, is a ValueError that says which.
     """
     if half not in ("base", "lid"):
         raise ValueError('a half is "base" or "lid"')
@@ -758,24 +908,31 @@ def vent_fields(board, walls, half, **given):
 
 
 def foot_places(board, walls, **given):
-    """Where the feet the settings ask for stand under an enclosure with those `Walls`, without a kernel; None
-    when no feet are asked for.
+    """Where the feet the settings ask for stand under an enclosure with those `Walls`, or where the pockets for
+    feet that are stuck on are cut into it, without a kernel; None when no feet are asked for.
 
-    A dict: `z`, the underside of the base; `diameter` and `height`; `at`, the middle of every foot as (x, y);
-    `points`, the middle of every foot in the board's frame, which a check can ask to be material; and
-    `volume_mm3`, what the feet add.
+    A dict: `kind`, "boss" or "recess"; `z`, the underside of the base; `diameter` of the foot; `at`, the middle
+    of every foot or pocket as (x, y). Of bosses besides: `height`; `points`, the middle of every foot in the
+    board's frame, which a check can ask to be material; and `volume_mm3`, what the feet add. Of pockets:
+    `across`, how wide one is, and its `depth`; `floor`, what is left of the floor over it; `points`, the middle
+    of every pocket, which a check can ask to be empty; and `volume_mm3`, what the pockets take out.
 
     Left to themselves there are four, one towards each corner of the underside: the place furthest along
-    (1, 1), (-1, 1), (-1, -1) and (1, -1) at which a foot keeps `inset` from the edge. Refused, with the
-    reason: an enclosure that does not stand on a level face; feet that do not fit inside the inset, or that
-    stand in each other; a foot under a vent of the floor or under the window of a port that goes through
-    it; and feet the base would not stand on: fewer than three, all in a line, or with the middle of the
-    underside outside what they span.
+    (1, 1), (-1, 1), (-1, -1) and (1, -1) at which a foot or a pocket keeps `inset` from the edge; a triangle,
+    where two of those are one corner, has three. Refused, with the reason: an enclosure that does not stand on
+    a level face; feet that do not fit inside the inset, or that stand in each other; a foot under a vent of
+    the floor or under the window of a port that goes through it; and feet the base would not stand on: fewer
+    than three, all in a line, or with the middle of the underside outside what they span. Of pockets also:
+    one that leaves less than POCKET_LEAVES of the floor, or as little between itself and the window of a port
+    that comes down into the floor or the hole for the insert under a mounting hole (the standoff, when the
+    insert is named and its hole known to the tables alone), or less than a field's web to a vent of the floor.
     """
     s = settings(given)
     feet = s["feet"]
     if feet is None:
         return None
+    recess = feet["kind"] == "recess"
+    what, plural = ("pocket", "pockets") if recess else ("foot", "feet")
     outer = walls.outer
     face = outer.face_towards((0.0, 0.0, -1.0))
     if outer.normals[face][2] > -1.0 + 1e-9:
@@ -789,56 +946,105 @@ def foot_places(board, walls, **given):
     radius = walls.outer_radius
     if radius > 0.0:                        # a box: the underside is everything within the radius of this
         outline = _grown(outline, -radius)
-    r, inset = feet["diameter"] / 2.0, feet["inset"]
+    r, inset = feet["diameter"] / 2.0 + (feet["clearance"] if recess else 0.0), feet["inset"]
     if feet["at"] is None:
         inner = outline
         for a, b in _sides(outline):
             n = _outward(a, b)
             inner = _clipped(inner, n[0], n[1], n[0] * a[0] + n[1] * a[1] - max(0.0, inset + r - radius)) if inner else []
         if not inner:
-            raise ValueError(f"feet of {feet['diameter']:g} mm with an inset of {inset:g} mm do not fit under an "
+            raise ValueError(f"{plural} of {2.0 * r:g} mm with an inset of {inset:g} mm do not fit under an "
                              f"underside of {high[0] - low[0]:.2f} x {high[1] - low[1]:.2f} mm")
         spare = max(0.0, radius - inset - r) / math.sqrt(2.0)
         at = []
         for sx, sy in ((1.0, 1.0), (-1.0, 1.0), (-1.0, -1.0), (1.0, -1.0)):
             p = _support(inner, (sx, sy))
-            at.append((p[0] + spare * sx, p[1] + spare * sy))
+            p = (p[0] + spare * sx, p[1] + spare * sy)
+            if p not in at:                 # two of the four directions meet the same corner of a triangle
+                at.append(p)
     else:
         at = list(feet["at"])
         for x, y in at:
             room = _room((x, y), outline, radius) - r
             if room < inset - 1e-9:
-                raise ValueError(f"the foot at ({x:.2f}, {y:.2f}) " + (
+                raise ValueError(f"the {what} at ({x:.2f}, {y:.2f}) " + (
                     f"comes within {room:.2f} mm of" if room >= 0.0 else f"reaches {-room:.2f} mm beyond")
                     + f" the edge of the underside; an inset of {inset:g} mm is asked for")
     for k, (x, y) in enumerate(at):
         for ox, oy in at[:k]:
             if math.hypot(x - ox, y - oy) < 2.0 * r + 1e-9:
-                raise ValueError(f"the feet at ({ox:.2f}, {oy:.2f}) and ({x:.2f}, {y:.2f}) stand in each other: "
+                raise ValueError(f"the {plural} at ({ox:.2f}, {oy:.2f}) and ({x:.2f}, {y:.2f}) stand in each other: "
                                  "the underside is small for them, or `at` names a place twice")
     span = _hull(at)
     middle = ((low[0] + high[0]) / 2.0, (low[1] + high[1]) / 2.0)
     if len(span) < 3 or _within(middle, span) <= 0.0:
         raise ValueError("the base would not stand on these feet: there are fewer than three, they are in a line, "
                          "or the middle of the underside is not between them")
-    for what, corners, bottom, _, opening in _obstacles(board, s, "base"):
-        if opening and bottom <= z + 1e-9:
+    windows = [(name, _hull(corners), bottom)
+               for name, corners, bottom, _, opening in _obstacles(board, s, "base") if opening]
+    fields = [field for field in vent_fields(board, walls, "base", **given) if field["face"] == face]
+    if not recess:
+        for name, corners, bottom in windows:
+            if bottom <= z + 1e-9:
+                for x, y in at:
+                    if _apart(corners, [(x, y)]) < r - 1e-9:
+                        raise ValueError(f"the foot at ({x:.2f}, {y:.2f}) would stand under {name}, which goes "
+                                         "through the floor; move it (`at`) or change the `inset`")
+        for field in fields:
             for x, y in at:
-                if _apart(_hull(corners), [(x, y)]) < r - 1e-9:
-                    raise ValueError(f"the foot at ({x:.2f}, {y:.2f}) would stand under {what}, which goes "
-                                     "through the floor; move it (`at`) or change the `inset`")
-    for field in vent_fields(board, walls, "base", **given):
-        if field["face"] != face:
-            continue
+                for opening in field["openings"]:
+                    if _apart(list(opening["ends"]), [(x, y)]) < r + field["radius"] - 1e-9:
+                        u, v = opening["centre"]
+                        raise ValueError(f"the foot at ({x:.2f}, {y:.2f}) would stand under the vent at ({u:.2f}, "
+                                         f"{v:.2f}) of the floor; move it (`at`), change the `inset` or the field")
+        return {"kind": "boss", "z": z, "diameter": feet["diameter"], "height": feet["height"], "at": at,
+                "points": [(x, y, z - feet["height"] / 2.0) for x, y in at],
+                "volume_mm3": len(at) * math.pi * r * r * feet["height"]}
+
+    # Pockets: each takes `depth` of the floor, and leaves POCKET_LEAVES of it and around itself.
+    depth, top = feet["depth"], z + feet["depth"]
+    behind = [g for g, m in enumerate(walls.cavity.normals) if norm(sub(m, outer.normals[face])) < 1e-9]
+    if len(behind) != 1:
+        raise ValueError("the cavity has no level floor over the underside; pockets for stick-on feet are not built "
+                         "for it")
+    floor = outer.distances[face] - walls.cavity.distances[behind[0]]
+    if floor - depth < POCKET_LEAVES - 1e-9:
+        raise ValueError(f"a pocket {depth:g} mm deep would leave {floor - depth:.2f} mm of the floor, which is "
+                         f"{floor:g} mm thick; {POCKET_LEAVES:g} mm is the least. Make the pocket shallower (`depth`) "
+                         "or the `floor` thicker")
+
+    def refuse(x, y, gap, other, least, advice):
+        does = f"would come within {gap:.2f} mm of {other}" if gap > 0.0 else f"would run into {other}"
+        raise ValueError(f"the pocket at ({x:.2f}, {y:.2f}) {does}; {least:g} mm is to be left between them. {advice}")
+
+    for hole in board.holes:
+        if s["insert"]:                     # how wide and how deep its hole is only the tables say: the standoff holds it
+            other = f"the standoff under {hole['id']}, which holds the hole for the insert"
+            across, lowest = s["standoff_diameter"], -FAR
+        else:                               # a typed-in hole is never deeper than this, whatever is under it
+            other = f"the hole for the insert under {hole['id']}"
+            across, lowest = s["insert_hole_diameter"], -board.thickness - s["insert_hole_depth"]
+        for x, y in at if lowest - top < POCKET_LEAVES - 1e-9 else ():
+            gap = math.hypot(x - hole["x"], y - hole["y"]) - r - across / 2.0
+            if gap < POCKET_LEAVES - 1e-9:
+                refuse(x, y, gap, other, POCKET_LEAVES, "Move it (`at`) or give the pockets more `inset`")
+    for name, corners, bottom in windows:
+        for x, y in at if bottom - top < POCKET_LEAVES - 1e-9 else ():
+            gap = _apart(corners, [(x, y)]) - r
+            if gap < POCKET_LEAVES - 1e-9:
+                refuse(x, y, gap, f"{name}, which comes down into the floor", POCKET_LEAVES,
+                       "Move it (`at`) or change the `inset`")
+    for field in fields:
         for x, y in at:
             for opening in field["openings"]:
-                if _apart(list(opening["ends"]), [(x, y)]) < r + field["radius"] - 1e-9:
+                gap = _apart(list(opening["ends"]), [(x, y)]) - r - field["radius"]
+                if gap < field["web"] - 1e-9:
                     u, v = opening["centre"]
-                    raise ValueError(f"the foot at ({x:.2f}, {y:.2f}) would stand under the vent at ({u:.2f}, "
-                                     f"{v:.2f}) of the floor; move it (`at`), change the `inset` or the field")
-    return {"z": z, "diameter": feet["diameter"], "height": feet["height"], "at": at,
-            "points": [(x, y, z - feet["height"] / 2.0) for x, y in at],
-            "volume_mm3": len(at) * math.pi * r * r * feet["height"]}
+                    refuse(x, y, gap, f"the vent at ({u:.2f}, {v:.2f}) of the floor", field["web"],
+                           "Move it (`at`), change the `inset` or the field")
+    return {"kind": "recess", "z": z, "diameter": feet["diameter"], "across": 2.0 * r, "depth": depth,
+            "floor": floor - depth, "at": at, "points": [(x, y, z + depth / 2.0) for x, y in at],
+            "volume_mm3": len(at) * math.pi * r * r * depth}
 
 
 def box_walls(board, **given):
@@ -909,6 +1115,18 @@ def _without_wall_openings(half, board, s):
     return half
 
 
+def _volume(solid):
+    """A solid's volume by the kernel's adaptive integration. build123d's own figure is the plain integration,
+    which is right for flat faces and whole cylinders and was 0.15 mm3 out for nine round holes of 2 mm through
+    a round corner, where the faces end in curves that are neither straight nor round."""
+    from OCP.BRepGProp import BRepGProp
+    from OCP.GProp import GProp_GProps
+
+    properties = GProp_GProps()
+    BRepGProp.VolumeProperties_s(solid.wrapped, properties, 1e-7)
+    return properties.Mass()
+
+
 def _with_vents(half, fields, name):
     """A half with the fields of `vent_fields` cut through it, held to the volume worked out there."""
     from build123d import Circle, Plane, SlotOverall, extrude
@@ -928,10 +1146,11 @@ def _with_vents(half, fields, name):
             tools.append(extrude(Plane(origin=inside, x_dir=along, z_dir=frame["normal"]) * profile,
                                  amount=thickness + VENT_REACH_IN + VENT_REACH_OUT))
     vented = half - tools
-    expected = half.volume - math.fsum(field["volume_mm3"] for field in fields)
-    if len(vented.solids()) != 1 or not vented.is_valid or abs(vented.volume - expected) > HELD_VOLUME_REL * half.volume:
+    before, after = _volume(half), _volume(vented)
+    expected = before - math.fsum(field["volume_mm3"] for field in fields)
+    if len(vented.solids()) != 1 or not vented.is_valid or abs(after - expected) > HELD_VOLUME_REL * before:
         raise ValueError(f"the vents of {name} did not come out as worked out: {len(vented.solids())} solid(s) of "
-                         f"{vented.volume:.3f} mm3 where one of {expected:.3f} mm3 was expected. Something that is "
+                         f"{after:.3f} mm3 where one of {expected:.3f} mm3 was expected. Something that is "
                          "not a standoff, a post or a port's opening is in a vent's way")
     return vented
 
@@ -951,9 +1170,7 @@ def standing(solid, tolerance=1e-6):
     contacts, rim = [], []
     for face in solid.faces():
         if face.geom_type != GeomType.PLANE or abs(face.center().Z - low) > tolerance:
-            continue
-        if face.normal_at(face.center()).Z > -1.0 + 1e-9:
-            continue
+            continue                        # a flat face whose middle is at the solid's lowest lies there, and looks down
         middle = face.center(CenterOf.MASS)
         contacts.append({"centre": (middle.X, middle.Y), "area_mm2": face.area})
         for edge in face.outer_wire().edges():
@@ -969,16 +1186,35 @@ def standing(solid, tolerance=1e-6):
 
 
 def _with_feet(base, places):
-    """A base with the feet of `foot_places` under it, held to their volume and to standing on them."""
+    """A base with the feet of `foot_places` under it, held to their volume and to standing on them; or with the
+    pockets cut into its underside, held to their volume and to lying on its floor around them."""
     if places is None:
         return base
+    if places["kind"] == "recess":
+        pocketed = base
+        for x, y in places["at"]:
+            pocketed -= _cylinder(x, y, places["across"], places["z"] - VENT_REACH_OUT, places["z"] + places["depth"])
+        whole, left = _volume(base), _volume(pocketed)
+        expected, mouths = whole - places["volume_mm3"], len(places["at"]) * math.pi * places["across"] ** 2 / 4.0
+        if len(pocketed.solids()) != 1 or not pocketed.is_valid or abs(left - expected) > HELD_VOLUME_REL * whole:
+            raise ValueError(f"the pockets did not come out as worked out: {len(pocketed.solids())} solid(s) of "
+                             f"{left:.3f} mm3 where one of {expected:.3f} mm3 was expected. Something that "
+                             "is not a standoff's hole, a vent or a port's opening is in a pocket's way")
+        before, on = standing(base), standing(pocketed)
+        if (abs(on["z"] - places["z"]) > 1e-6 or not on["stands"]
+                or abs(before["area_mm2"] - on["area_mm2"] - mouths) > 1e-6 * mouths):
+            raise ValueError(f"the base does not lie on its floor around its {len(places['at'])} pockets: at z = "
+                             f"{on['z']:.3f} it rests on {on['area_mm2']:.3f} mm2, {before['area_mm2']:.3f} mm2 "
+                             f"without them, and their mouths are {mouths:.3f} mm2")
+        return pocketed
     footed = base
     for x, y in places["at"]:
         footed += _cylinder(x, y, places["diameter"], places["z"] - places["height"], places["z"])
-    expected, one = base.volume + places["volume_mm3"], math.pi * places["diameter"] ** 2 / 4.0
-    if len(footed.solids()) != 1 or not footed.is_valid or abs(footed.volume - expected) > HELD_VOLUME_REL * base.volume:
+    whole, more = _volume(base), _volume(footed)
+    expected, one = whole + places["volume_mm3"], math.pi * places["diameter"] ** 2 / 4.0
+    if len(footed.solids()) != 1 or not footed.is_valid or abs(more - expected) > HELD_VOLUME_REL * whole:
         raise ValueError(f"the feet did not come out as worked out: {len(footed.solids())} solid(s) of "
-                         f"{footed.volume:.3f} mm3 where one of {expected:.3f} mm3 was expected")
+                         f"{more:.3f} mm3 where one of {expected:.3f} mm3 was expected")
     on = standing(footed)
     if (abs(on["z"] - (places["z"] - places["height"])) > 1e-6 or len(on["contacts"]) != len(places["at"])
             or any(abs(contact["area_mm2"] - one) > 1e-6 * one for contact in on["contacts"])):
@@ -994,7 +1230,7 @@ def _with_feet(base, places):
 def box_base(board, **given):
     """The base: floor, walls up to the board's top face, and a standoff with an insert hole under each mounting hole.
     Of the `openings` it has those of ports that face sideways or down, where they reach it; of the `vents` those
-    of the floor and of its part of the walls; and the `feet`."""
+    of the floor and of its part of the walls and round corners; and the `feet`, bosses or pockets."""
     s, at = settings(given), levels(board, **given)
     if s["standoff_diameter"] <= s["insert_hole_diameter"]:
         raise ValueError("standoff_diameter must be more than insert_hole_diameter")
@@ -1039,7 +1275,7 @@ def box_lid(board, **given):
     """The lid: plate, walls down to the base, a post with a screw hole over each mounting hole, and the openings
     asked for in `openings`, each named by a port's id or reference: a window in the plate over a port that faces
     up, one through the wall for a port that faces sideways. Of the `vents` it has those of the plate and of its
-    part of the walls."""
+    part of the walls and round corners."""
     from build123d import Box, Pos
 
     s, at = settings(given), levels(board, **given)
@@ -1151,6 +1387,9 @@ def halves(board, outer, cavity, walls=None, **given):
         from bd_warehouse.fastener import SocketHeadCapScrew
 
         screw = SocketHeadCapScrew(s["screw"], 10)
+        if s["post_diameter"] <= screw.head_diameter + 0.8:        # as in the box: a vent keeps its web from the post
+            raise ValueError(f"the head of the screw {s['screw']} is {screw.head_diameter:.2f} mm across; a post of "
+                             f"{s['post_diameter']} mm leaves too little around its counterbore. Make `post_diameter` more")
         screw_diameter = screw.clearance_hole_diameters["Normal"]
         head_diameter, head_depth = screw.head_diameter + 0.4, screw.head_height + 0.2
     else:

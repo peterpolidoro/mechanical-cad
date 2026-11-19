@@ -134,6 +134,17 @@ make section KEY=with-my-part CUT=+y MEASURE='across 0,0,0 40,0,12 gap; up 0,0,0
 sheet, `up` from bottom to top, and two points alone the straight distance;
 the words after them are written beside the number.
 
+```sh
+make section KEY=with-my-part CUT=+y HATCH=1 BEHIND=1   # the cut faces hatched, and the edges seen behind the plane
+```
+
+`HATCH=1` hatches the cut faces, parts side by side differently, so that
+the drawing reads without its colours. `BEHIND=1` adds in thin lines what
+is seen behind the plane. For a part that takes no time; for an assembly of
+many parts give `BEHIND=quick`, which finds the edges on a mesh in seconds
+where the exact surfaces take minutes or do not end. `ARCS=1` writes
+circular edges as arcs, for a drawing program.
+
 A picture that is cut or coloured is put together from the parts' files and
 the placements, so the assembly need not be built for it; it needs
 build123d beside the viewer, which `make picture` sees to. `CUT=+y` takes
@@ -157,6 +168,22 @@ make section KEY=with-my-part CUT=+y FINISH=1     # the section filled in the fi
 new part without a row in the file takes the file's `default`, or is pointed
 out by `make validate` when there is none.
 
+**When something moves** (a draft; the layout does not know it yet, and
+[joints-and-poses-draft.md](joints-and-poses-draft.md) says what it is):
+the project's `motion.toml` says which children of an assembly turn about a
+line or slide along one, how far, and names positions.
+
+```sh
+make axes KEY=with-my-part CHILD='MY PART:1'      # the lines its round faces turn about: the numbers for a joint
+make motion KEY=with-my-part                      # check motion.toml and list its joints and poses
+make sweep KEY=with-my-part JOINT=hinge           # walk the joint through its range: where is what it moves blocked
+make picture KEY=with-my-part POSE=open COLOUR=1  # pictures with the joints where the pose puts them
+```
+
+`make sweep` is `make fit` at every step of a joint's range. What already
+overlaps as the assembly stands (a thread in its hole) is measured first and
+not held against the motion.
+
 ## 5. The file to make it from
 
 A part is made from a file that is derived from its STEP file and checked
@@ -171,7 +198,21 @@ make cut KEY=<key>        # a plate cut from sheet: .cache/cut/<key>.dxf, closed
 and nothing between them but what stands square to them, and writes the
 outline of one face with its holes, in millimetres and in the part's own X
 and Y where the plate lies in them. A part with a pocket, a chamfer or a
-leaning wall is refused: it is not made in one pass.
+leaning wall is refused: it is not made in one pass. Round corners and the
+round ends of slots are arcs in the file; an ellipse or a spline in the
+outline is refused.
+
+```sh
+make cut KEY=<key> KERF=0.2       # the same, allowing for a cut 0.2 mm wide
+```
+
+A cut takes away a strip as wide as the beam or the tool. With `KERF` the
+outline is moved outward and every hole inward by half that width, so that
+the part comes out at its size; the drawing is held to the solid's face
+moved by as much, and the record says the allowance. A hole or a slot that
+is not wider than the cut closes, and the drawing is refused. A sharp
+corner that points into the material comes out round with half the width;
+the record counts those.
 
 ```sh
 make cut KEY=<key> PATTERN=1      # a solid with flat faces, unfolded: .cache/cut/<key>.pattern.dxf, cut and fold lines
@@ -183,6 +224,20 @@ outline to cut on one layer and the fold lines on another, with every
 fold's angle in the record. `ROOT=+x` names the face that is laid first.
 Nothing is allowed for the sheet's thickness or a bend's radius, and there
 are no tabs.
+
+```sh
+make cut KEY=<key> PATTERN=1 OPEN=+z      # the same solid without the face towards +z: a shell open there
+```
+
+Folded sheet makes a shell, not a solid. `OPEN` names the faces to leave
+out by the axes they face squarely (`OPEN=+z,-y` for two): a box without
+its top is the pattern of a tray, and the solid that half of an enclosure
+fills, without the face in which the halves meet, is the pattern of that
+half (`Polyhedron.clipped` cuts a solid of the library at a plane). The
+part stays the closed solid. The edges round an opening are cut once and
+are its rim; a shell open below needs another face laid first
+(`OPEN=-z ROOT=+z`). The pattern is still that of a surface: the sheet's
+thickness, the radius of a bend, flanges and tabs are not in it.
 
 **A tool is a part built against the part it makes.** A forming plug, a
 drilling jig or a fixture names the part as its input and takes its shape

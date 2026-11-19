@@ -36,6 +36,10 @@ it on reliably, so read the status line.
 Distances and common volumes are FreeCAD's, in millimetres, in the assembly's
 own frame. A contact is reported, not judged: parts that are bolted together
 touch.
+
+Solids are what is compared. A part whose file holds faces and no solid, as a
+supplier's model of surfaces does, is not compared with anything; the tool
+names such parts, and the record has them as `parts_without_a_solid`.
 """
 from __future__ import annotations
 
@@ -151,6 +155,9 @@ def main(argv):
     subjects = sorted(set(opts["subjects"]))
 
     shapes = {part: kernel.read_step_visible(path)[0] for part, path in assets}
+    bare = sorted(part for part, shape in shapes.items() if not shape.Solids)
+    if bare:
+        print(f"[fit_check] {len(bare)} part(s) have no solid and are not compared: {', '.join(bare)}")
     everything = placed_solids(scene, shapes)
     findings, measured, closest = [], 0, None
     for position, subject in enumerate(subjects):
@@ -181,6 +188,8 @@ def main(argv):
               "solids": {"subjects": sum(1 for s in everything if s["top"] in subjects),
                          "others": sum(1 for s in everything if s["top"] not in subjects)},
               "pairs_measured": measured, "counts": counts, "closest_apart": closest, "findings": findings}
+    if bare:
+        report["parts_without_a_solid"] = bare
     if opts["out"]:
         out = Path(opts["out"])
         out.parent.mkdir(parents=True, exist_ok=True)

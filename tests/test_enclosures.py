@@ -264,6 +264,20 @@ def test_a_lip_is_upright_and_is_refused_where_the_walls_lean_in_too_much():
     assert base.volume - flat.volume == pytest.approx(2 * ((reach + math.sqrt(2)) ** 2 - reach ** 2) * 0.5, rel=1e-6)
 
 
+@with_bd_warehouse
+def test_a_screw_whose_head_the_post_does_not_hold_is_refused_in_a_prism_as_it_is_in_the_box():
+    board = enclosures.Board(interface())
+    # the head of an M4 screw is 7.22 mm across in the tables and its counterbore 7.62 mm: it would cut a post of
+    # 7 mm open at its side, and a vent that keeps its web from the post would not keep it from the counterbore
+    for make in (lambda **given: enclosures.box_lid(board, **given), lambda **given: enclosures.prism_halves(board, 6, **given),
+                 lambda **given: enclosures.octagon_halves(board, **given)):
+        with pytest.raises(ValueError, match="the head of the screw M4-0.7 is 7.22 mm across; a post of 7.0 mm leaves too "
+                                             "little around its counterbore. Make `post_diameter` more"):
+            make(screw="M4-0.7")
+    lid = enclosures.prism_halves(board, 6, screw="M4-0.7", post_diameter=9.0)[1]
+    assert lid.is_valid and len(lid.solids()) == 1
+
+
 def test_the_polygon_of_a_prism_is_the_smallest_that_holds_the_board():
     board = enclosures.Board(interface())                       # 60 x 40 mm; with the clearance 62 x 42
     assert enclosures.prism_size(board, 4) == (pytest.approx(31.0), 0.0)

@@ -9,9 +9,16 @@
     pattern.size          # (width, height) of the pattern, which lies between (0, 0) and that corner
     unfold.outline(pattern)   # the loops to cut the pattern out along, each by its corners
 
+    tray = unfold.unfold(box, root=bottom, open_faces=[top])     # the same with faces left out: an open shell
+
 The pattern is seen from outside the solid: every face keeps its counter-clockwise order, and every fold bends
 the sheet away from the viewer. tools/cut_file.py writes it as a drawing to cut and fold from, for a part that
 is a convex solid with flat faces.
+
+Faces can be left out (`open_faces`): what is laid out is then the rest of the surface, a shell that is open
+where those faces were, which is what a sheet folds into when it makes a tray or half of an enclosure. An edge
+between a face that is kept and one that is left out is cut once and is the rim of the opening. The faces that
+are kept have to hang together.
 
 Which edges are folds is a choice: any set of edges that joins all the faces without a ring will do (a spanning
 tree of the faces), and some choices lay one face over another. `unfold` tries trees in a fixed order and returns
@@ -20,7 +27,9 @@ from every other face, then the trees left by cutting, at every vertex, the edge
 towards one of a fixed list of directions. Overlap is decided exactly for convex polygons: two of them have no
 area in common when the line through one side of either has the other polygon on its outer side. A solid for
 which none of these trees is free of overlap raises `UnfoldError`. For the eighteen named solids, and for the
-prism, the antiprism and the box that tests/test_polyhedra.py tries, the first tree is free of it.
+prism, the antiprism and the box that tests/test_polyhedra.py tries, the first tree is free of it. With faces
+left out the trees are the same with those faces taken away, and one that then no longer joins the rest is
+passed over.
 
 Nothing here allows for the thickness of the sheet or the radius of a bend, and no tabs are added to join the
 cut edges by.
@@ -55,7 +64,9 @@ class Fold:
 @dataclass(frozen=True)
 class Cut:
     """An edge that is cut. `faces` are its two faces, `edge` its two vertices, and `segments` where it lies in
-    the pattern on the first face and on the second: the two are joined again when the pattern is folded up."""
+    the pattern on the first face and on the second: the two are joined again when the pattern is folded up.
+    Where the second face is left open the edge is on the rim of the opening, and `segments` has the one place
+    it lies on the first."""
     faces: tuple
     edge: tuple
     segments: tuple
@@ -65,12 +76,15 @@ class Cut:
 class Pattern:
     """A flat pattern. `polygons[i]` is face i of the polyhedron, its corners as (x, y) in the order of the face.
     `root` is the face whose first edge runs along +X. There is one fold fewer than there are faces, and the
-    folds are in the order in which the faces were laid: each joins one more face to the root and those before."""
+    folds are in the order in which the faces were laid: each joins one more face to the root and those before.
+    `open_faces` are the faces left out, in order; such a face has no corners here, `polygons[i]` is empty, and
+    the folds are one fewer than the faces that are kept."""
     polygons: tuple
     folds: tuple
     cuts: tuple
     size: tuple
     root: int
+    open_faces: tuple = ()
 
     @property
     def area(self):
@@ -88,10 +102,11 @@ def neighbours(polyhedron):
     return {(a, b): (f, left[(b, a)]) for (a, b), f in left.items()}
 
 
-def breadth_first(polyhedron, start):
-    """The folds of the tree that reaches every face from `start` in the fewest steps, as a set of edges."""
+def breadth_first(polyhedron, start, open_faces=()):
+    """The folds of the tree that reaches every face from `start` in the fewest steps, as a set of edges. Faces
+    in `open_faces` are neither reached nor passed through; faces that can then not be reached are in no fold."""
     across = neighbours(polyhedron)
-    seen, queue, folds = {start}, [start], set()
+    seen, queue, folds = {start, *open_faces}, [start], set()
     for f in queue:
         face = polyhedron.faces[f]
         for a, b in zip(face, face[1:] + face[:1]):
@@ -133,13 +148,15 @@ def directions(count):
     return out
 
 
-def lay_out(polyhedron, folds, root=0):
+def lay_out(polyhedron, folds, root=0, open_faces=()):
     """Every face in the plane, for a set of fold edges that joins all faces without a ring.
 
     Returns (polygons, parents): the corners of every face as (x, y), and for every face but the root the face
     it is joined to on the way to the root together with the edge. The root's first corner is at the origin and
-    its first edge along +X.
+    its first edge along +X. A face in `open_faces` is not laid, whatever the folds say: it has no corners, and
+    the folds have to join all the others.
     """
+    left_out = set(open_faces)
     across = neighbours(polyhedron)
     vertices, faces, normals = polyhedron.vertices, polyhedron.faces, polyhedron.normals
     first = vertices[faces[root][0]]
@@ -151,7 +168,7 @@ def lay_out(polyhedron, folds, root=0):
         face = faces[f]
         for a, b in zip(face, face[1:] + face[:1]):
             g = across[(a, b)][1]
-            if g in flat or (min(a, b), max(a, b)) not in folds:
+            if g in flat or g in left_out or (min(a, b), max(a, b)) not in folds:
                 continue
             # g is turned about the edge into the plane of f: along the edge and across it, on the far side from f
             (ax, ay), (bx, by) = flat[f][a], flat[f][b]
@@ -166,18 +183,19 @@ def lay_out(polyhedron, folds, root=0):
                 flat[g][i] = (ax + s * ex[0] - t * ex[1], ay + s * ex[1] + t * ex[0])
             parents[g] = (f, (a, b))
             queue.append(g)
-    if len(flat) != len(faces):
+    if len(flat) != len(faces) - len(left_out):
         raise ValueError("these folds do not join all the faces")
-    return [tuple(flat[f][i] for i in faces[f]) for f in range(len(faces))], parents
+    return [tuple(flat[f][i] for i in faces[f]) if f in flat else () for f in range(len(faces))], parents
 
 
 def overlapping(polygons, eps):
     """The first two convex polygons, as a pair of indices, that have area in common; None when no two have.
 
     Polygons run counter-clockwise. Two that share a side or a corner, or lie nearer than `eps`, do not overlap.
+    A polygon without corners, a face left out of a pattern, overlaps nothing.
     """
     boxes = [(min(p[0] for p in poly), min(p[1] for p in poly), max(p[0] for p in poly), max(p[1] for p in poly))
-             for poly in polygons]
+             if poly else None for poly in polygons]
 
     def apart(one, other):
         """Whether the line through some side of `one` has all of `other` on its outer side."""
@@ -190,6 +208,8 @@ def overlapping(polygons, eps):
     for i in range(len(polygons)):
         for j in range(i + 1, len(polygons)):
             a, b = boxes[i], boxes[j]
+            if a is None or b is None:
+                continue
             if a[2] <= b[0] + eps or b[2] <= a[0] + eps or a[3] <= b[1] + eps or b[3] <= a[1] + eps:
                 continue
             if not apart(polygons[i], polygons[j]) and not apart(polygons[j], polygons[i]):
@@ -197,32 +217,49 @@ def overlapping(polygons, eps):
     return None
 
 
-def candidates(polyhedron, root=0):
-    """The sets of folds that `unfold` tries, in its order."""
-    yield breadth_first(polyhedron, root)
+def candidates(polyhedron, root=0, open_faces=()):
+    """The sets of folds that `unfold` tries, in its order. With `open_faces`, a set of the steepest edges may
+    not join the faces that are kept; `unfold` passes over one that does not."""
+    yield breadth_first(polyhedron, root, open_faces)
     for start in range(len(polyhedron.faces)):
-        if start != root:
-            yield breadth_first(polyhedron, start)
+        if start != root and start not in open_faces:
+            yield breadth_first(polyhedron, start, open_faces)
     for direction in directions(STEEPEST_EDGE_DIRECTIONS):
         yield steepest_edge(polyhedron, direction)
 
 
-def unfold(polyhedron, root=0):
+def unfold(polyhedron, root=0, open_faces=()):
     """The flat pattern of a convex polyhedron in which no two faces overlap, as a `Pattern`.
 
     `root` is the face laid first: its first edge runs along +X, and the search for a tree starts from it. The
     pattern is then moved so that it lies between (0, 0) and `size`. Raises `UnfoldError` when none of the
     trees tried is free of overlap.
+
+    `open_faces` are faces to leave out, by their indices: the pattern is that of the shell that is left, open
+    where they were. The root is one of the faces that are kept, and those have to hang together: a shell in
+    two pieces is no pattern, and raises `UnfoldError`.
     """
-    if not 0 <= root < len(polyhedron.faces):
+    count = len(polyhedron.faces)
+    if not 0 <= root < count:
         raise ValueError(f"{polyhedron.name} has no face {root}")
+    left_out = frozenset(open_faces)
+    if not all(isinstance(f, int) and 0 <= f < count for f in left_out):
+        raise ValueError(f"{polyhedron.name} has no faces {sorted(left_out, key=str)} to leave open")
+    if root in left_out:
+        raise ValueError(f"{polyhedron.name}: face {root} is left open, so it cannot be the face laid first")
+    if len(breadth_first(polyhedron, root, left_out)) != count - len(left_out) - 1:
+        raise UnfoldError(f"{polyhedron.name}: without the {len(left_out)} faces left open the others do not hang "
+                          "together, and no one sheet folds into them")
     eps = TOLERANCE * polyhedron.circumradius
     tried = 0
-    for folds in candidates(polyhedron, root):
+    for folds in candidates(polyhedron, root, left_out):
+        try:
+            polygons, parents = lay_out(polyhedron, folds, root, left_out)
+        except ValueError:
+            continue                                               # steepest edges that do not join the faces kept
         tried += 1
-        polygons, parents = lay_out(polyhedron, folds, root)
         if overlapping(polygons, eps) is None:
-            return _pattern(polyhedron, polygons, parents, root)
+            return _pattern(polyhedron, polygons, parents, root, left_out)
     raise UnfoldError(f"{polyhedron.name}: every one of the {tried} flat patterns tried lays one face over another")
 
 
@@ -233,12 +270,16 @@ def outline(pattern):
     pattern and runs counter-clockwise; any others are holes in it, places the faces lie around without
     covering, and run clockwise. Every cut edge is on the outline twice, once for each of its two faces, so the
     outline is as long as all the cut edges twice over, and what it encloses is the area of the solid's faces.
-    Corners that the two faces of a fold both have are one corner here.
+    Corners that the two faces of a fold both have are one corner here. Where faces are left open, an edge
+    between a face that is kept and one that is not is on the outline once, and what the outline encloses is
+    the area of the faces that are kept.
 
     Raises `UnfoldError` where the cut edges do not close into loops that pass no point twice: two faces that
-    are not joined lie side by side or meet in a corner there, so what would be cut is a slit or two loops that
-    touch, not an outline. Another root may give a pattern without that. The patterns of the eighteen named
-    solids have one loop and no such place, whichever face is the root.
+    are not joined lie side by side or meet in a corner there, or a corner of one lies on a side of another, so
+    what would be cut is a slit or two loops that touch, not an outline. Another root may give a pattern
+    without that. Cut edges that cross are refused too: faces lie over one another there, which `unfold` does
+    not return. The patterns of the eighteen named solids have one loop and no such place, whichever face is
+    the root.
     """
     segments = [segment for cut in pattern.cuts for segment in cut.segments]
     near = 1e-7 * max(pattern.size)                                # far above rounding, far below an edge
@@ -276,11 +317,37 @@ def outline(pattern):
             raise UnfoldError(f"two faces of the pattern that are not joined lie side by side at ({x:.6g}, {y:.6g}): "
                               "the cut between them is a slit, not an outline. Try another root")
         loops.append(tuple(loop))
+    # Two cut edges end at every corner now. A point is still passed twice where a corner lies on a cut edge that
+    # does not end there, or where two cut edges cross.
+    sides = [(corners[a], corners[b]) for a, b in ends]
+    boxes = [(min(p[0], q[0]) - near, min(p[1], q[1]) - near, max(p[0], q[0]) + near, max(p[1], q[1]) + near)
+             for p, q in sides]
+
+    def left_of(p, q, r):                                          # twice the area of the triangle p, q, r
+        return (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0])
+
+    for (a, b), (p, q), box in zip(ends, sides, boxes):
+        reach = near * math.dist(p, q)
+        for c, r in enumerate(corners):
+            if (box[0] <= r[0] <= box[2] and box[1] <= r[1] <= box[3] and c != a and c != b
+                    and abs(left_of(p, q, r)) <= reach):
+                raise UnfoldError(f"a corner of the pattern at ({r[0]:.6g}, {r[1]:.6g}) lies on a cut edge that does not "
+                                  "end there: faces that are not joined touch there, and the cut edges are no "
+                                  "outline. Try another root")
+    for k, ((p, q), one) in enumerate(zip(sides, boxes)):
+        for (r, s), other in zip(sides[k + 1:], boxes[k + 1:]):
+            if one[2] < other[0] or other[2] < one[0] or one[3] < other[1] or other[3] < one[1]:
+                continue
+            here, there = left_of(r, s, p), left_of(r, s, q)
+            if here * there < 0.0 and left_of(p, q, r) * left_of(p, q, s) < 0.0:
+                t = here / (here - there)
+                raise UnfoldError(f"two cut edges of the pattern cross at ({p[0] + t * (q[0] - p[0]):.6g}, "
+                                  f"{p[1] + t * (q[1] - p[1]):.6g}): faces lie over one another there")
     loops.sort(key=lambda loop: -abs(polygon_area(loop)))
     return tuple(loop if (polygon_area(loop) > 0.0) == (k == 0) else loop[::-1] for k, loop in enumerate(loops))
 
 
-def _pattern(polyhedron, polygons, parents, root):
+def _pattern(polyhedron, polygons, parents, root, left_out=frozenset()):
     low_x = min(x for polygon in polygons for x, _ in polygon)
     low_y = min(y for polygon in polygons for _, y in polygon)
     polygons = tuple(tuple((x - low_x, y - low_y) for x, y in polygon) for polygon in polygons)
@@ -295,6 +362,11 @@ def _pattern(polyhedron, polygons, parents, root):
     folded = {(min(a, b), max(a, b)): (f, g) for g, (f, (a, b)) in parents.items()}
     folds = tuple(Fold((f, g), edge, segment(f, *edge), bend(f, g)) for edge, (f, g) in folded.items())
     across = neighbours(polyhedron)
-    cuts = tuple(Cut(across[edge], edge, (segment(across[edge][0], *edge), segment(across[edge][1], *edge)))
-                 for edge in polyhedron.edges if edge not in folded)
-    return Pattern(polygons, folds, cuts, size, root)
+    cuts = []
+    for edge in polyhedron.edges:
+        kept = tuple(f for f in across[edge] if f not in left_out)
+        if edge in folded or not kept:                             # an edge between two faces left open is nowhere
+            continue
+        faces = kept + tuple(f for f in across[edge] if f in left_out)
+        cuts.append(Cut(faces, edge, tuple(segment(f, *edge) for f in kept)))
+    return Pattern(polygons, folds, tuple(cuts), size, root, tuple(sorted(left_out)))

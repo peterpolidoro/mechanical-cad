@@ -41,7 +41,10 @@ for axis in axes:
     vaults = vaults.cut(Part.makeCone(r, 0, r, axis))
 # ... and the same with a wall from the plate up to where they meet
 walled = vaults.fuse(Part.makeBox(2, 35, 20, V(-1, 0, 0))).removeSplitter()
-for name, shape in (("block", block), ("tee", tee), ("wedge", wedge), ("dome", dome), ("vaults", vaults), ("walled", walled)):
+# a plate with a round pocket 8 across and 1 deep in its underside, and a slot 4 by 30 beside it
+pocketed = Part.makeBox(60, 40, 3).cut(Part.makeCylinder(4, 1, V(15, 20, 0))).cut(Part.makeBox(4, 30, 1, V(40, 5, 0)))
+for name, shape in (("block", block), ("tee", tee), ("wedge", wedge), ("dome", dome), ("vaults", vaults), ("walled", walled),
+                    ("pocketed", pocketed)):
     assert shape.isValid() and len(shape.Solids) == 1, name
     shape.exportStep(out + "/" + name + ".step")
 print("[shapes] written")
@@ -90,6 +93,30 @@ def test_a_flat_ceiling_hangs_over(shapes):
     assert [f["lowest_angle_deg"] for f in below] == [pytest.approx(0.0, abs=1e-6)] * 2
     assert record["overhang"]["area_below_the_angle_mm2"] == pytest.approx(200.0)       # 10 x 10 on each side of the post
     assert all(f["at"][2] == pytest.approx(10.0) for f in below)                         # under the slab
+
+
+def test_a_flat_ceiling_that_a_printer_lays_across_is_a_bridge_when_that_is_asked(shapes):
+    """The roofs of a pocket for a stick-on foot, 8 mm across, and of a slot 4 mm wide and 30 long."""
+    record, out = check(shapes, "pocketed")
+    assert "[print_check] exit status 1" in out and out.count("OVERHANG") == 2 and "BRIDGE" not in out, out
+    assert "bridges" not in record["overhang"] and "bridge_mm" not in record["overhang"]       # the record is what it was
+    record, out = check(shapes, "pocketed", "--", "--bridge", "8")
+    assert "[print_check] exit status 0" in out and out.count("BRIDGE") == 2 and "OVERHANG" not in out, out
+    assert "none below 45 degrees, 2 flat ceiling(s) taken as bridges of up to 8 mm" in out
+    bridges = sorted(record["overhang"]["bridges"], key=lambda f: f["width_mm"])
+    assert [f["width_mm"] for f in bridges] == [pytest.approx(4.0, abs=1e-6), pytest.approx(8.0, abs=1e-6)]
+    assert bridges[1]["area_mm2"] == pytest.approx(math.pi * 16.0, rel=1e-6) and bridges[0]["at"][2] == pytest.approx(1.0)
+    assert record["overhang"]["bridge_mm"] == 8.0 and record["overhang"]["below_the_angle"] == []
+    assert record["overhang"]["faces_looking_down"] == 2 and record["checks"]["overhang"] is True
+    # a narrower limit takes the slot, which is laid across its 4 mm, and not the pocket
+    record, out = check(shapes, "pocketed", "--", "--bridge", "5")
+    assert "[print_check] exit status 1" in out and out.count("BRIDGE") == 1 and out.count("OVERHANG") == 1, out
+    assert record["overhang"]["below_the_angle"][0]["area_mm2"] == pytest.approx(math.pi * 16.0, rel=1e-6)
+    # the slab on a post is no bridge however wide one may be: it is held at one end and hangs free at the other
+    record, out = check(shapes, "tee", "--", "--bridge", "50")
+    assert "[print_check] exit status 1" in out and out.count("OVERHANG") == 2 and "BRIDGE" not in out, out
+    assert record["overhang"]["bridges"] == []
+    assert "exit status 2" in run(shapes / "tee.step", "--", "--bridge", "-1")
 
 
 def test_a_face_at_the_angle_passes_and_a_flatter_limit_fails_it(shapes):
