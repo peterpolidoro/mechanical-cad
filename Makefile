@@ -45,11 +45,13 @@ help:
 	@echo "                                 [FINISH=1]: each part as the project's finishes.toml says, in place of COLOUR"
 	@echo "make section PROJECT=DIR KEY=K CUT=+y   what a plane cuts, as a drawing in millimetres with every part in its colour (SVG)"
 	@echo "                                 [FINISH=1]: every part in the colour of its finish"
+	@echo "                                 [MEASURE='across 0,0,0 40,0,12 gap; up 0,0,0 0,0,21']: dimensions between points of the model"
 	@echo "make view PROJECT=DIR KEY=K      a viewer window on a part or a built assembly; it follows the file when it is built again"
 	@echo "make print PROJECT=DIR KEY=K     the mesh to print a part from, checked against the solid and shown to a slicer"
 	@echo "make print-check PROJECT=DIR KEY=K   will the part print as it stands: what is on the plate, overhangs, material that starts in mid-air"
 	@echo "                                 [UP=+Z] [ANGLE=45] [STEP=0.5]: the build direction, the flattest overhang allowed, how far apart the slices are"
 	@echo "make cut PROJECT=DIR KEY=K       the drawing to cut a plate from sheet, checked against the solid"
+	@echo "                                 [PATTERN=1] [ROOT=-z]: the flat pattern of a solid with flat faces instead, to cut and fold; the face laid first"
 	@echo "make take-apart FILE=A.step PROJECT=NEW_DIR ORIGIN='--retrieved DAY --publishable yes --description TEXT'"
 	@echo "                                 a project from one STEP file of an assembly: its products as parts, its structure as assemblies"
 	@echo "Built files go to PROJECT/.cache/assemblies/. README.md has the commands these run."
@@ -132,15 +134,17 @@ print-check:
 take-apart:
 	@$(GUIX_B3D) -- python3 -B tools/take_apart.py "$(abspath $(if $(FILE),$(FILE),$(error name the file: make take-apart FILE=A.step PROJECT=NEW_DIR ORIGIN='...')))" "$(project)" $(ORIGIN)
 
-# The file to cut a plate from sheet, into PROJECT/.cache/cut/ (tools/cut_file.py).
+# The file to cut a plate from sheet, into PROJECT/.cache/cut/ (tools/cut_file.py). With PATTERN=1, the flat
+# pattern of a part that is a convex solid with flat faces: its outline to cut and its fold lines.
 cut:
-	@$(GUIX_B3D) -- python3 -B tools/cut_file.py "$(project)" $(if $(KEY),$(KEY),$(error name the part: make cut PROJECT=... KEY=K))
+	@$(GUIX_B3D) -- python3 -B tools/cut_file.py "$(project)" $(if $(KEY),$(KEY),$(error name the part: make cut PROJECT=... KEY=K)) \
+	  $(if $(PATTERN),--pattern) $(if $(ROOT),--root $(ROOT))
 
 # What a plane cuts of a part or an assembly, as a drawing to scale, into PROJECT/.cache/pictures/ (tools/section.py).
 section:
 	@$(GUIX_B3D) -- python3 -B tools/section.py "$(project)" $(if $(KEY),$(KEY),$(error name the component: make section PROJECT=... KEY=K CUT=+y)) \
 	  $(if $(CUT),--cut $(CUT),$(error name the plane: CUT=+y for the middle seen from +Y, CUT=-x=12.5 for X = 12.5 seen from -X)) $(if $(UP),--up $(UP)) \
-	  $(if $(FINISH),--finish)
+	  $(if $(FINISH),--finish) $(if $(MEASURE),--measure "$(MEASURE)")
 
 # Pictures of a part or of a built assembly, made without a window (tools/picture.py).
 picture:

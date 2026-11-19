@@ -123,7 +123,16 @@ make section KEY=with-my-part CUT=+y              # what the plane cuts, as a dr
 A section is a drawing in millimetres of what lies in one plane, every part
 in its colour: the thing to send to someone who has to judge a shape, and to
 measure in or add dimensions to. Its record beside it has the area the plane
-cuts of each part.
+cuts of each part. It carries how wide and how high all that is cut is; any
+other dimension is asked for between two points of the model:
+
+```sh
+make section KEY=with-my-part CUT=+y MEASURE='across 0,0,0 40,0,12 gap; up 0,0,0 0,0,21 depth'
+```
+
+`across` is how far apart the two points are from left to right on the
+sheet, `up` from bottom to top, and two points alone the straight distance;
+the words after them are written beside the number.
 
 A picture that is cut or coloured is put together from the parts' files and
 the placements, so the assembly need not be built for it; it needs
@@ -163,6 +172,17 @@ and nothing between them but what stands square to them, and writes the
 outline of one face with its holes, in millimetres and in the part's own X
 and Y where the plate lies in them. A part with a pocket, a chamfer or a
 leaning wall is refused: it is not made in one pass.
+
+```sh
+make cut KEY=<key> PATTERN=1      # a solid with flat faces, unfolded: .cache/cut/<key>.pattern.dxf, cut and fold lines
+```
+
+With `PATTERN=1` the part is a convex solid with flat faces, a polyhedron
+of the library, a box or a prism, and the drawing is its flat pattern: the
+outline to cut on one layer and the fold lines on another, with every
+fold's angle in the record. `ROOT=+x` names the face that is laid first.
+Nothing is allowed for the sheet's thickness or a bend's radius, and there
+are no tabs.
 
 **A tool is a part built against the part it makes.** A forming plug, a
 drilling jig or a fixture names the part as its input and takes its shape

@@ -4,19 +4,34 @@ Open-source tools for writing mechanical parts as code and checking their
 geometry, the layout that project repositories use for STEP files and their
 metadata, and a Guix channel for the mechanical CAD packages those tools need.
 
-**Status (2026-11-11): the direction and the layout are proposals; the layout
-has a draft specification and working tools.** Peter has decided the layout's
-three open choices (two top-level roots, readable directory keys, AP242 for
-files exported from Inventor); the direction document as a whole is not yet
-accepted. What exists has been tested on a fixture and on a dry-run conversion
-of a real project:
+**Status (2026-11-19): the layout has a draft specification and working
+tools, used on real projects; the direction is the plan the work follows.**
+Peter has decided the layout's main choices (two top-level roots, readable
+directory keys, AP242 for files exported from Inventor, a place for files
+from outside, one file for a project's finishes) and found the goals and
+the order of work reasonable; the direction document as a whole is not yet
+accepted, and the specification is still a draft. What exists:
 
 - a validator and a flatten step for the layout, standard-library Python;
-- tools that measure a STEP file, build a part from a program and build one
-  STEP file of a whole assembly for viewing, run by FreeCAD;
-- a synthetic fixture and a test suite;
-- a dry-run conversion of the first project, which passes the proposal's
-  acceptance test (see `.agents/PLANS.md`).
+- parts from a program (FreeCAD's `Part` module or build123d), from a
+  document drawn in FreeCAD, or from a file that came from outside, each
+  measured and held to its checks; parts built against other parts, and
+  interfaces that say what a neighbour is designed to;
+- enclosures for circuit boards, a library of polyhedra, and the files to
+  make a part from: a mesh to print, a drawing to cut, a screen for whether
+  a part prints as it lies;
+- one STEP file and one FreeCAD document of a whole assembly, fit checks,
+  pictures without a window, sections as drawings, and a project's
+  finishes;
+- a project made of one STEP file of an assembly;
+- a synthetic fixture and a test suite.
+
+It has been used on the first project, an enclosure mirrored from Vault,
+converted to the layout and merged on 2026-11-12; on an enclosure for an
+instrument, reproduced from a reference model and extended; and on a
+mechanical assembly that exists only as one STEP file. Nothing designed
+with it has been made yet. `.agents/PLANS.md` has the state and
+[docs/direction.md](docs/direction.md) where each goal stands.
 
 The repository is also a Guix channel, with packages of the OCP bindings of
 OpenCASCADE and of build123d, so that a part's program can be written with
@@ -99,14 +114,38 @@ guix shell --pure -m manifest.scm -- python3 -B -m pytest -q tests
   its holes; that the drawing's lines, arcs and circles join into closed
   loops, and that the area inside them is the face's. A part with a pocket,
   a chamfer or a leaning wall is refused. It needs build123d
-  (`make cut PROJECT=DIR KEY=K`).
+  (`make cut PROJECT=DIR KEY=K`). With `--pattern` (`PATTERN=1`) it writes
+  the flat pattern of a part that is a convex solid with flat faces, a
+  polyhedron of `mechanical_cad/shapes/`, a box or a prism:
+  `.cache/cut/KEY.pattern.dxf` with the outline on the layer `cut` and the
+  fold lines on the layer `fold`, and a record with every fold's angle.
+  Read back, the outline has to close, enclose the area of the solid's
+  faces and be as long as the cut edges twice over, and every fold has to
+  run from the outline to the outline inside it. It allows nothing for the
+  sheet's thickness or a bend's radius and adds no tabs; `--root +x`
+  (`ROOT=+x`) names the face laid first.
 - `mechanical_cad/enclosures.py` is not a command: a part's program calls it
   to make a plain box around a circuit board from the board's interface, a
   base with standoffs and a lid with posts and openings, or the same inside
-  a polyhedron of `mechanical_cad/shapes/` or a prism on a regular polygon.
+  a polyhedron of `mechanical_cad/shapes/`, a prism on a regular polygon,
+  or a prism that follows the board's rectangle with its corners cut
+  (`octagon_halves`: as long, as wide and as high as the box, with flat
+  walls all round).
   Ports that face up get a window in the lid, ports that face sideways one
   through the wall, and the halves meet in a step that locates the lid
-  (docs/direction.md, the plan of 2026-11-17).
+  (docs/direction.md, the plan of 2026-11-17). Two settings add to any of
+  them. `vents` is a list of fields of slots or round holes, each cut
+  square through one wall, the lid's plate, the floor or a named side; a
+  field keeps a margin from the edge of the wall's plain part and a web
+  between its openings, and is refused, with the reason, when it does not
+  fit or comes too near a standoff, a post, the lip or a port's opening.
+  `feet` puts round bosses under the base, one towards each corner or
+  where `at` says, never under a vent or a port's window; the base has to
+  rest on them alone with its centre of mass between them, which
+  `enclosures.standing` says of any solid. A base with feet no longer lies
+  on its floor, so it prints with support, and the print check says so.
+  What is cut and what is added is held to a volume worked out without the
+  kernel.
 - `mechanical_cad/shapes/` is a library of polyhedra for a part's program:
   the Platonic and Archimedean solids, prisms, antiprisms and boxes by their
   vertices, sized by an edge or to hold a box, as solid, shell, frame,
@@ -128,7 +167,10 @@ guix shell --pure -m manifest.scm -- python3 -B -m pytest -q tests
   take-apart FILE=... PROJECT=... ORIGIN='...'`). Measure the result with
   `step_facts.py`, build its root with `assembly_step.py -- --frame own` and
   hold it against the file with `compare_assembly_step.py`: every solid has
-  to be where the file has it. Colours are not kept.
+  to be where the file has it. The file's colours become the project's
+  finishes: every part gets the colour most of its surface has, in a
+  `finishes.toml` that is written once and is a person's to edit from then
+  on. No colour goes into a part's own file.
 - `build-order` prints the authored parts so that each comes after the parts
   it is built against: a part's `parameters.json` may name other parts as
   `inputs`, and its program then receives their solids and interfaces.
@@ -188,7 +230,10 @@ write nothing, and the tests of them are skipped.
   CUT=+y`; `CUT=-x=12.5` names the place). It needs build123d and puts an
   assembly together from the project's records. With `--finish` (`FINISH=1`)
   the parts are filled in the colours of their finishes and the legend names
-  them.
+  them. `--measure "across X,Y,Z X,Y,Z words; up X,Y,Z X,Y,Z"`
+  (`MEASURE='...'`) writes dimensions into the drawing between points of the
+  model: how far apart two points are across the sheet, up it, or straight,
+  each with thin lines to its points and its value in the record.
 - `fit_check.py` says whether some children of an assembly fit among the
   others. For an assembly KEY, usually an authored one that places what is
   mirrored together with what is being designed, and the names of the

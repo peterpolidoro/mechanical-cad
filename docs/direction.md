@@ -110,9 +110,10 @@ What has never run is the stretch from a file to a made part and back to a
 measurement (goals 9 and 18), and that needs a printer, a former or a cutter
 and Peter's choice of one.
 
-Since 2026-11-19, goal 20: a project keeps its finishes, and both picture
-tools draw with them ("Built so far", stage 7). No joints, no poses, no
-motion.
+Since 2026-11-19, goal 20: a project keeps its finishes, both picture
+tools draw with them, and `mechanical-docs` writes a turntable and an
+exploded sequence as video ("Built so far", stage 7). No joints and no
+poses, so no joint in motion.
 
 ## Decided
 
@@ -545,7 +546,8 @@ here; L).
 - 7.2 In `mechanical-docs`, which has the meshes, the Blender stage and the
   exploded view already: a still of any view outside a manual, a turntable,
   an exploded sequence that follows the manual's steps, a joint moved
-  through its range, each written as video.
+  through its range, each written as video. (All but the joint are built:
+  "Built so far" below.)
 - 7.3 The fit check run over the range of a joint, which the monitor arm
   needs.
 - What this asks of the earlier stages is small: a supplied component may
@@ -739,7 +741,7 @@ id, with what it uses; not the folder's three roots.
     slicer. What it shows: a prism is as low as the box, and a regular
     polygon around a board of 100 x 80 mm is wider than the box, which is
     107 x 87 mm. A polygon that follows a rectangle, with unequal sides,
-    is not built.
+    is not built. (It is since 2026-11-19: below.)
 - **Stage 5.1, the first half** (2026-11-17): `tools/print_file.py` and
   `make print` write the mesh to print a part from and check it: every edge
   shared by two triangles, the volume within 0.5 % of the solid's, the same
@@ -764,6 +766,7 @@ id, with what it uses; not the folder's three roots.
   changed from one run of Python to the next. Not there: ellipses and
   splines, an allowance for the width of the cut, several parts on one
   sheet, fold lines, and so the flat patterns of `mechanical_cad/shapes/`.
+  (Fold lines and flat patterns are there since 2026-11-19: below.)
 - **A formed part, its tool and its frame, in the first project**
   (2026-11-18). Peter took up the bowls of the first project's brief,
   vacuum formed and clear, about 16 cm across and 2 cm deep, six to a
@@ -1024,11 +1027,102 @@ id, with what it uses; not the folder's three roots.
     million triangles being over its budget for them, and one tank support
     frame alone, the tank seen through, with outlines, in under four
     minutes; Cycles at preview quality.
+  - **The colours of a file that is taken apart** (the same day, later).
+    `tools/take_apart.py` kept no colour. It now reads them and writes the
+    new project's `finishes.toml`: a file may colour a product, each of
+    its solids and single faces, and a part has one finish, so every part
+    gets the colour most of its surface has, named `colour-<rrggbb>`, and
+    the report says how much of the surface that is. The file is written
+    once and is a person's from then on: a later run leaves one alone that
+    says something else. No colour goes into a part's own STEP file. On
+    the mechanical example: all 37 parts get a finish, 12 finishes in all;
+    three parts have several colours in the file and got the one that
+    covers 64 to 76 % of them; the kernel reads back exactly the colours
+    the file's text has. Run on the project made of that file on
+    2026-11-18, it added the finishes and changed none of its 80 files;
+    drawn with them, the motor mount plates are blue and the gears white,
+    as in the collaborator's model.
+  - **Moving pictures** (the same day, later; stage 7.2, in
+    `mechanical-docs`, by a second agent session). `mechanical_docs/motion.py`
+    draws three sequences from the directory a still is made from and
+    writes each as frames, a video and a receipt: a turntable of the scene
+    or of one subassembly; the top-level groups moving apart to where the
+    manual's exploded view has them, and back; and, for a project with
+    instructions, the steps in the manual's order, what each adds arriving
+    at its seat. Blender writes the video itself, on both of its routes,
+    and reads it back. On the first project, Cycles at preview quality:
+    a turntable of one tank support frame, a turntable of the whole
+    enclosure and its subassemblies moving apart and back, 72 to 95 frames
+    each in three to five minutes; and its eighteen draft steps in their
+    order, 19.5 s of video in two minutes with the faster engine. That is
+    two of the three videos goal 20
+    asks for; the third, a joint moved through its range, waits for joints
+    as a record of the layout.
+  - **A manual with finishes, for Peter to look at** (the same day). Six of
+    the first project's views as its manual draws them today and with its
+    finishes at three exposures, on one sheet in that project's ignored
+    `.cache/pictures/`: at the manual's exposure light finishes stay white
+    and black plastic comes out grey; a stop and a half darker the colours
+    read and the pages stay light.
   - Not there: joints, poses and views as records; a finish for one solid
     of a part or for one occurrence; a manual drawn with a project's
-    finishes; finishes in the models of the manual's viewer;
-    `tools/take_apart.py` keeping the colours of the file it takes apart;
-    motion.
+    finishes; a joint in motion.
+- **Vents, feet, a prism that follows the board, and flat patterns to
+  cut** (2026-11-19, the smaller items of the plan, by a second agent
+  session and looked at here). All four are settings and functions of
+  what was there; the layout did not change.
+  - **Vents**: `vents` in an enclosure's settings, fields of slots or round
+    holes cut square through one wall of a box, a prism or a polyhedron's
+    half, laid out without the kernel, with a margin to the edge of the
+    wall's plain part and a web between openings. A field that does not
+    fit, or that comes nearer than the web to a standoff, a post, the lip
+    or a port's opening, is refused with the reason and the distance.
+  - **Feet**: round bosses under the base, towards its corners. Bosses and
+    not recesses, because the corners are where the standoffs' insert
+    holes leave 0.6 mm of floor. A base with feet has to rest on them
+    alone with its centre of mass between them. What it costs was
+    measured: such a base no longer lies on its floor, and the print check
+    fails it, where the same base without feet passes; it prints with
+    support or gets stuck-on feet.
+  - **The prism that follows a rectangular board** (`octagon_halves`): the
+    board's rectangle grown by the clearance, each corner cut as far as
+    the board's round corner allows. What it turned out to be: the box
+    with each round corner replaced by its tangent flat. For the example
+    board it is 106.8 x 86.8 x 28 mm like the box, with 0.1 % more
+    footprint and 0.3 % more material, where the hexagon is 126.8 x 146.4
+    mm and 40 % more material. So it saves nothing over the box; it gives
+    flat walls all round, to vent, to cut from sheet or to fold.
+  - **Flat patterns through the cut file**: `tools/cut_file.py --pattern`
+    unfolds a part that is a convex solid with flat faces and writes the
+    outline to cut and the fold lines on two layers, checked as the cut
+    file checks itself: the outline closes, encloses the area of the
+    solid's faces and is as long as the cut edges twice over, every fold
+    runs from outline to outline inside it, and the file is the same bytes
+    on a second run. Every named solid of the library unfolds to one
+    simple outline from every one of its faces, 532 in all. No allowance
+    for the sheet's thickness or a bend, no tabs.
+  - Shown on the example board in the kept project: the board in the
+    octagon, plain and with vents in the lid, the floor and a wall and
+    four feet; 165 checks pass, nothing interferes, the four halves give
+    closed meshes the slicer calls manifold. The six enclosure parts that
+    were there build to the same bytes with the changed module.
+  - Not there: recesses for stick-on feet; vents on round corners,
+    staggered or as louvres; a pattern of a shell with open faces or of an
+    enclosure half; nothing has been printed, cut or folded.
+- **Dimensions in a section** (2026-11-19): `tools/section.py --measure`
+  writes a dimension into the drawing between two points of the model,
+  taken into the plane: how far apart they are across the sheet, up it, or
+  straight, with words beside the number and thin lines to the points. The
+  ones across stand above the drawing and the ones up at its right; the
+  record lists them with their values. Until then a section carried how
+  wide and how high all that is cut is, and the Farseer project drew its
+  own dimensions with a script.
+- **The index, derived twice, compared** (2026-11-19): `vault-cad-tools`
+  writes `vault-lock.json` when it imports and this repository derives the
+  same index from the directories; they agreed on the first project and no
+  test compared them. One does now, in `vault-cad-tools`
+  (`tests/test_index_agreement.py`): a first import, a new version with a
+  new file, and one file in two model states. They agree.
 - **The Makefile is tested** (2026-11-18): `tests/test_makefile.py` looks at
   what each short command would run, with `make -n`, and runs none of it;
   `make` is in the base manifest for that. Written after two faults of the

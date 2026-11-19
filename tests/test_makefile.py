@@ -89,14 +89,19 @@ def test_a_section_needs_its_plane():
     assert status == 0 and f'tools/section.py "{PROJECT}" machine' in out and "--cut -x=12.5 --up +Y" in out, out
     assert "--finish" not in out
     out, status = would_run("section", f"PROJECT={PROJECT}", "KEY=machine", "CUT=+y", "FINISH=1")
-    assert status == 0 and "--cut +y" in out and "--finish" in out, out
+    assert status == 0 and "--cut +y" in out and "--finish" in out and "--measure" not in out, out
+    # dimensions go on whole, however many there are in the one value
+    out, status = would_run("section", f"PROJECT={PROJECT}", "KEY=machine", "CUT=+y", "MEASURE=across 0,0,0 40,0,12 gap; up 0,0,0 0,0,21")
+    assert status == 0 and '--measure "across 0,0,0 40,0,12 gap; up 0,0,0 0,0,21"' in out, out
     out, status = would_run("section", f"PROJECT={PROJECT}", "KEY=machine")
     assert status != 0 and "name the plane" in out
 
 
 def test_the_files_to_make_a_part_from_and_the_print_check():
     out, _ = would_run("cut", f"PROJECT={PROJECT}", "KEY=plate")
-    assert f'tools/cut_file.py "{PROJECT}" plate' in out, out
+    assert f'tools/cut_file.py "{PROJECT}" plate' in out and "--pattern" not in out and "--root" not in out, out
+    out, _ = would_run("cut", f"PROJECT={PROJECT}", "KEY=solid", "PATTERN=1", "ROOT=+x")
+    assert f'tools/cut_file.py "{PROJECT}" solid' in out and "--pattern --root +x" in out, out
     out, _ = would_run("print", f"PROJECT={PROJECT}", "KEY=plug", "DEFLECTION=0.05")
     assert f'tools/print_file.py "{PROJECT}" plug' in out and "--deflection 0.05" in out and "manifest-print.scm" in out, out
     out, _ = would_run("print-check", f"PROJECT={PROJECT}", "KEY=plug", "UP=-X", "ANGLE=50", "STEP=0.2")

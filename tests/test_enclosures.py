@@ -309,3 +309,82 @@ def test_the_board_in_a_prism_is_as_low_as_the_box():
     shell = 66.0 ** 2 * (at["lid_top"] - at["floor_bottom"]) - 62.0 ** 2 * (at["lid_inside"] - at["floor_top"])
     standoffs = 4 * math.pi / 4 * (7.0 ** 2 - 4.0 ** 2) * 3.5              # each 3.5 mm high, with its hole 5 mm deep into the floor
     assert square[0].volume + square[1].volume < shell + standoffs + 4 * math.pi / 4 * 7.0 ** 2 * 13.0
+
+
+def test_the_octagon_follows_the_board_and_cuts_its_corners_as_far_as_they_are_round():
+    board = enclosures.Board(interface())                       # 60 x 40 mm with corners of 2 mm; the clearance is 1 mm
+    corners, cut = enclosures.octagon_size(board)
+    assert cut == pytest.approx((2 - math.sqrt(2)) * 3.0)
+    assert corners == [pytest.approx(p) for p in ((-31 + cut, -21), (31 - cut, -21), (31, -21 + cut), (31, 21 - cut),
+                                                  (31 - cut, 21), (-31 + cut, 21), (-31, 21 - cut), (-31, -21 + cut))]
+    # the cut wall is the clearance away from the board where the board comes nearest: halfway round its corner
+    nearest = (30 - 2 + math.sqrt(2), 20 - 2 + math.sqrt(2))
+    assert (31 + 21 - cut - sum(nearest)) / math.sqrt(2) == pytest.approx(1.0)
+    assert enclosures.octagon_size(board, clearance=3.0)[1] == pytest.approx((2 - math.sqrt(2)) * 5.0)
+    assert enclosures.octagon_size(board, cut=1.0)[1] == 1.0
+    with pytest.raises(ValueError, match="a cut of 2.5 mm would bring the wall within 0.47 mm of the board's corner"):
+        enclosures.octagon_size(board, cut=2.5)
+    for cut_given in (0, -1.0, "3"):
+        with pytest.raises(ValueError, match="cut is a length in millimetres, more than 0"):
+            enclosures.octagon_size(board, cut=cut_given)
+    # a board with sharp corners leaves little more than half the clearance to cut
+    sharp = interface()
+    del sharp["features"][0]["corner_radius"]
+    assert enclosures.octagon_size(enclosures.Board(sharp))[1] == pytest.approx(2 - math.sqrt(2))
+
+    # the prism and its cavity: the heights are the box's, the walls 2 mm at every side, the cut ones too
+    walls, at = enclosures.octagon_walls(board), enclosures.levels(board)
+    assert walls.outer.counts == walls.cavity.counts == (16, 24, 10) and walls.inner_radius == 0.0
+    outside = cut + (2 - math.sqrt(2)) * 2.0                    # the cut of the outside: the wall adds its share
+    assert walls.outer.volume == pytest.approx((66.0 * 46.0 - 2 * outside ** 2) * (at["lid_top"] - at["floor_bottom"]))
+    assert walls.cavity.volume == pytest.approx((62.0 * 42.0 - 2 * cut ** 2) * (at["lid_inside"] - at["floor_top"]))
+    upright = [f for f, n in enumerate(walls.outer.normals) if abs(n[2]) < 0.5]
+    assert len(upright) == 8
+    for f in upright:
+        n = walls.outer.normals[f]
+        behind = walls.cavity.face_towards(n)
+        assert walls.cavity.normals[behind] == pytest.approx(n)
+        assert walls.outer.distances[f] - walls.cavity.distances[behind] == pytest.approx(2.0)
+    # it is as long and as wide as the box, where the hexagon is 71.4 x 82.4 mm
+    assert (max(v[0] for v in walls.outer.vertices), max(v[1] for v in walls.outer.vertices)) == pytest.approx((33.0, 23.0))
+    hexagon = enclosures.prism_walls(board, 6).outer
+    assert 2 * max(v[0] for v in hexagon.vertices) == pytest.approx(2 * (31.0 / 2 + math.sqrt(3) / 2 * 21.0 + 2.0))
+
+
+@with_build123d
+def test_the_board_in_an_octagon_is_the_box_with_flat_corners():
+    from build123d import Pos, Vector
+
+    board = enclosures.Board(interface())
+    at = enclosures.levels(board)
+    base, lid, prism = enclosures.octagon_halves(board, openings=["J1", "J2"])
+    box_base, box_lid = enclosures.box_base(board, openings=["J1", "J2"]), enclosures.box_lid(board, openings=["J1", "J2"])
+    assert prism.counts == (16, 24, 10)
+    for half, of_box in ((base, box_base), (lid, box_lid)):
+        assert half.is_valid and len(half.solids()) == 1
+        assert tuple(half.bounding_box().min) == pytest.approx(tuple(of_box.bounding_box().min), abs=1e-6)
+        assert tuple(half.bounding_box().max) == pytest.approx(tuple(of_box.bounding_box().max), abs=1e-6)
+    common = base & lid
+    assert common is None or common.volume == pytest.approx(0.0, abs=1e-6)
+    assert base.distance_to(lid) == pytest.approx(0.0, abs=1e-6)
+    for lift in (0.4, 1.0, 3.0):                                # the lid lifts straight off the lip
+        lifted = base & (Pos(0, 0, lift) * lid)
+        assert lifted is None or lifted.volume == pytest.approx(0.0, abs=1e-6)
+    # the flat corner touches the box's round one in its middle and holds it: beside the middle it has wall where
+    # the box has none, and further out both end
+    assert lid.is_inside(Vector(32.5, 20.5, 5.0)) and not box_lid.is_inside(Vector(32.5, 20.5, 5.0))
+    assert not lid.is_inside(Vector(32.6, 22.6, 5.0)) and lid.is_inside(Vector(32.0, 0.0, 5.0))
+    # standoffs, posts and openings are the box's
+    hole = board.holes[0]
+    assert base.is_inside(Vector(hole["x"] + 2.9, hole["y"], -3.0)) and not base.is_inside(Vector(hole["x"], hole["y"], -3.0))
+    assert lid.is_inside(Vector(hole["x"] + 2.9, hole["y"], 5.0)) and not lid.is_inside(Vector(hole["x"], hole["y"], 5.0))
+    assert not lid.is_inside(Vector(10.0, 10.0, at["lid_top"] - 1.0)) and lid.is_inside(Vector(-10.0, 10.0, at["lid_top"] - 1.0))
+    assert not lid.is_inside(Vector(-32.0, 0.0, 2.5)) and lid.is_inside(Vector(32.0, 0.0, 2.5))
+    # without a lip and openings the base is a floor, eight walls and four standoffs with their holes
+    cut = (2 - math.sqrt(2)) * 3.0
+    outside, inside = 66.0 * 46.0 - 2 * (cut + (2 - math.sqrt(2)) * 2.0) ** 2, 62.0 * 42.0 - 2 * cut ** 2
+    plain = enclosures.octagon_halves(board, lip=0)[0]
+    standoff, hole = math.pi * 3.5 ** 2 * 3.5, math.pi * 2.0 ** 2 * (3.5 + 2.0 - 0.6)
+    assert plain.volume == pytest.approx(outside * 2.0 + (outside - inside) * 5.1 + 4 * (standoff - hole), rel=1e-6)
+    # a smaller cut gives a smaller flat, and a base with more in it
+    assert enclosures.octagon_halves(board, cut=1.0, lip=0)[0].volume > plain.volume

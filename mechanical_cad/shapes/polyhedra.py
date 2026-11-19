@@ -598,6 +598,18 @@ def prism(n, edge=1.0, height=None):
     return from_vertices(f"prism-{n}", _ring(n, radius, -half) + _ring(n, radius, half))
 
 
+def prism_on(corners, height, name=None):
+    """A right prism on any convex polygon: `corners` are the polygon's corners as (x, y), in either direction;
+    its axis is along Z and it lies between z = -height / 2 and height / 2, where the corners are. A point that
+    is not a corner of the polygon, one inside it or on one of its sides, is refused."""
+    corners = [(float(x), float(y)) for x, y in corners]
+    if len(corners) < 3 or not height > 0.0:
+        raise ValueError("a prism needs at least three corners and a positive height")
+    half = height / 2.0
+    return from_vertices(name or f"prism-on-{len(corners)}",
+                         [(x, y, -half) for x, y in corners] + [(x, y, half) for x, y in corners])
+
+
 def antiprism(n, edge=1.0):
     """An antiprism on two regular n-gons of side `edge`, one turned half a step against the other, joined by
     2n equilateral triangles. Its axis is along Z and it is centred on the origin."""

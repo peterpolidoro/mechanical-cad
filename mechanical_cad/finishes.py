@@ -38,6 +38,7 @@ changes no geometry, and no hash that stands for geometry.
 """
 from __future__ import annotations
 
+import json
 import math
 import re
 import tomllib
@@ -149,6 +150,23 @@ def srgb(color):
 def linear(color):
     """The same colour as light adds up, which is what a renderer and a glTF file count in."""
     return tuple(c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in srgb(color))
+
+
+def text(named, parts, heading=()):
+    """finishes.toml as a command writes it once, for people to edit from then on: `named` is {a finish's name:
+    {"color": "#rrggbb", and whatever else it says}}, `parts` {a part's key: a finish's name}, `heading` lines
+    of comment for the top. Finishes and parts are in the order of their names and keys."""
+    def key(k):
+        return k if re.fullmatch(r"[A-Za-z0-9_-]+", k) else json.dumps(k)
+
+    out = [f"# {line}".rstrip() for line in heading] + [f"schema_version = {SCHEMA_VERSION}"]
+    for name in sorted(named):
+        out += ["", f"[finishes.{key(name)}]", f"color = {json.dumps(named[name]['color'].lower())}"]
+        out += [f"{field} = {float(named[name][field]):g}" for field in NUMBERS if field in named[name]]
+        if named[name].get("note"):
+            out.append(f"note = {json.dumps(named[name]['note'])}")
+    out += ["", "[parts]"] + [f"{key(k)} = {json.dumps(parts[k])}" for k in sorted(parts)]
+    return "\n".join(out) + "\n"
 
 
 def derived(data, keys, source_sha256):

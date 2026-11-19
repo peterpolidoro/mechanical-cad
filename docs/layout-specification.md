@@ -473,6 +473,11 @@ spacer = "clear-blue"
   --finish` draw a part or an assembly with it; a part without a finish is
   drawn plain, and the tool says which. The flatten step writes it out for
   whatever draws the scene ("The flattened scene" below).
+- **Who writes it.** People. One command starts it for them:
+  `tools/take_apart.py`, which makes a project of a STEP file of an
+  assembly, writes the file's colours as finishes named `colour-<rrggbb>`,
+  for every part the colour most of its surface has. It writes the file
+  where there is none, and never over one that says something else.
   `mechanical_cad/finishes.py` is the reference for the file and for how a
   colour is counted: written in sRGB, and as light adds up wherever a
   renderer or a glTF file wants that.
@@ -791,8 +796,11 @@ above do the same.
 - **Drawings**, and anything else a Vault file carries besides its geometry.
 - **Purchased parts shared between projects.** Each project holds its own copy.
 - **A supplied assembly.** A supplied part is one file and one component,
-  however many solids it holds. Taking a STEP file of an assembly apart into
-  parts and placements is not built.
+  however many solids it holds. A STEP file of an assembly is taken apart
+  into supplied parts and authored assemblies by `tools/take_apart.py`,
+  which stretches what `origin.json` says of such a part (the hash of the
+  file it was taken from, a `part.step` the kernel wrote); a kind of origin
+  of its own for that is not specified.
 - **A display model beside a supplied part**, the glTF file a board's
   repository generates, for pictures with real finishes.
 - **A key for an occurrence that survives a refresh.** Occurrence names are

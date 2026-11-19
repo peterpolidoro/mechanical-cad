@@ -64,6 +64,37 @@ def test_the_drawing_is_an_svg_in_millimetres_with_a_scale_and_a_legend():
     assert float(first[1]) > float(paths[0].get("d").split("L")[2].split()[0].split(",")[1])
 
 
+def test_a_dimension_is_asked_for_between_two_points_of_the_model():
+    asked = section.measures(["across 0,0,0 40,0,12 gap between the walls; up 0,0,0 0,0,21", " -1.5,2,0 3,2,4 "])
+    assert asked == [("across", (0.0, 0.0, 0.0), (40.0, 0.0, 12.0), "gap between the walls"),
+                     ("up", (0.0, 0.0, 0.0), (0.0, 0.0, 21.0), ""), ("between", (-1.5, 2.0, 0.0), (3.0, 2.0, 4.0), "")]
+    assert section.measures([]) == [] and section.measures([" ; "]) == []
+    for wrong in ("across 0,0,0", "0,0 1,1", "up here there", "sideways 0,0,0 1,1,1"):
+        with pytest.raises(ValueError, match="--measure"):
+            section.measures([wrong])
+    positional, opts = section.options(["project", "key", "--cut", "+y", "--measure", "up 0,0,0 0,0,5", "--measure", "0,0,0 3,0,4"])
+    assert [m[0] for m in opts["measure"]] == ["up", "between"] and positional == ["project", "key"]
+
+
+def test_dimensions_stand_outside_the_drawing_with_lines_to_their_points():
+    square = [(0.0, 0.0), (30.0, 0.0), (30.0, 20.0), (0.0, 20.0)]
+    plain = section.svg("thing: section", [], [("plate", (0.2, 0.4, 0.6), [[square]])], (0.0, 0.0), (30.0, 20.0))
+    text = section.svg("thing: section", [], [("plate", (0.2, 0.4, 0.6), [[square]])], (0.0, 0.0), (30.0, 20.0),
+                       [("across", (5.0, 0.0), (25.0, 20.0), 20.0, "between <holes>"), ("up", (0.0, 0.0), (0.0, 12.5), 12.5, ""),
+                        ("between", (0.0, 0.0), (3.0, 4.0), 5.0, "")])
+    root, bare = ET.fromstring(text), ET.fromstring(plain)
+    words = [t.text for t in root.iter(SVG + "text")]
+    assert "20.00 between <holes>" in words and "12.50" in words and "5.00" in words
+    assert "30.00" in words and "20.00" in words                     # how wide and how high all of it is, as before
+    # a row above and a column at the right were made room for
+    grown = [float(a) - float(b) for a, b in zip(root.get("viewBox").split()[2:], bare.get("viewBox").split()[2:])]
+    assert grown == [16.0, 7.0]
+    # a point outside what is cut is on the sheet as well: 70 across where a sheet is 60 at the least
+    wide = section.svg("thing: section", [], [("plate", (0.2, 0.4, 0.6), [[square]])], (0.0, 0.0), (30.0, 20.0),
+                       [("between", (-40.0, 0.0), (30.0, 0.0), 70.0, "")])
+    assert float(ET.fromstring(wide).get("viewBox").split()[2]) == float(bare.get("viewBox").split()[2]) + 10.0
+
+
 def test_a_part_that_lets_light_through_is_drawn_paler():
     square = [(0.0, 0.0), (30.0, 0.0), (30.0, 20.0), (0.0, 20.0)]
     text = section.svg("thing: section", [], [("plate: aluminium", (0.2, 0.4, 0.6), [[square]], 1.0),
@@ -124,6 +155,20 @@ def test_the_section_of_a_ring_is_two_rectangles_and_has_their_area(project_copy
     assert len([p for p in root.iter(SVG + "path") if p.get("fill") != "none"]) == 2
     run(project_copy, "spacer", "--cut", "+y=0")
     assert drawing.read_bytes() == first                              # the same part, the same drawing
+    # dimensions between points of the part, taken into the plane: the ring is 20 across and 5 high, and its
+    # bore is 10.5
+    out = run(project_copy, "spacer", "--cut", "+y=0", "--measure", "across -10,7,0 10,-3,0 outside; up 0,0,0 0,0,5",
+              "--measure", "across -5.25,0,5 5.25,0,5 bore")
+    assert "[section] across: 20.000 mm (outside)" in out and "[section] up: 5.000 mm" in out, out
+    record = json.loads((pictures / "spacer-section-plus-y.json").read_text())
+    assert [(m["kind"], m["value_mm"], m["words"]) for m in record["measures"]] == [
+        ("across", 20.0, "outside"), ("up", 5.0, ""), ("across", 10.5, "bore")]
+    assert record["measures"][0]["on_sheet_mm"] == [[10.0, 0.0], [-10.0, 0.0]]      # seen from +Y, X runs to the left
+    words = [t.text for t in ET.fromstring(drawing.read_text()).iter(SVG + "text")]
+    assert "20.00 outside" in words and "10.50 bore" in words and "5.00" in words
+    assert "--measure 'up 1,2'" in run(project_copy, "spacer", "--cut", "+y=0", "--measure", "up 1,2")
+    run(project_copy, "spacer", "--cut", "+y=0")
+    assert drawing.read_bytes() == first and "measures" not in json.loads((pictures / "spacer-section-plus-y.json").read_text())
     # a plan of the ring is one piece with a hole, and its area is the ring's
     out = run(project_copy, "spacer", "--cut", "+z")
     assert "spacer: 227.569 mm2 in 1 piece(s)" in out, out

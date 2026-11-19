@@ -1,6 +1,7 @@
 """A section of a part or of an assembly as a drawing: what a plane cuts, every part filled in its colour.
 
     python3 tools/section.py PROJECT KEY --cut +y [--up +Z] [--out DIR] [--finish]
+    python3 tools/section.py PROJECT KEY --cut +y --measure "across 0,0,0 40,0,12 gap; up 0,0,0 0,0,21"
     python3 tools/section.py PROJECT KEY --cut -x=12.5
     python3 tools/section.py FILE.step --cut +z
 
@@ -26,6 +27,18 @@ finish the project gives it in its finishes.toml, as a picture made with
 legend names each part's finish, and a part that is given none is plain and
 said to have none. The drawing is then KEY-section-plus-y-finish.svg, and its
 record has each part's finish, null for none.
+
+`--measure` writes a dimension into the drawing between two points of the
+model, given as X,Y,Z in millimetres in the frame the drawing is made in (a
+part's own; for an assembly the one its built file has, Z up). Where they lie
+along the axis the plane is square to does not matter: they are taken into
+the plane. `across A B` is how far apart they are along the sheet, from left
+to right, `up A B` how far apart from bottom to top, and `A B` alone the
+straight distance between them; words after the points are written beside
+the number. The option may be given more than once, and one value may hold
+several, divided by `;`. The ones across stand above the drawing and the ones
+up at its right, each with thin lines to the two points; the record lists
+them with their values.
 
 The drawing goes to PROJECT/.cache/pictures/KEY-section-plus-y.svg, with
 KEY-section-plus-y.json beside it: where the plane is, how the sheet's axes
@@ -61,14 +74,37 @@ MARGIN_MM = 8.0
 AXIS = {"+X": (1, 0, 0), "-X": (-1, 0, 0), "+Y": (0, 1, 0), "-Y": (0, -1, 0), "+Z": (0, 0, 1), "-Z": (0, 0, -1)}
 
 
+def measures(texts):
+    """What `--measure` asks for, as [(kind, (x, y, z), (x, y, z), words)]: `kind` is "across", "up" or
+    "between". Each text may hold several, divided by `;`."""
+    out = []
+    for piece in (piece.strip() for text in texts for piece in text.split(";")):
+        if not piece:
+            continue
+        words = piece.split()
+        kind = words.pop(0) if words[0] in ("across", "up", "between") else "between"
+        try:
+            a, b = (tuple(float(v) for v in word.split(",")) for word in words[:2])
+            if len(words) < 2 or len(a) != 3 or len(b) != 3:
+                raise ValueError
+        except ValueError:
+            raise ValueError(f"--measure {piece!r}: expected [across|up] X,Y,Z X,Y,Z and, if wanted, words to write "
+                             "beside the number") from None
+        out.append((kind, a, b, " ".join(words[2:])))
+    return out
+
+
 def options(argv):
-    opts = {"cut": None, "up": "+Z", "out": None, "finish": False}
+    opts = {"cut": None, "up": "+Z", "out": None, "finish": False, "measure": []}
     positional = []
     i = 0
     while i < len(argv):
         a = argv[i]
         if a == "--finish":
             opts["finish"] = True
+        elif a == "--measure" and i + 1 < len(argv):
+            opts["measure"].append(argv[i + 1])
+            i += 1
         elif a.startswith("--") and a[2:] in opts and i + 1 < len(argv):
             opts[a[2:]] = argv[i + 1]
             i += 1
@@ -81,6 +117,7 @@ def options(argv):
         raise SystemExit(__doc__)
     opts["up"] = opts["up"].upper()
     opts["cut"] = picture.cut_plane(opts["cut"])
+    opts["measure"] = measures(opts["measure"])
     return positional, opts
 
 
@@ -128,21 +165,28 @@ def settled(loop):
     return loop[first:] + loop[:first]
 
 
-def svg(title, lines, parts, low, high):
+def svg(title, lines, parts, low, high, measured=()):
     """The drawing. `parts` is [(name, (r, g, b), [[outline, ...] per cut face])], or with a fourth member how
     much the part hides of what lies behind it, from above 0 to 1; the sheet's y runs upwards, an SVG file's
-    downwards, so every y is turned over."""
+    downwards, so every y is turned over. `low` and `high` are the corners of all that is cut. `measured` is
+    the dimensions asked for, [(kind, (u, v), (u, v), value, words)] with the points on the sheet."""
     legend_rows = len(parts)
     across, tall = high[0] - low[0], high[1] - low[1]
-    width = max(across, 60.0) + 2 * MARGIN_MM + 16.0                 # room at the right for the height
-    top = MARGIN_MM + 6.0 * (1 + len(lines)) + 8.0                   # and above for the width
-    height = top + tall + MARGIN_MM + 12.0 + 5.0 * legend_rows
+    rows = [m for m in measured if m[0] == "across"]
+    columns = [m for m in measured if m[0] == "up"]
+    # the sheet holds all that is cut and every point a dimension is taken from
+    points = [low, high] + [point for m in measured for point in m[1:3]]
+    least = (min(q[0] for q in points), min(q[1] for q in points))
+    most = (max(q[0] for q in points), max(q[1] for q in points))
+    width = max(most[0] - least[0], 60.0) + 2 * MARGIN_MM + 16.0 * (1 + len(columns))    # room at the right for the heights
+    top = MARGIN_MM + 6.0 * (1 + len(lines)) + 8.0 + 7.0 * len(rows)                    # and above for the widths
+    height = top + (most[1] - least[1]) + MARGIN_MM + 12.0 + 5.0 * legend_rows
 
     def x(v):
-        return v - low[0] + MARGIN_MM
+        return v - least[0] + MARGIN_MM
 
     def y(v):
-        return top + (high[1] - v)
+        return top + (most[1] - v)
     out = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{width:.3f}mm" height="{height:.3f}mm" '
            f'viewBox="0 0 {width:.3f} {height:.3f}">',
            f'<rect width="{width:.3f}" height="{height:.3f}" fill="#ffffff"/>',
@@ -168,10 +212,36 @@ def svg(title, lines, parts, low, high):
                'stroke="#9b1c31" stroke-width="0.2" fill="none"/>')
     out.append(f'<text x="{(left + right_) / 2:.3f}" y="{upper - 5:.3f}" class="s" text-anchor="middle" style="fill:#9b1c31">{across:.2f}</text>')
     out.append(f'<text x="{right_ + 5.5:.3f}" y="{(upper + lower) / 2 + 1:.3f}" class="s" style="fill:#9b1c31">{tall:.2f}</text>')
+    # the dimensions that were asked for: the ones across in rows above, the ones up in columns at the right, each
+    # with thin lines to its two points; a straight distance lies between its points
+    blue = 'stroke="#1c4f9b" stroke-width="0.2" fill="none"'
+    thin = 'stroke="#1c4f9b" stroke-width="0.1" stroke-dasharray="0.8,0.6" fill="none"'
+
+    def words(value, said):
+        return escape(f"{value:.2f}" + (f" {said}" if said else ""))
+
+    for n, (_, a, b, value, said) in enumerate(rows):
+        line = y(most[1]) - 4 - 7 * (n + 1) if most[1] > high[1] else upper - 4 - 7 * (n + 1)
+        out.append(f'<path d="M {x(a[0]):.3f},{y(a[1]):.3f} V {line - 2:.3f} M {x(b[0]):.3f},{y(b[1]):.3f} V {line - 2:.3f}" {thin}/>')
+        out.append(f'<path d="M {x(a[0]):.3f},{line:.3f} H {x(b[0]):.3f} M {x(a[0]):.3f},{line - 2:.3f} v 4 M {x(b[0]):.3f},{line - 2:.3f} v 4" {blue}/>')
+        out.append(f'<text x="{(x(a[0]) + x(b[0])) / 2:.3f}" y="{line - 1:.3f}" class="s" text-anchor="middle" '
+                   f'style="fill:#1c4f9b">{words(value, said)}</text>')
+    for n, (_, a, b, value, said) in enumerate(columns):
+        line = max(right_, x(most[0])) + 4 + 16 * (n + 1)
+        out.append(f'<path d="M {x(a[0]):.3f},{y(a[1]):.3f} H {line + 2:.3f} M {x(b[0]):.3f},{y(b[1]):.3f} H {line + 2:.3f}" {thin}/>')
+        out.append(f'<path d="M {line:.3f},{y(a[1]):.3f} V {y(b[1]):.3f} M {line - 2:.3f},{y(a[1]):.3f} h 4 M {line - 2:.3f},{y(b[1]):.3f} h 4" {blue}/>')
+        out.append(f'<text x="{line + 1.5:.3f}" y="{(y(a[1]) + y(b[1])) / 2 + 1:.3f}" class="s" '
+                   f'style="fill:#1c4f9b">{words(value, said)}</text>')
+    for _, a, b, value, said in (m for m in measured if m[0] == "between"):
+        out.append(f'<path d="M {x(a[0]):.3f},{y(a[1]):.3f} L {x(b[0]):.3f},{y(b[1]):.3f}" {blue}/>')
+        out.append(f'<circle cx="{x(a[0]):.3f}" cy="{y(a[1]):.3f}" r="0.5" fill="#1c4f9b"/>'
+                   f'<circle cx="{x(b[0]):.3f}" cy="{y(b[1]):.3f}" r="0.5" fill="#1c4f9b"/>')
+        out.append(f'<text x="{(x(a[0]) + x(b[0])) / 2 + 1.5:.3f}" y="{(y(a[1]) + y(b[1])) / 2 - 1:.3f}" class="s" '
+                   f'style="fill:#1c4f9b">{words(value, said)}</text>')
     # a scale: the largest of 1, 2, 5, 10, 20, 50, 100, 200, 500 mm that is no more than a third of the drawing
     span = high[0] - low[0]
     bar = max([b for b in (1, 2, 5, 10, 20, 50, 100, 200, 500) if b <= max(span / 3, 1)])
-    base = top + (high[1] - low[1]) + MARGIN_MM
+    base = top + (most[1] - least[1]) + MARGIN_MM
     out.append(f'<path d="M {MARGIN_MM},{base:.2f} h {bar} M {MARGIN_MM},{base - 1.5:.2f} v 3 M {MARGIN_MM + bar},{base - 1.5:.2f} v 3" '
                'stroke="#1f2933" stroke-width="0.3" fill="none"/>')
     out.append(f'<text x="{MARGIN_MM + bar + 2}" y="{base + 1:.2f}" class="s">{bar} mm</text>')
@@ -246,9 +316,16 @@ def main(argv):
     seen = ("+" if side > 0 else "-") + "XYZ"[axis]
     lines = [f"The plane {'XYZ'[axis]} = {where:g} mm, seen from {seen}. One unit of the drawing is one millimetre.",
              "To the right: " + direction(right) + "; upwards: " + direction(upward) + "."]
+    # the dimensions that were asked for, their points taken into the plane and on to the sheet
+    measured = []
+    for kind, a, b, said in opts["measure"]:
+        on_sheet = [tuple(sum(p[i] * axis_[i] for i in range(3)) for axis_ in (right, upward)) for p in (a, b)]
+        du, dv = on_sheet[1][0] - on_sheet[0][0], on_sheet[1][1] - on_sheet[0][1]
+        value = abs(du) if kind == "across" else abs(dv) if kind == "up" else math.hypot(du, dv)
+        measured.append((kind, on_sheet[0], on_sheet[1], value, said))
     drawing = out / f"{stem}.svg"
     drawing.write_text(svg(f"{positional[-1] if len(positional) == 2 else Path(positional[0]).name}: section", lines,
-                           parts, (min(xs), min(ys)), (max(xs), max(ys))), encoding="utf-8")
+                           parts, (min(xs), min(ys)), (max(xs), max(ys)), measured), encoding="utf-8")
     for name in sorted(cut):
         print(f"[section] {called[name]}: {cut[name][0]:.3f} mm2 in {len(cut[name][1])} piece(s)")
     record = {"schema_version": RECORD_SCHEMA, "drawing": drawing.name, "length_unit": "mm",
@@ -258,6 +335,12 @@ def main(argv):
               "chord_mm": CHORD_MM,
               "parts": [{"name": called[name], "area_mm2": cut[name][0], "pieces": len(cut[name][1]),
                          **({"finish": given[name][0]} if opts["finish"] else {})} for name in sorted(cut)]}
+    if measured:
+        record["measures"] = [{"kind": kind, "from_mm": list(a), "to_mm": list(b), "on_sheet_mm": [list(p), list(q)],
+                               "value_mm": value, "words": said}
+                              for (kind, a, b, said), (_, p, q, value, _) in zip(opts["measure"], measured)]
+        for kind, _, _, value, said in measured:
+            print(f"[section] {kind}: {value:.3f} mm" + (f" ({said})" if said else ""))
     jsonio.write(out / f"{stem}.json", record)
     print(f"[section] {drawing}")
     return 0

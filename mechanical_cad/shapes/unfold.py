@@ -7,9 +7,11 @@
     pattern.folds         # the edges along which two faces stay joined, each with its segment and its angle
     pattern.cuts          # the other edges: each is on the outline twice, once for each of its two faces
     pattern.size          # (width, height) of the pattern, which lies between (0, 0) and that corner
+    unfold.outline(pattern)   # the loops to cut the pattern out along, each by its corners
 
 The pattern is seen from outside the solid: every face keeps its counter-clockwise order, and every fold bends
-the sheet away from the viewer.
+the sheet away from the viewer. tools/cut_file.py writes it as a drawing to cut and fold from, for a part that
+is a convex solid with flat faces.
 
 Which edges are folds is a choice: any set of edges that joins all the faces without a ring will do (a spanning
 tree of the faces), and some choices lay one face over another. `unfold` tries trees in a fixed order and returns
@@ -20,7 +22,8 @@ area in common when the line through one side of either has the other polygon on
 which none of these trees is free of overlap raises `UnfoldError`. For the eighteen named solids, and for the
 prism, the antiprism and the box that tests/test_polyhedra.py tries, the first tree is free of it.
 
-Nothing here allows for the thickness of the sheet or the radius of a bend.
+Nothing here allows for the thickness of the sheet or the radius of a bend, and no tabs are added to join the
+cut edges by.
 
 Standard library only.
 """
@@ -221,6 +224,60 @@ def unfold(polyhedron, root=0):
         if overlapping(polygons, eps) is None:
             return _pattern(polyhedron, polygons, parents, root)
     raise UnfoldError(f"{polyhedron.name}: every one of the {tried} flat patterns tried lays one face over another")
+
+
+def outline(pattern):
+    """The outline of a flat pattern, to cut it out along: the loops its cut edges close into.
+
+    Each loop is a tuple of corners (x, y) in the order of a walk round it. The first is the outside of the
+    pattern and runs counter-clockwise; any others are holes in it, places the faces lie around without
+    covering, and run clockwise. Every cut edge is on the outline twice, once for each of its two faces, so the
+    outline is as long as all the cut edges twice over, and what it encloses is the area of the solid's faces.
+    Corners that the two faces of a fold both have are one corner here.
+
+    Raises `UnfoldError` where the cut edges do not close into loops that pass no point twice: two faces that
+    are not joined lie side by side or meet in a corner there, so what would be cut is a slit or two loops that
+    touch, not an outline. Another root may give a pattern without that. The patterns of the eighteen named
+    solids have one loop and no such place, whichever face is the root.
+    """
+    segments = [segment for cut in pattern.cuts for segment in cut.segments]
+    near = 1e-7 * max(pattern.size)                                # far above rounding, far below an edge
+    corners = []
+
+    def corner(p):
+        for k, q in enumerate(corners):
+            if abs(p[0] - q[0]) <= near and abs(p[1] - q[1]) <= near:
+                return k
+        corners.append(p)
+        return len(corners) - 1
+
+    ends = [(corner(a), corner(b)) for a, b in segments]
+    meeting = {}
+    for k, (a, b) in enumerate(ends):
+        meeting.setdefault(a, []).append(k)
+        meeting.setdefault(b, []).append(k)
+    for k, there in meeting.items():
+        if len(there) != 2:
+            x, y = corners[k]
+            raise UnfoldError(f"{len(there)} cut edges of the pattern end at ({x:.6g}, {y:.6g}), not two: faces that "
+                              "are not joined meet there, and the cut edges are no outline. Try another root")
+    loops, walked = [], set()
+    for start in range(len(ends)):
+        if start in walked:
+            continue
+        loop, k, here = [], start, ends[start][0]
+        while k not in walked:
+            walked.add(k)
+            loop.append(corners[here])
+            here = ends[k][1] if here == ends[k][0] else ends[k][0]
+            k = next((other for other in meeting[here] if other != k), k)
+        if len(loop) < 3 or abs(polygon_area(loop)) <= near * max(pattern.size):
+            x, y = loop[0]
+            raise UnfoldError(f"two faces of the pattern that are not joined lie side by side at ({x:.6g}, {y:.6g}): "
+                              "the cut between them is a slit, not an outline. Try another root")
+        loops.append(tuple(loop))
+    loops.sort(key=lambda loop: -abs(polygon_area(loop)))
+    return tuple(loop if (polygon_area(loop) > 0.0) == (k == 0) else loop[::-1] for k, loop in enumerate(loops))
 
 
 def _pattern(polyhedron, polygons, parents, root):

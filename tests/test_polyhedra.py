@@ -497,6 +497,32 @@ def test_prisms_antiprisms_and_boxes():
             make()
 
 
+def test_a_prism_on_any_convex_polygon():
+    corners = [(0, 0), (40, 0), (50, 10), (50, 30), (20, 40), (0, 30)]
+    area = unfold.polygon_area(corners)
+    around = math.fsum(math.dist(a, b) for a, b in zip(corners, corners[1:] + corners[:1]))
+    assert area == 1700.0
+    prism = polyhedra.prism_on(corners, 12.0)
+    assert prism.name == "prism-on-6" and prism.counts == (12, 18, 8) and Counter(map(len, prism.faces)) == {4: 6, 6: 2}
+    assert prism.volume == pytest.approx(area * 12.0, rel=REL) and prism.area == pytest.approx(2 * area + around * 12.0, rel=REL)
+    assert {v[2] for v in prism.vertices} == {-6.0, 6.0} and {v[:2] for v in prism.vertices} == set(map(tuple, corners))
+    ends = prism.faces_with(6)
+    assert sorted(prism.normals[f] for f in ends) == [pytest.approx((0.0, 0.0, -1.0)), pytest.approx((0.0, 0.0, 1.0))]
+    # the corners may run either way round, and a regular polygon gives the prism of that name
+    other = polyhedra.prism_on(corners[::-1], 12.0, "other")
+    assert other.name == "other" and same_points(other.vertices, prism.vertices) and other.volume == pytest.approx(prism.volume, rel=REL)
+    regular = polyhedra.prism(7, 3.0, 5.0)
+    again = polyhedra.prism_on([v[:2] for v in regular.vertices if v[2] < 0], 5.0)
+    assert again.counts == regular.counts and again.volume == pytest.approx(regular.volume, rel=REL)
+    # a point on a side or inside the polygon is no corner of it
+    for extra in ((20, 0), (20, 20)):
+        with pytest.raises(ValueError, match=r"points \[6, 13\] are not corners"):
+            polyhedra.prism_on(corners + [extra], 12.0)
+    for make in (lambda: polyhedra.prism_on(corners[:2], 12.0), lambda: polyhedra.prism_on(corners, 0.0)):
+        with pytest.raises(ValueError, match="at least three corners and a positive height"):
+            make()
+
+
 # ---- the convex hull --------------------------------------------------------------------------------------------
 
 def test_the_hull_takes_corners_only_and_a_polyhedron_refuses_other_points():
@@ -594,6 +620,59 @@ def test_the_flat_pattern_has_every_face_once_and_no_two_overlap(p):
             assert start in pattern.polygons[face] and end in pattern.polygons[face]
     xs, ys = [x for polygon in pattern.polygons for x, _ in polygon], [y for polygon in pattern.polygons for _, y in polygon]
     assert (min(xs), min(ys)) == (0.0, 0.0) and pattern.size == (max(xs), max(ys))
+
+
+@named
+def test_the_outline_of_a_flat_pattern_is_one_loop_round_the_area_of_the_faces_whatever_the_root(name):
+    p = polyhedra.named(name, 30.0)
+    lengths = dict(zip(p.edges, p.edge_lengths))
+    for root in range(len(p.faces)):
+        pattern = unfold.unfold(p, root)
+        (loop,) = unfold.outline(pattern)
+        assert unfold.polygon_area(loop) == pytest.approx(p.area, rel=REL)        # counter-clockwise, round every face
+        # every cut edge is on it twice and nothing else is
+        assert len(loop) == 2 * len(pattern.cuts)
+        around = math.fsum(math.dist(a, b) for a, b in zip(loop, loop[1:] + loop[:1]))
+        assert around == pytest.approx(2 * math.fsum(lengths[cut.edge] for cut in pattern.cuts), rel=REL)
+        if root == 0:                                              # and every fold line runs from the outline to it
+            for fold in pattern.folds:
+                assert all(min(math.dist(end, corner) for corner in loop) < 1e-6 for end in fold.segment)
+
+
+def test_the_outline_of_a_box_and_of_a_prism_on_unequal_sides():
+    box = polyhedra.box(100.0, 80.0, 20.0)
+    (loop,) = unfold.outline(unfold.unfold(box))
+    assert len(loop) == 14 and unfold.polygon_area(loop) == pytest.approx(23200.0, rel=REL)
+    # every side of the outline is one of the box's three lengths, and runs along x or y
+    for a, b in zip(loop, loop[1:] + loop[:1]):
+        assert round(math.dist(a, b), 6) in (20.0, 80.0, 100.0) and min(abs(a[0] - b[0]), abs(a[1] - b[1])) < 1e-9
+    prism = polyhedra.prism_on([(0, 0), (40, 0), (50, 10), (50, 30), (20, 40), (0, 30)], 12.0)
+    (loop,) = unfold.outline(unfold.unfold(prism))
+    assert unfold.polygon_area(loop) == pytest.approx(prism.area, rel=REL) and len(loop) == 2 * (18 - 7)
+
+
+def test_cut_edges_that_are_no_outline_are_refused():
+    def pattern(*squares, more=()):
+        """A pattern of unit squares at those corners, with no fold: every side of every square is cut."""
+        sides = [((x + a, y + b), (x + c, y + d)) for x, y in squares
+                 for (a, b), (c, d) in (((0, 0), (1, 0)), ((1, 0), (1, 1)), ((1, 1), (0, 1)), ((0, 1), (0, 0)))] + list(more)
+        cuts = tuple(unfold.Cut((0, 1), (0, 1), (sides[k], sides[k + 1])) for k in range(0, len(sides), 2))
+        return unfold.Pattern((), (), cuts, (3.0, 3.0), 0)
+
+    (alone,) = unfold.outline(pattern((0.0, 0.0)))
+    assert unfold.polygon_area(alone) == pytest.approx(1.0) and len(alone) == 4
+    # two squares side by side, and two that meet in a corner: four cut edges end where they touch
+    with pytest.raises(unfold.UnfoldError, match=r"4 cut edges of the pattern end at \(1, 0\), not two"):
+        unfold.outline(pattern((0.0, 0.0), (1.0, 0.0)))
+    with pytest.raises(unfold.UnfoldError, match=r"4 cut edges of the pattern end at \(1, 1\), not two"):
+        unfold.outline(pattern((0.0, 0.0), (1.0, 1.0)))
+    # two edges that lie on each other from end to end, with nothing else at their ends: a slit
+    slit = ((0.25, 0.5), (0.75, 0.5))
+    with pytest.raises(unfold.UnfoldError, match=r"lie side by side at \(0.25, 0.5\): the cut between them is a slit"):
+        unfold.outline(pattern((0.0, 0.0), more=(slit, slit[::-1])))
+    # two squares apart are two loops, which a pattern of one solid never is: the larger comes first
+    apart = unfold.outline(pattern((0.0, 0.0), (1.5, 1.5)))
+    assert len(apart) == 2 and unfold.polygon_area(apart[0]) > 0 > unfold.polygon_area(apart[1])
 
 
 def test_the_root_face_lies_along_x_and_the_fold_angles_of_a_cube_are_right_angles():

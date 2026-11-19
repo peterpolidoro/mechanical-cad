@@ -42,6 +42,10 @@ The rules, each of which the plan reports when it was applied:
                  the file has it.
     refused      A file that is one part and no assembly (add it with add-supplied), and a placement that
                  mirrors or scales: the layout places rigidly, and a mirrored part is its own geometry.
+    colours      A file may colour a product, each of its solids and single faces. A part has one finish
+                 (mechanical_cad/finishes.py): the colour most of its surface has, named colour-<rrggbb>. The
+                 finishes go into the project's finishes.toml, which is written once and is a person's to
+                 edit from then on: a file that is there and says something else is left as it is.
 """
 from __future__ import annotations
 
@@ -50,7 +54,7 @@ import re
 import unicodedata
 from pathlib import Path
 
-from . import jsonio, layout, stepfile
+from . import finishes, jsonio, layout, stepfile
 from . import transforms as T
 
 NATIVE_EXTENSIONS = (".ipt", ".iam", ".sldprt", ".sldasm", ".prt", ".asm", ".par", ".catpart", ".catproduct",
@@ -197,6 +201,31 @@ def plan(tree, file_name, root_name=None):
             "solids": solids, "notes": notes}
 
 
+def finishes_of(planned, colours):
+    """What the file's colours become: (finishes, parts, rows) for mechanical_cad/finishes.py and the report.
+
+    `colours` is {product id: {"#rrggbb": the area of the product's surface that has this colour, in mm2;
+    "": the area that has none}}, as tools/take_apart.py measures it. A part's finish is the colour that
+    covers most of its coloured surface, the first in the order of the colours when two cover the same; a part
+    without a colour has none. `finishes` is {name: {"color"}}, `parts` {key: name}, and `rows` says for every
+    part its finish, the share of its surface that has that colour, and how many colours it has in the file.
+    """
+    named, given, rows = {}, {}, []
+    for part in planned["parts"]:
+        areas = {c.lower(): a for c, a in (colours.get(part["product"]) or {}).items() if c and a > 0}
+        total = sum(areas.values()) + (colours.get(part["product"]) or {}).get("", 0.0)
+        if not areas:
+            rows.append({"key": part["key"], "finish": None, "share": None, "colours": 0})
+            continue
+        most = min(areas, key=lambda c: (-areas[c], c))
+        name = "colour-" + most[1:]
+        named[name] = {"color": most}
+        given[part["key"]] = name
+        rows.append({"key": part["key"], "finish": name, "share": round(areas[most] / total, 3) if total else None,
+                     "colours": len(areas)})
+    return named, given, rows
+
+
 def _others(project_dir, received_sha256, planned):
     """What is in a directory that an earlier run on the same file did not put there, as sentences."""
     out = []
@@ -230,8 +259,9 @@ def _put(path, data):
     return True
 
 
-def write(project_dir, planned, part_files, origin, file_name, received_sha256, up_axis=None):
-    """Write a plan into a project directory. Returns {"written": n, "unchanged": n}.
+def write(project_dir, planned, part_files, origin, file_name, received_sha256, up_axis=None, finishes_text=None):
+    """Write a plan into a project directory. Returns {"written": n, "unchanged": n}, and with `finishes_text`
+    also {"finishes": "written", "unchanged" or "kept"}.
 
     `part_files` is {key: the bytes of that part's STEP file as the kernel
     wrote it}; `origin` the origin block every part gets (mechanical_cad/
@@ -239,7 +269,10 @@ def write(project_dir, planned, part_files, origin, file_name, received_sha256, 
     `received_sha256` the hash of the file that was taken apart, which every
     part records as the file it was received in. The directory is new, or holds
     what an earlier run on the same file wrote: then a file that would be
-    written with the same bytes is left alone.
+    written with the same bytes is left alone. `finishes_text` is the
+    project's finishes.toml as the file's colours give it (finishes_of, and
+    mechanical_cad/finishes.py `text`): it is written where there is none,
+    and one that says something else is kept, being a person's to edit.
     """
     project_dir = Path(project_dir)
     wrong = _others(project_dir, received_sha256, planned) if project_dir.exists() else []
@@ -284,4 +317,11 @@ def write(project_dir, planned, part_files, origin, file_name, received_sha256, 
             written += 1
         else:
             unchanged += 1
-    return {"written": written, "unchanged": unchanged}
+    done = {"written": written, "unchanged": unchanged}
+    if finishes_text is not None:
+        path = project_dir / finishes.FILE
+        if path.is_file() and path.read_bytes() != finishes_text.encode("utf-8"):
+            done["finishes"] = "kept"
+        else:
+            done["finishes"] = "written" if _put(path, finishes_text.encode("utf-8")) else "unchanged"
+    return done
