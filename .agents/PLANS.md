@@ -13,11 +13,24 @@ This section is the short version. Where the work is going, what is decided
 and what is built are in docs/direction.md ("Goals, and where each stands",
 "Decided", "Plan: parts around other parts, enclosures for boards, pictures
 and motion" with its "Built so far"). The record of how each piece came
-about, up to 2026-11-18, is in .agents/HISTORY.md. Paths on this machine,
+about is in .agents/HISTORY.md. Paths on this machine,
 ids, and the state of the shared clones are in the ignored
 `.agents/handoff.local.md` and on the share in `coordination/NEXT-AGENT.md`
 and `coordination/status/`. A session that begins after this one reads "For
 the next session" at the end of that handoff file first.
+
+**Where a new session begins.** Three rounds of work on 2026-11-19 are
+built, tested and in the four repositories; nothing is half done. Before
+building more:
+
+1. Ask what Peter has decided of what waits for him below: the joints and
+   poses draft (open decision 21) and what the finishes left open (20)
+   come first, because work is built on them.
+2. See whether the share is mounted and his Windows laptop is back. If so,
+   look for a delivery and bring the shared clones level on his word
+   (the handoff file has the commands); if not, nothing there can move.
+3. Otherwise take "Next on Linux" from 5, the smaller things that need no
+   word, or whatever he asks for.
 
 **Done and working**, each with tests (commands in docs/adding-a-part.md):
 
@@ -142,7 +155,9 @@ this repository lacks the last commit of 2026-11-18, which changes
 documents, and the work of 2026-11-19; it is brought level on Peter's word,
 and the Windows task needs neither. On 2026-11-19 the share was not mounted
 in the agent's session, in any of its three rounds: the share's
-coordination plan and status file were not refreshed.
+coordination plan and status file were not refreshed, and they still say
+what was true on 2026-11-18. Everything of 2026-11-19 is on the remotes
+and in none of the shared clones.
 
 **Waiting for Peter**:
 
@@ -185,7 +200,9 @@ coordination plan and status file were not refreshed.
    decision 18): a project's main assembly; numbers shared by parts; space
    kept clear and what a fit check should find; how a part is printed.
    Each touches the layout and waits for Peter's word.
-3. After stage 6, which is built: a rule for a part without a solid;
+3. After stage 6, which is built: the layout's own word on a part without
+   a solid (the tools now name one, and one stage takes it by name: open
+   decision 19);
    comparing the project made from the mechanical example's file with the
    Vault mirror of the same assembly once Windows exports it; and, if Peter
    says so, the conversion of `mouse-joysticks-mech` itself.
@@ -212,23 +229,6 @@ coordination plan and status file were not refreshed.
      behind ghosted ones; a whole manual built once with Line Art.
 6. The Linux half of a revision as a new version (request, plan, journal,
    record, import), after Windows has read the design.
-
-Done on 2026-11-19 at Peter's word to go on without him, and so no longer
-on this list: the colours of a file that is taken apart, vents and feet,
-the prism that follows a rectangular board, flat patterns through the cut
-file, dimensions in a section, a test of the index derived in two places,
-and the housekeeping (the plan's record moved to .agents/HISTORY.md, the
-README's status). And in a third round that day, at his word to complete
-as much as could be of six things: the day's code read line by line and
-eleven defects corrected, each with a test (docs/direction.md, "Built so
-far", has them); pockets for stick-on feet and the bridge the print check
-needed to pass them; staggered vents and vents on round corners; the
-width of the cut and a pattern of something open in the cut file;
-hatching, the edges behind the plane and arcs in a section; Line Art in
-`mechanical-docs`; the joints and poses draft with its tools, and a joint
-as video; a part that is faces and no solid named by the fit checks and
-allowed by name in `mechanical-docs`' mesh stage. And the Guix packages
-brought to where they can be offered ("Next work" has what is left).
 
 Tests at the end of 2026-11-19: 639 pass without a kernel (121 skipped), 757
 with FreeCAD, the bindings, build123d and bd_warehouse (5 skipped), and the

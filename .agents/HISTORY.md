@@ -5,6 +5,49 @@ the day they were written. The current plan is .agents/PLANS.md.
 
 ---
 
+## The three rounds of 2026-11-19
+
+What was built is in docs/direction.md, "Built so far" (stage 7 and the two entries after it, and the
+Guix packages); this is how the day went, and the paragraph the plan carried while it lasted.
+
+- **First round**, at Peter's word "one project file, go ahead and build it": a project's finishes
+  (`finishes.toml`, `finishes.json` beside the scene, pictures and sections drawn with them), read by
+  `mechanical-docs`, with a still outside a manual; a draft for the first project.
+- **Second round**, at his word to do as much as could be done without him: videos in `mechanical-docs`,
+  the exposure sheet for a manual with finishes, the colours of a file that is taken apart kept as
+  finishes, dimensions in a section, vents, feet, a prism that follows a rectangular board and flat
+  patterns, the index compared between two repositories, and the plan cut down.
+- **Third round**, at his word to complete as much as could be of six things that were put to him; he said
+  then that his Windows laptop was down, that no full-quality render of the first project's manual was
+  needed yet, and that he was not sure what joints, poses and views meant. It was run as four agents in
+  this checkout, each with files of its own, three sessions one after another in `mechanical-docs`, and
+  the main thread on the joints draft, the print check's bridge, the plans and the direction. The Guix
+  packages were changed on a copy outside the checkout, so that nobody's environment was rebuilt under
+  them, and brought in when everything else had finished and they had been built and tested.
+
+The plan's paragraph, as it stood:
+
+> Done on 2026-11-19 at Peter's word to go on without him, and so no longer
+> on this list: the colours of a file that is taken apart, vents and feet,
+> the prism that follows a rectangular board, flat patterns through the cut
+> file, dimensions in a section, a test of the index derived in two places,
+> and the housekeeping (the plan's record moved to .agents/HISTORY.md, the
+> README's status). And in a third round that day, at his word to complete
+> as much as could be of six things: the day's code read line by line and
+> eleven defects corrected, each with a test (docs/direction.md, "Built so
+> far", has them); pockets for stick-on feet and the bridge the print check
+> needed to pass them; staggered vents and vents on round corners; the
+> width of the cut and a pattern of something open in the cut file;
+> hatching, the edges behind the plane and arcs in a section; Line Art in
+> `mechanical-docs`; the joints and poses draft with its tools, and a joint
+> as video; a part that is faces and no solid named by the fit checks and
+> allowed by name in `mechanical-docs`' mesh stage. And the Guix packages
+> brought to where they can be offered ("Next work" has what is left).
+
+Tests when the day ended: 639 without a kernel (121 skipped), 757 with FreeCAD, the bindings, build123d
+and bd_warehouse (5 skipped), the 14 of `tests/test_picture.py` with the viewer; in `mechanical-docs` 221
+(6 skipped) and 227 with FreeCAD; in `vault-cad-tools` 113.
+
 ## The record of 2026-11-10 to 2026-11-18, moved here on 2026-11-19
 
 Two sections of the plan as they stood when they were moved, unchanged but for their headings: what
