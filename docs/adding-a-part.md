@@ -132,6 +132,22 @@ away what lies beyond the middle towards +Y, `CUT=-x=12.5` what is below
 X = 12.5. In grey, parts that touch cannot be told apart; in colour, and cut
 open, what sits in what shows at once.
 
+**What the part looks like** is said in one file for the whole project,
+`finishes.toml` at its top: a finish with a name, a colour and, where it
+matters, how much of a metal, how rough and how see-through it is, and under
+`[parts]` the line `<key> = "<finish>"`
+([the specification](layout-specification.md#finishes) has the fields).
+Then:
+
+```sh
+make picture KEY=with-my-part FINISH=1            # every part as its finish says; one without is drawn plain
+make section KEY=with-my-part CUT=+y FINISH=1     # the section filled in the finishes' colours
+```
+
+`COLOUR=1` tells parts apart; `FINISH=1` shows what the thing looks like. A
+new part without a row in the file takes the file's `default`, or is pointed
+out by `make validate` when there is none.
+
 ## 5. The file to make it from
 
 A part is made from a file that is derived from its STEP file and checked

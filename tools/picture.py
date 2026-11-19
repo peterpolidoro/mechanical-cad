@@ -4,6 +4,7 @@
     python3 tools/picture.py FILE.step   [--views ...] [--up ...] [--size ...] [--out DIR]
     python3 tools/picture.py PROJECT KEY --where       print the STEP file that would be drawn, and draw nothing
     python3 tools/picture.py PROJECT KEY --cut +y [--colour] ...       cut open, and each part in a colour of its own
+    python3 tools/picture.py PROJECT KEY --finish ...                  each part as the project's finishes.toml says
 
 Run it where `f3d` is on PATH (.guix/manifest-view.scm). f3d is a viewer built
 on VTK and OpenCASCADE that reads a STEP file and renders it to an image
@@ -32,13 +33,18 @@ and B upwards.
 taken away (`--cut +y --views +y` or `iso-back`; `--cut -y --views -y` or
 `iso`). `--colour` gives every part of
 an assembly a colour of its own, the same part the same colour wherever it
-is placed; a part by itself, or a file, gets one colour per solid. Both need
-build123d beside the viewer (.guix/manifest-build123d.scm with
+is placed; a part by itself, or a file, gets one colour per solid. `--finish`
+draws every part with the finish the project gives it in its finishes.toml
+(mechanical_cad/finishes.py): its colour, how much of a metal and how rough it
+is, and how much it hides of what lies behind it. A part that is given none is
+drawn plain, and the tool says which. `--colour` tells parts apart; `--finish`
+shows what the thing looks like, and the two are not given together. All three
+need build123d beside the viewer (.guix/manifest-build123d.scm with
 .guix/manifest-view.scm): the solids are placed as the project's records say,
 cut, and written as a model the viewer reads (KEY-cut-plus-y.glb beside the
 pictures, which any viewer of glTF files opens as well). An assembly need not
-be built first for that. The pictures are then named KEY-cut-plus-y-VIEW.png
-and KEY-colour-VIEW.png.
+be built first for that. The pictures are then named KEY-cut-plus-y-VIEW.png,
+KEY-colour-VIEW.png and KEY-finish-VIEW.png.
 
 A numerical check passes on a shape that is wrong in a way only a picture
 shows: the first build of a lofted housing was twisted and passed every check.
@@ -56,13 +62,14 @@ import shutil
 import struct
 import subprocess
 import sys
+import zlib
 
 sys.dont_write_bytecode = True
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from mechanical_cad import assemblies, flatten, layout, solids, stepfile  # noqa: E402
+from mechanical_cad import assemblies, finishes, flatten, layout, solids, stepfile  # noqa: E402
 from mechanical_cad import transforms as T  # noqa: E402
 
 AXES = {"+X": (1, 0, 0), "-X": (-1, 0, 0), "+Y": (0, 1, 0), "-Y": (0, -1, 0), "+Z": (0, 0, 1), "-Z": (0, 0, -1)}
@@ -131,7 +138,13 @@ def colours(names):
 
 
 PLAIN = (0.72, 0.74, 0.76)
+PLAIN_FINISH = {"color": "#b8bdc2", "metallic": 0.0, "roughness": 0.75, "opacity": 1.0}   # PLAIN, as a finish
+NO_FINISH = "no finish"  # what a part without one is called in a model and a legend; no finish can have this name
 MODEL_LIGHT = 1.7        # the viewer's light for a model that brings its own colours
+FINISH_LIGHT = 1.4       # and for one that brings finishes, which is drawn in surroundings
+# What the viewer is told for a model with finishes, after the surroundings themselves: light from all round,
+# the shade where parts meet, and smooth edges.
+SURROUNDED = ("--hdri-ambient", "--ambient-occlusion", "--anti-aliasing")
 
 
 def to_viewer(vector):
@@ -140,22 +153,111 @@ def to_viewer(vector):
     return (x, z, -y)
 
 
+def _opened(path):
+    """A GLB file as (what it says of itself, the bytes that follow): a header, a chunk of JSON, the numbers."""
+    data = Path(path).read_bytes()
+    if len(data) < 20 or data[:4] != b"glTF" or struct.unpack_from("<I", data, 4)[0] != 2 or data[16:20] != b"JSON":
+        raise ValueError(f"{path}: not a GLB file of glTF 2")
+    length = struct.unpack_from("<I", data, 12)[0]
+    return json.loads(data[20:20 + length]), data[20 + length:]
+
+
+def _closed(path, document, rest):
+    text = json.dumps(document, separators=(",", ":")).encode("utf-8")
+    text += b" " * (-len(text) % 4)
+    Path(path).write_bytes(struct.pack("<4sII", b"glTF", 2, 20 + len(text) + len(rest)) + struct.pack("<I4s", len(text), b"JSON")
+                           + text + rest)
+
+
 def matte(path):
     """Say in a GLB file that its materials are not metal. OpenCASCADE writes a colour and nothing else, and a
     glTF material without a word on it is polished metal, which a viewer without surroundings draws nearly black."""
-    data = Path(path).read_bytes()
-    magic, version, _ = struct.unpack_from("<4sII", data, 0)
-    length, kind = struct.unpack_from("<I4s", data, 12)
-    if magic != b"glTF" or version != 2 or kind != b"JSON":
-        raise ValueError(f"{path}: not a GLB file of glTF 2")
-    document = json.loads(data[20:20 + length])
+    document, rest = _opened(path)
     for material in document.get("materials", []):
         material.setdefault("pbrMetallicRoughness", {}).update(metallicFactor=0.0, roughnessFactor=0.75)
-    text = json.dumps(document, separators=(",", ":")).encode("utf-8")
-    text += b" " * (-len(text) % 4)
-    rest = data[20 + length:]
-    Path(path).write_bytes(struct.pack("<4sII", b"glTF", 2, 20 + len(text) + len(rest)) + struct.pack("<I4s", len(text), b"JSON")
-                           + text + rest)
+    _closed(path, document, rest)
+
+
+def carrier(n):
+    """A colour that stands for the nth finish while the model is written, as (r, g, b) between 0 and 1.
+
+    OpenCASCADE writes one material for each colour it is given and nothing else of a finish, and two finishes
+    may have one colour. So every finish goes into the model under a colour of its own that says which it is,
+    and `dress` writes what the finish says in its place.
+    """
+    n += 1
+    return (n % 256 / 255, n // 256 % 256 / 255, n // 65536 / 255)
+
+
+def _carried(factor):
+    """Which finish a material's colour stands for: the number `carrier` was given. A glTF file counts colour
+    as light adds up; the carrier was written in sRGB."""
+    r, g, b = (round(255 * (12.92 * c if c <= 0.0031308 else 1.055 * c ** (1 / 2.4) - 0.055)) for c in factor[:3])
+    return r + 256 * g + 65536 * b - 1
+
+
+def dress(path, looks):
+    """Give a GLB file's materials what the finishes say: `looks` is [(name, finish)], and the material whose
+    colour is `carrier(n)` becomes the nth of them, with its colour, how much of a metal and how rough it is,
+    and whether it lets through what lies behind."""
+    document, rest = _opened(path)
+    for material in document.get("materials", []):
+        pbr = material.setdefault("pbrMetallicRoughness", {})
+        n = _carried(pbr.get("baseColorFactor", [1.0, 1.0, 1.0, 1.0]))
+        if not 0 <= n < len(looks):
+            raise ValueError(f"{path}: a material's colour stands for none of the {len(looks)} finish(es) it was written with")
+        name, look = looks[n]
+        material["name"] = name
+        pbr.update(baseColorFactor=[*finishes.linear(look["color"]), look["opacity"]],
+                   metallicFactor=look["metallic"], roughnessFactor=look["roughness"])
+        if look["opacity"] < 1:
+            material["alphaMode"] = "BLEND"
+        else:
+            material.pop("alphaMode", None)
+    _closed(path, document, rest)
+
+
+def surroundings(path):
+    """Write what a model with finishes is drawn in: a plain sky, white overhead and light grey underfoot, as a
+    small PNG image the viewer wraps round the model. A metal shows what is around it, and a viewer with nothing
+    around draws aluminium darker than a grey plastic."""
+    width, height = 64, 32
+
+    def row(y):
+        t = y / (height - 1)                                    # 0 overhead, 1 underfoot
+        return bytes([round(255 * (1.0 - 0.3 * t * t * (3 - 2 * t)))] * 3 * width)
+
+    def chunk(kind, data):
+        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+
+    Path(path).write_bytes(PNG + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
+                           + chunk(b"IDAT", zlib.compress(b"".join(b"\0" + row(y) for y in range(height)), 9))
+                           + chunk(b"IEND", b""))
+    return Path(path)
+
+
+def finishes_for(positional, names):
+    """What `--finish` draws: ({a name of placed_solids: (the finish's name, the finish)}, the keys of the parts
+    the project gives no finish). The solids of an assembly go by their parts' keys; those of a part by itself
+    all have the part's finish. What has no finish is drawn plain, and its finish's name is None."""
+    if len(positional) != 2:
+        raise SystemExit("[picture] --finish takes a component of a project; a file by itself has no finishes")
+    project = layout.load(Path(positional[0]))
+    if project.finishes is None:
+        there = (Path(positional[0]) / finishes.FILE).is_file()
+        raise SystemExit(f"[picture] {Path(positional[0]) / finishes.FILE} " + (
+            "does not validate; python3 -m mechanical_cad validate says what is wrong with it" if there else
+            "is not there: the project gives its parts no finishes (docs/layout-specification.md, \"Finishes\")"))
+    comp = project.components[positional[1]]
+    given, bare = {}, []
+    for name in sorted(names):
+        key = name if comp.kind == "assembly" else comp.key
+        found = finishes.of(project.finishes, key)
+        if found[0] is None:
+            bare.append(key)
+            found = (None, PLAIN_FINISH)
+        given[name] = found
+    return given, sorted(set(bare))
 
 
 def placed_solids(positional, scratch):
@@ -215,9 +317,10 @@ def extent(placed):
     return ([min(lo[i] for lo, _ in spans) for i in range(3)], [max(hi[i] for _, hi in spans) for i in range(3)]), spans
 
 
-def model(positional, cut, coloured, out, stem):
-    """The model the viewer is shown when a cut or colours are asked for: a GLB file, written with build123d.
-    Returns its path."""
+def model(positional, cut, shading, out, stem):
+    """The model the viewer is shown when a cut, colours or finishes are asked for: a GLB file, written with
+    build123d. `shading` is "colour", "finish" or nothing. Returns (its path, whether anything in it lets
+    through what lies behind)."""
     placed = placed_solids(positional, out)
     from build123d import Align, Box, Color, Compound, Pos, export_gltf
 
@@ -239,20 +342,32 @@ def model(positional, cut, coloured, out, stem):
         placed = kept
         if not placed:
             raise SystemExit("[picture] the cut takes everything away")
-    shade = colours(name for name, _ in placed) if coloured else {}
+    looks = []
+    if shading == "finish":
+        given, bare = finishes_for(positional, {name for name, _ in placed})
+        if bare:
+            print(f"[picture] {len(bare)} part(s) have no finish and are drawn plain: {', '.join(bare)}")
+        looks = sorted({finish or NO_FINISH: look for finish, look in given.values()}.items())      # each of them once
+        number = {finish: n for n, (finish, _) in enumerate(looks)}
+        shade = {name: carrier(number[finish or NO_FINISH]) for name, (finish, _) in given.items()}
+    else:
+        shade = colours(name for name, _ in placed) if shading == "colour" else {}
     for name, solid in placed:
         solid.color = Color(*shade.get(name, PLAIN))
     glb = out / f"{stem}.glb"
     if not export_gltf(Compound(children=[solid for _, solid in placed]), str(glb), binary=True,
                        linear_deflection=0.002, angular_deflection=0.2):
         raise SystemExit(f"[picture] {glb} could not be written")
-    matte(glb)
-    return glb
+    if shading == "finish":
+        dress(glb, looks)
+    else:
+        matte(glb)
+    return glb, any(look["opacity"] < 1 for _, look in looks)
 
 
 def options(argv):
     opts = {"views": ",".join(DEFAULT_VIEWS), "up": "+Z", "size": "1400x900", "out": None, "where": False,
-            "cut": None, "colour": False}
+            "cut": None, "colour": False, "finish": False}
     positional = []
     i = 0
     while i < len(argv):
@@ -261,6 +376,8 @@ def options(argv):
             opts["where"] = True
         elif a in ("--colour", "--color"):
             opts["colour"] = True
+        elif a == "--finish":
+            opts["finish"] = True
         elif a.startswith("--") and a[2:] in opts and i + 1 < len(argv):
             opts[a[2:]] = argv[i + 1]
             i += 1
@@ -276,6 +393,8 @@ def options(argv):
     opts["views"] = [v for v in opts["views"].split(",") if v]
     if opts["cut"] is not None:
         opts["cut"] = cut_plane(opts["cut"])
+    if opts["colour"] and opts["finish"]:
+        raise ValueError("--colour gives every part a colour of its own and --finish the project's finishes: one or the other")
     return positional, opts
 
 
@@ -300,17 +419,18 @@ def source(positional):
     return built, key, out
 
 
-def draw(step, png, direction, up, size, light=None):
+def draw(step, png, direction, up, size, light=None, more=()):
     """One picture. Returns (written, note): whether the image is there, and what f3d said if it did not end well.
 
     `light` is how strong the viewer's light is, where its own (1) is not wanted: a model with colours of its
-    own comes out dim in it.
+    own comes out dim in it. `more` is what else the viewer is told: its surroundings for a model with finishes,
+    and to draw what lets through what lies behind it as that.
     """
     if png.exists():
         png.unlink()
     command = ["f3d", "--rendering-backend=egl", f"--output={png}", f"--resolution={size[0]},{size[1]}", f"--up={up}",
                "--camera-direction=" + ",".join(f"{c:g}" for c in direction), "--no-config"]
-    command += ([f"--light-intensity={light:g}"] if light else []) + [str(step)]
+    command += ([f"--light-intensity={light:g}"] if light else []) + list(more) + [str(step)]
     try:
         done = subprocess.run(command, capture_output=True, text=True, timeout=TIMEOUT_S)
     except subprocess.TimeoutExpired:
@@ -331,7 +451,9 @@ def main(argv):
     if shutil.which("f3d") is None:
         print("[picture] f3d is not on PATH; run this in the environment of .guix/manifest-view.scm")
         return 2
-    made = opts["cut"] is not None or opts["colour"]
+    shading = "colour" if opts["colour"] else "finish" if opts["finish"] else None
+    made = opts["cut"] is not None or shading is not None
+    through = False
     if made and len(positional) == 2:
         # an assembly is put together from the records, so it need not be built for this
         project_dir, key = Path(positional[0]), positional[1]
@@ -348,20 +470,30 @@ def main(argv):
         if opts["cut"] is not None:
             axis, side, _ = opts["cut"]
             stem += "-cut-" + file_name(("+" if side > 0 else "-") + "xyz"[axis])
-        if opts["colour"]:
-            stem += "-colour"
-        step = model(positional, opts["cut"], opts["colour"], out, stem)
+        if shading:
+            stem += "-" + shading
+        step, through = model(positional, opts["cut"], shading, out, stem)
         print(f"[picture] {step}")
         # the model is a glTF file, which has Y up: the camera and the up axis are turned with it
         directions = [(view, to_viewer(direction)) for view, direction in directions]
         turned = to_viewer(AXES[up])
         up = next(name for name, vector in AXES.items() if vector == turned)
     failed = 0
-    for view, direction in directions:
-        png = out / f"{stem}-{file_name(view)}.png"
-        written, note = draw(step, png, direction, up, opts["size"], light=MODEL_LIGHT if made else None)
-        failed += not written
-        print(f"[picture] {png}" + (f" ({note})" if written and note else "") if written else f"[picture] {view}: {note}")
+    light = FINISH_LIGHT if shading == "finish" else MODEL_LIGHT if made else None
+    more = ("--translucency-support",) if through else ()
+    # under the pictures' own name: two runs into one directory do not take each other's away
+    sky = surroundings(out / f".{stem}-surroundings.png") if shading == "finish" else None
+    if sky:
+        more += (f"--hdri-file={sky}",) + SURROUNDED
+    try:
+        for view, direction in directions:
+            png = out / f"{stem}-{file_name(view)}.png"
+            written, note = draw(step, png, direction, up, opts["size"], light=light, more=more)
+            failed += not written
+            print(f"[picture] {png}" + (f" ({note})" if written and note else "") if written else f"[picture] {view}: {note}")
+    finally:
+        if sky:
+            sky.unlink()
     return 1 if failed else 0
 
 

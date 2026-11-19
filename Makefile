@@ -42,7 +42,9 @@ help:
 	@echo "make picture PROJECT=DIR KEY=K   pictures of a part, or of a built assembly, into PROJECT/.cache/pictures/"
 	@echo "                                 [VIEWS=iso,below,+x] [UP=+Y]: where the camera stands, which axis is up"
 	@echo "                                 [CUT=+y] [CUT=-x=12.5] [COLOUR=1]: cut open at the middle or at a place; each part in a colour of its own"
+	@echo "                                 [FINISH=1]: each part as the project's finishes.toml says, in place of COLOUR"
 	@echo "make section PROJECT=DIR KEY=K CUT=+y   what a plane cuts, as a drawing in millimetres with every part in its colour (SVG)"
+	@echo "                                 [FINISH=1]: every part in the colour of its finish"
 	@echo "make view PROJECT=DIR KEY=K      a viewer window on a part or a built assembly; it follows the file when it is built again"
 	@echo "make print PROJECT=DIR KEY=K     the mesh to print a part from, checked against the solid and shown to a slicer"
 	@echo "make print-check PROJECT=DIR KEY=K   will the part print as it stands: what is on the plate, overhangs, material that starts in mid-air"
@@ -137,9 +139,10 @@ cut:
 # What a plane cuts of a part or an assembly, as a drawing to scale, into PROJECT/.cache/pictures/ (tools/section.py).
 section:
 	@$(GUIX_B3D) -- python3 -B tools/section.py "$(project)" $(if $(KEY),$(KEY),$(error name the component: make section PROJECT=... KEY=K CUT=+y)) \
-	  $(if $(CUT),--cut $(CUT),$(error name the plane: CUT=+y for the middle seen from +Y, CUT=-x=12.5 for X = 12.5 seen from -X)) $(if $(UP),--up $(UP))
+	  $(if $(CUT),--cut $(CUT),$(error name the plane: CUT=+y for the middle seen from +Y, CUT=-x=12.5 for X = 12.5 seen from -X)) $(if $(UP),--up $(UP)) \
+	  $(if $(FINISH),--finish)
 
 # Pictures of a part or of a built assembly, made without a window (tools/picture.py).
 picture:
-	@$(if $(CUT)$(COLOUR),$(GUIX_VIEW_B3D),$(GUIX_VIEW)) -- python3 -B tools/picture.py "$(project)" $(if $(KEY),$(KEY),$(error name the component: make picture PROJECT=... KEY=K)) \
-	  $(if $(VIEWS),--views $(VIEWS)) $(if $(UP),--up $(UP)) $(if $(CUT),--cut $(CUT)) $(if $(COLOUR),--colour)
+	@$(if $(CUT)$(COLOUR)$(FINISH),$(GUIX_VIEW_B3D),$(GUIX_VIEW)) -- python3 -B tools/picture.py "$(project)" $(if $(KEY),$(KEY),$(error name the component: make picture PROJECT=... KEY=K)) \
+	  $(if $(VIEWS),--views $(VIEWS)) $(if $(UP),--up $(UP)) $(if $(CUT),--cut $(CUT)) $(if $(COLOUR),--colour) $(if $(FINISH),--finish)

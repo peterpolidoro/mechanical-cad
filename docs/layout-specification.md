@@ -41,6 +41,7 @@ designs/                       the repository is the authority
     assembly.json              people and agents
     README.md                  people and agents (optional)
 vault-lock.json                import and publication record commands; a derived index
+finishes.toml                  people and agents (optional): what a picture draws each part with
 ```
 
 Each file has one writer. Nothing under `references/` is edited by hand, and a
@@ -62,7 +63,7 @@ The commands, and where they live:
 | publication record | `vault.json` of an authored part, and the `publications` of `vault-lock.json` | `vault-cad-tools` (`vault-cad import-publish-result`) |
 | validate, check, flatten, assemblies | nothing in the repository | `python3 -m mechanical_cad` |
 | whole-assembly STEP | `.cache/assemblies/`, which the project ignores | `tools/assembly_step.py`, run by FreeCADCmd |
-| pictures | `.cache/pictures/`, which the project ignores | `tools/picture.py`, run with the `f3d` viewer |
+| pictures, sections | `.cache/pictures/`, which the project ignores | `tools/picture.py`, run with the `f3d` viewer; `tools/section.py` |
 | step-info, normalise-header, visible-only | nothing in the repository | `python3 -m mechanical_cad` |
 
 ## Keys
@@ -81,6 +82,9 @@ The key does not change when the file is renamed or moved in Vault. The
 exporter never sees a key.
 
 ## JSON conventions
+
+Every file the layout names is JSON but one: `finishes.toml`, which is only
+ever written by hand and is TOML ("Finishes" below).
 
 UTF-8 without a byte-order mark, LF line endings, a trailing newline. A value
 that is not known is written as `null`; it is never left out and never guessed.
@@ -408,6 +412,71 @@ enclosure against the board it holds (Peter, 2026-11-17).
   built in the order of their inputs: `python3 -m mechanical_cad build-order
   PROJECT [KEY ...]` prints it. Inputs that go in a circle are an error.
 
+## Finishes
+
+`finishes.toml`, at the top of the project, says what a picture draws each
+part with. It is one hand-edited file for the whole project (Peter,
+2026-11-19), and optional: a project without it is drawn as before.
+
+```toml
+schema_version = 1
+default = "grey-plastic"            # optional: the finish of every part that is given none
+
+[finishes.grey-plastic]
+color = "#8a8d91"
+
+[finishes.aluminium]
+color = "#c8cacd"
+metallic = 0.8
+roughness = 0.55
+
+[finishes.clear-blue]
+color = "#2f6fd0"
+roughness = 0.2
+opacity = 0.4
+note = "see-through, so that a picture shows what the spacer sits on"
+
+[parts]
+base-plate = "aluminium"
+spacer = "clear-blue"
+"lid@open" = "clear-blue"           # a key with a model state is written in quotes
+```
+
+- **A finish** has a name, lower-case letters and digits in groups joined by
+  single hyphens, and these fields:
+
+  | Field | Meaning |
+  | --- | --- |
+  | `color` | required: an sRGB colour written `"#rrggbb"`, as a colour picker gives it |
+  | `metallic` | 0 to 1: how much of a metal the surface is; 0 when left out |
+  | `roughness` | 0 to 1: from a mirror to chalk; 0.5 when left out |
+  | `opacity` | above 0, up to 1: how much the part hides of what lies behind it; 1 when left out |
+  | `note` | optional text |
+
+- **`[parts]`** gives a finish to a part by its key: any part of the project,
+  mirrored, authored or supplied. A key that names no part, a key of an
+  assembly, and a name that is no finish of the file are errors. One part has
+  one finish, whatever its solids.
+- **`default`** names the finish of every part that `[parts]` does not
+  mention. Without it such a part has no finish, and the validator points
+  out how many there are and which.
+- An unknown field anywhere in the file is an error, and so is a file that is
+  not TOML. A file with an error gives no part a finish, and the project
+  does not validate.
+- **What it is not.** A finish is how a part looks in a picture. It is not
+  the record of what the part is made of, which CAD claims and a project
+  curates (`vault-cad-tools/docs/authoring-and-materials.md`, 4), and nothing
+  is built, measured or bought from it. It is not in any STEP file: no file
+  here carries colour, and a changed finish changes no geometry and no hash
+  of geometry.
+- **Who reads it.** `tools/picture.py --finish` and `tools/section.py
+  --finish` draw a part or an assembly with it; a part without a finish is
+  drawn plain, and the tool says which. The flatten step writes it out for
+  whatever draws the scene ("The flattened scene" below).
+  `mechanical_cad/finishes.py` is the reference for the file and for how a
+  colour is counted: written in sRGB, and as light adds up wherever a
+  renderer or a glTF file wants that.
+
 ## `vault-lock.json`
 
 An index of what the directories say, so that one file shows what an import
@@ -520,7 +589,7 @@ there with the lines above.
 
 `python3 -m mechanical_cad flatten PROJECT --out DIR [--root KEY]` writes
 `DIR/scene.json` and `DIR/assets/<key>.step`, a copy of every STEP file the
-scene uses. The asset of a part whose file marks items invisible is the file
+scene uses, and `DIR/finishes.json` when the project has finishes. The asset of a part whose file marks items invisible is the file
 without them, and the scene records that asset's hash, so what is drawn is
 what the designer sees. The scene is the `draft-1` scene of
 `mechanical-docs/docs/input-contract.md`. It is derived and never committed.
@@ -536,6 +605,27 @@ what the designer sees. The scene is the `draft-1` scene of
   flexible.
 - The scene's frame is the root assembly's. A `+Y` frame carries the matrix
   that takes it to `+Z` up.
+
+**`finishes.json`** is what the project's `finishes.toml` says of the parts of
+this scene, for whatever draws it
+(`mechanical-docs/docs/input-contract.md`):
+
+```json
+{"schema_version": 1, "scene": "scene.json",
+ "source": {"kind": "mechanical-cad-finishes", "file": "finishes.toml", "sha256": "..."},
+ "finishes": {"aluminium": {"color": "#c8cacd", "metallic": 0.8, "roughness": 0.55, "opacity": 1.0}},
+ "parts": {"base-plate": "aluminium", "pin": null}}
+```
+
+`parts` has every part of the scene, with the name of its finish or `null`
+when it has none; the file's default is applied here, so that a reader need
+not know of it. `finishes` holds the finishes those names stand for and no
+others, each with its four values said, the colour in lower case. `source`
+names the file it was derived from and that file's hash. It is a file of its
+own and no part of `scene.json`: the scene and its hash stand for geometry
+and structure, and a changed colour must not make a mesh or a built assembly
+out of date. A project without `finishes.toml` gets no such file, and its
+scene is byte for byte what it was.
 
 `python3 -m mechanical_cad compare-scenes OLD NEW [--part-map FILE]` says
 whether two scenes are the same assembly: the same parts, groups and
@@ -672,7 +762,9 @@ machine, not for an agent. `make picture KEY=<key>` is the one for an agent,
 and for a person in a hurry: it draws a part, or an assembly that is built,
 to images in the project's ignored `.cache/pictures/` without a window
 (`tools/picture.py`; `VIEWS=iso,below,+x` says where the camera stands and
-`UP=+Y` which axis points up). `local.mk` holds what differs between machines (one line,
+`UP=+Y` which axis points up). A project that hands on `CUT`, `COLOUR` and
+`FINISH` as well gets the pictures cut open, with every part in a colour of
+its own, or with the project's finishes (`make picture KEY=<key> FINISH=1`). `local.mk` holds what differs between machines (one line,
 `MECHANICAL_CAD = /path/to/mechanical-cad`) and is listed in the project's
 `.gitignore`. The Makefile is a convenience and not part of the layout: the
 validator does not look at it, and where there is no `make` the commands
@@ -689,7 +781,13 @@ above do the same.
 - **Hand-edited JSON.** `parameters.json`, `checks.json` and an authored
   `assembly.json` are edited by hand, and this repository's rule is TOML for
   hand-edited files. The names follow the proposal; the rule has not been
-  applied to them.
+  applied to them. `finishes.toml` is the first file that follows it.
+- **More of a finish.** One part has one finish: a caster whose wheel is
+  rubber and whose fork is steel is one colour. A finish for a solid of a
+  part, for one occurrence, a texture, a surface that glows: none has a
+  place. Neither have the other records a picture needs and CAD does not
+  give, joints with their axes and limits, named poses and views
+  (docs/direction.md, stage 7.1).
 - **Drawings**, and anything else a Vault file carries besides its geometry.
 - **Purchased parts shared between projects.** Each project holds its own copy.
 - **A supplied assembly.** A supplied part is one file and one component,

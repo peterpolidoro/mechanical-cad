@@ -1,7 +1,7 @@
 """python3 -m mechanical_cad <command>
 
 validate PROJECT            check a project repository against the layout
-flatten PROJECT --out DIR   write the flattened scene.json and its assets
+flatten PROJECT --out DIR   write the flattened scene.json and its assets, and finishes.json when the project has finishes
 assemblies PROJECT          list the assemblies that can be built as one STEP file, and which are built
 built PROJECT [KEY]         print the path of an assembly's built FreeCAD document, if it is current
 check PROJECT               evaluate the checks of the authored parts, and what their interfaces say, against their facts
@@ -241,7 +241,8 @@ def main(argv=None):
     p.add_argument("--json", help="also write the report to this file")
     p.set_defaults(func=_validate)
 
-    p = sub.add_parser("flatten", help="write the flattened scene.json and its assets")
+    p = sub.add_parser("flatten", help="write the flattened scene.json and its assets, and finishes.json when the "
+                                       "project has finishes")
     p.add_argument("project")
     p.add_argument("--out", required=True, help="a new or empty directory")
     p.add_argument("--root", help="key of the assembly to flatten (default: the only unplaced assembly)")

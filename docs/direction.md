@@ -110,6 +110,10 @@ What has never run is the stretch from a file to a made part and back to a
 measurement (goals 9 and 18), and that needs a printer, a former or a cutter
 and Peter's choice of one.
 
+Since 2026-11-19, goal 20: a project keeps its finishes, and both picture
+tools draw with them ("Built so far", stage 7). No joints, no poses, no
+motion.
+
 ## Decided
 
 - Inventor natives in Vault stay intact and authoritative while they match their
@@ -178,6 +182,8 @@ and Peter's choice of one.
   for testing may be made in the shared directory, where the Linux and the
   Windows agents both reach it. `mouse-joysticks-mech` itself is left alone
   unless Peter works on that project again. (2026-11-17)
+- What a picture draws each part with, its finish, is one hand-edited file
+  for the whole project, not a file in each part's directory. (2026-11-19)
 
 ## Repositories
 
@@ -534,7 +540,8 @@ here; L).
 - 7.1 Records in the layout that a picture needs and CAD does not give
   reliably: the finish of each component, curated like quantities and
   materials; joints between components, an axis and its limits, and named
-  poses; views.
+  poses; views. (The finish is built, as one file for the project: "Built
+  so far" below.)
 - 7.2 In `mechanical-docs`, which has the meshes, the Blender stage and the
   exploded view already: a still of any view outside a manual, a turntable,
   an exploded sequence that follows the manual's steps, a joint moved
@@ -955,6 +962,73 @@ id, with what it uses; not the folder's three roots.
   7.1. The project is in this checkout's ignored `tmp/`; the repository it
   came from was read and not changed, and is converted only when Peter
   says so.
+- **Stage 7, begun: a project's finishes, and a picture outside a manual**
+  (2026-11-19, after Peter chose one file for the whole project over a file
+  in each part's directory).
+  - **The record.** `finishes.toml` at the top of a project, hand-edited
+    and TOML, the first file of the layout that follows that rule: named
+    finishes, each a colour written as a colour picker gives it, how much
+    of a metal the surface is, how rough, and how much it hides of what
+    lies behind it; and under `[parts]` a finish for a part by its key,
+    with an optional default for the rest. The validator refuses a key
+    that is no part, a name that is no finish and an unknown field, and
+    points out the parts that have no finish when the file names no
+    default. One part has one finish. It is how a part looks in a picture
+    and not the record of what it is made of
+    (`mechanical_cad/finishes.py`; docs/layout-specification.md,
+    "Finishes").
+  - **Beside the scene, not in it.** The flatten step writes what the file
+    says of a scene's parts as `finishes.json` next to `scene.json`. That
+    is not what was put to Peter that morning, which had the finishes
+    carried into the scene: `mechanical-docs` gates its meshes and renders
+    on the scene's hash, and a changed colour would have asked for new
+    meshes. The first project's scene, flattened with its finishes in
+    place, has the hash its documentation is pinned to.
+  - **`tools/picture.py --finish` and `tools/section.py --finish`** draw a
+    part or an assembly with it, where `--colour` gives every part a
+    colour of its own: one tells parts apart, the other shows what the
+    thing looks like. A part without a finish is drawn plain and named.
+    Three things had to be found. build123d takes a colour as sRGB and
+    writes it into the model as light adds up. OpenCASCADE writes one
+    material for each colour and nothing else of a finish, so every finish
+    goes into the model under a colour that only says which it is, and the
+    tool writes the finish in its place afterwards, with its name. And a
+    metal shows its surroundings: with nothing around it the viewer drew
+    aluminium darker than a grey plastic of half its brightness, so a
+    model with finishes is drawn inside a plain light sky that the tool
+    writes for the viewer. A section through a plane that only touches a
+    solid stopped the section tool; it cuts nothing of such a solid now.
+  - **In `mechanical-docs`** (by a second agent session, read here): the
+    renderer draws a part in the look the project's `render.json` names
+    for it, else in its finish, else in the default look; its receipt
+    records what every part was drawn with, and a later run renders again
+    only the views that show a part whose look changed. And
+    `mechanical_docs/still.py` draws a scene alone, or one subassembly,
+    from a named side, with no inventory and no instructions: the first
+    item of 7.2. Its view names are those of `tools/picture.py`. One thing
+    was found there: the studio of that renderer lights a face that looks
+    up about seven times as brightly as its colour, which suits a manual's
+    outlined pictures and turns a mid-grey finish white, so a still has an
+    exposure of its own, and how a manual is exposed when a project has
+    finishes is left to Peter.
+  - **On the first project**: a draft `finishes.toml` that gives 31 of its
+    43 parts a finish, each only where the part's name or the material CAD
+    claims for it says what it is; the twelve without one are named by the
+    validator, the two panels among them, whose colour no record has. The
+    whole enclosure and the enclosure cut open were drawn with it by the
+    viewer (the project's ignored `.cache/pictures/`): the framing reads as
+    aluminium, the tanks and their platforms are seen through, the panels
+    are plain. The renderer of `mechanical-docs` drew the same scene,
+    flattened and meshed in a scratch directory (155 occurrences, 37 parts,
+    every check passed): the whole enclosure in 10 s without outlines, 2.4
+    million triangles being over its budget for them, and one tank support
+    frame alone, the tank seen through, with outlines, in under four
+    minutes; Cycles at preview quality.
+  - Not there: joints, poses and views as records; a finish for one solid
+    of a part or for one occurrence; a manual drawn with a project's
+    finishes; finishes in the models of the manual's viewer;
+    `tools/take_apart.py` keeping the colours of the file it takes apart;
+    motion.
 - **The Makefile is tested** (2026-11-18): `tests/test_makefile.py` looks at
   what each short command would run, with `make -n`, and runs none of it;
   `make` is in the base manifest for that. Written after two faults of the

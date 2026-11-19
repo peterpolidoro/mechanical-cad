@@ -81,7 +81,10 @@ guix shell --pure -m manifest.scm -- python3 -B -m pytest -q tests
   of its STEP file) when it is current, and fails when it is not; `make open`
   uses it.
 - `flatten` composes the per-assembly manifests into the `scene.json` that
-  `mechanical-docs` reads, with a copy of the STEP files it names.
+  `mechanical-docs` reads, with a copy of the STEP files it names, and
+  writes `finishes.json` beside it when the project has a `finishes.toml`:
+  the one hand-edited file of a project that says what a picture draws each
+  part with ([the specification](docs/layout-specification.md#finishes)).
 - `check` evaluates each authored part's `checks.json` against its measured
   facts, and holds what its `interface.json` says to the solid: a hole is
   empty.
@@ -173,13 +176,19 @@ write nothing, and the tests of them are skipped.
   gives every part of an assembly a colour of its own. Both need build123d
   beside the viewer and put an assembly together from the project's records,
   so it need not be built first (`make picture PROJECT=DIR KEY=K CUT=+y
-  COLOUR=1`).
+  COLOUR=1`). `--finish` in place of `--colour` draws every part with the
+  finish the project's `finishes.toml` gives it, its colour, how much of a
+  metal and how rough it is and how much it lets through, in plain
+  surroundings so that a metal looks like one (`FINISH=1`); a part that is
+  given no finish is drawn plain and named.
 - `section.py` draws what a plane cuts of a part or of an assembly, true to
   scale: an SVG file in millimetres with every part filled in the colour a
   picture gives it, a scale and a legend, and beside it a record of the
   area the plane cuts of each part (`make section PROJECT=DIR KEY=K
   CUT=+y`; `CUT=-x=12.5` names the place). It needs build123d and puts an
-  assembly together from the project's records.
+  assembly together from the project's records. With `--finish` (`FINISH=1`)
+  the parts are filled in the colours of their finishes and the legend names
+  them.
 - `fit_check.py` says whether some children of an assembly fit among the
   others. For an assembly KEY, usually an authored one that places what is
   mirrored together with what is being designed, and the names of the

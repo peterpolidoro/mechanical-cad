@@ -84,6 +84,8 @@ designs/                    the repository is the authority
                             references/
 assembly/                   curated project files as today, re-keyed
 vault-lock.json             derived index: Vault master id, key, version, hashes
+finishes.toml               people and agents: what a picture draws each part with
+                            (Peter, 2026-11-19)
 build/                      derived and ignored: flattened scene.json, meshes,
                             renders, manual
 ```
@@ -145,6 +147,23 @@ Rules:
   exporter's receipt and raw run records under `references/receipts/`,
   unchanged, so the hashes they contain can still be checked against the files
   they name.
+
+- **Finishes are one file for the whole project** (Peter, 2026-11-19, asked
+  whether it should be that or a file in each part's directory).
+  `finishes.toml` at the top names finishes and gives them to parts by key.
+  The reasons for one file: a project's finishes are curated in one view,
+  forty rows and a handful of names, and most parts share a few; a finish is
+  defined once and not copied into every directory that uses it; and an
+  import from Vault rewrites directories under `references/`, where nothing
+  is edited by hand, so a file there would be a hand-edited file in a
+  directory a command owns. What it costs: the file names keys, so a part
+  that is removed leaves a row the validator refuses until it is taken out.
+  It is TOML, being hand-edited, and a colour is written as a colour picker
+  gives it. The flatten step writes what it says of a scene's parts into a
+  `finishes.json` beside `scene.json`, not into the scene: the documentation
+  pipeline gates its meshes and renders on the scene's hash, and a changed
+  colour must not ask for new meshes. Colour stays out of every STEP file,
+  as the plan of 2026-11-17 has it (docs/direction.md, stage 7).
 
 Starting point for the file contents (the draft specification makes these
 exact):
@@ -640,3 +659,5 @@ All five were run on 2026-11-10; the results are in "Windows tests of
   hidden bodies, not from measurement accuracy.
 - Peter's three decisions of 2026-11-11, and the results of the three Windows
   tests that AP242 asked for.
+- `finishes.toml`, the first record of the layout that a picture needs and CAD
+  does not give reliably, as one file for the project (2026-11-19).

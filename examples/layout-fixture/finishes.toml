@@ -1,0 +1,22 @@
+# What a picture draws each part of the fixture with. Hand-written, like the spacer's program; the
+# finishes are invented, like everything else here.
+schema_version = 1
+default = "grey-plastic"        # the pin is given no finish of its own
+
+[finishes.grey-plastic]
+color = "#8a8d91"
+
+[finishes.aluminium]
+color = "#c8cacd"
+metallic = 0.8
+roughness = 0.55
+
+[finishes.clear-blue]
+color = "#2f6fd0"
+roughness = 0.2
+opacity = 0.4
+note = "see-through, so that a picture shows what the spacer sits on"
+
+[parts]
+base-plate = "aluminium"
+spacer = "clear-blue"

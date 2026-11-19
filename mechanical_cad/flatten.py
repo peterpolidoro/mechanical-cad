@@ -12,7 +12,7 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
-from . import __version__, jsonio, stepfile
+from . import __version__, finishes, jsonio, stepfile
 from . import transforms as T
 
 SCENE_SCHEMA = "draft-1"
@@ -174,8 +174,19 @@ def flatten(project, root=None):
     return scene, assets, skipped
 
 
+def finishes_record(project, scene):
+    """What whoever draws the scene is told of its parts' finishes (mechanical_cad/finishes.py, `derived`), or
+    None when the project has no finishes.toml. It is a file of its own beside the scene, not a part of it: a
+    changed colour changes neither the scene nor its hash, which stand for geometry."""
+    if project.finishes is None:
+        return None
+    return finishes.derived(project.finishes, [p["id"] for p in scene["parts"]],
+                            stepfile.sha256_file(project.dir / finishes.FILE))
+
+
 def write(project, out_dir, root=None):
-    """Write scene.json and assets/<key>.step into a new directory.
+    """Write scene.json and assets/<key>.step into a new directory, and finishes.json when the project has
+    finishes.
 
     An asset is a copy of the part's part.step, except for a part whose file
     marks items invisible: its asset is the file without them, so that what is
@@ -199,7 +210,11 @@ def write(project, out_dir, root=None):
         if stepfile.sha256_file(dst) != recorded[key]:
             raise FlattenError(f"{dst}: what was written is not what the scene records for {src}")
     jsonio.write(out / "scene.json", scene)
+    record = finishes_record(project, scene)
+    if record is not None:
+        jsonio.write(out / finishes.DERIVED, record)
     return {"scene": str(out / "scene.json"), "parts": len(scene["parts"]), "assemblies": len(scene["assemblies"]),
             "occurrences": len(scene["occurrences"]), "suppressed_left_out": skipped,
             "invisible_items_left_out": left_out,
-            "scene_sha256": stepfile.sha256_file(out / "scene.json")}
+            "scene_sha256": stepfile.sha256_file(out / "scene.json"),
+            "finishes": str(out / finishes.DERIVED) if record is not None else None}

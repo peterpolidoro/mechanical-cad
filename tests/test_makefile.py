@@ -65,9 +65,13 @@ def test_parts_are_built_in_the_order_the_project_gives_for_the_keys_that_are_na
 def test_a_picture_takes_the_kernel_only_when_it_is_cut_or_coloured():
     out, status = would_run("picture", f"PROJECT={PROJECT}", "KEY=machine", "VIEWS=iso,+x", "UP=+Y")
     assert status == 0 and "--views iso,+x --up +Y" in out and "manifest-view.scm" in out, out
-    assert "manifest-build123d.scm" not in out and "--cut" not in out and "--colour" not in out
+    assert "manifest-build123d.scm" not in out and "--cut" not in out and "--colour" not in out and "--finish" not in out
     out, status = would_run("picture", f"PROJECT={PROJECT}", "KEY=machine", "CUT=-x=12.5", "COLOUR=1")
     assert status == 0 and "--cut -x=12.5 --colour" in out, out
+    assert "manifest-build123d.scm" in out and "manifest-view.scm" in out
+    # with the project's finishes: the kernel as well, and the word handed on
+    out, status = would_run("picture", f"PROJECT={PROJECT}", "KEY=machine", "FINISH=1")
+    assert status == 0 and "--finish" in out and "--colour" not in out and "--cut" not in out, out
     assert "manifest-build123d.scm" in out and "manifest-view.scm" in out
 
 
@@ -83,6 +87,9 @@ def test_a_file_is_taken_apart_into_a_project_with_what_says_where_it_came_from(
 def test_a_section_needs_its_plane():
     out, status = would_run("section", f"PROJECT={PROJECT}", "KEY=machine", "CUT=-x=12.5", "UP=+Y")
     assert status == 0 and f'tools/section.py "{PROJECT}" machine' in out and "--cut -x=12.5 --up +Y" in out, out
+    assert "--finish" not in out
+    out, status = would_run("section", f"PROJECT={PROJECT}", "KEY=machine", "CUT=+y", "FINISH=1")
+    assert status == 0 and "--cut +y" in out and "--finish" in out, out
     out, status = would_run("section", f"PROJECT={PROJECT}", "KEY=machine")
     assert status != 0 and "name the plane" in out
 

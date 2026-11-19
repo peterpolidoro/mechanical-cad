@@ -12,7 +12,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import interfaces, jsonio, stepfile
+from . import finishes, interfaces, jsonio, stepfile
 from .facts import POINT_STATES
 from . import transforms as T
 
@@ -129,6 +129,7 @@ class Project:
     errors: list = field(default_factory=list)
     findings: list = field(default_factory=list)
     lock: dict | None = None
+    finishes: dict | None = None                        # finishes.toml as it is written, when it is there and right
     converted: list = field(default_factory=list)       # files that differ from their record only in line endings
 
     def error(self, where, message):
@@ -236,6 +237,7 @@ def load(project_dir):
             _check_assembly(project, comp)
     _check_references_between(project)
     _check_inputs(project)
+    _check_finishes(project)
     _check_headers(project)
     _check_lock(project)
     _check_line_endings(project)
@@ -895,6 +897,30 @@ def _check_references_between(project):
                         node = None
                         break
                     node = project.components.get(nxt.component)
+
+
+def _check_finishes(project):
+    """finishes.toml, the one hand-edited file of a project that says what a picture draws each part with."""
+    path = project.dir / finishes.FILE
+    if not path.is_file():
+        return
+    try:
+        data = finishes.read(path)
+    except finishes.FinishError as exc:
+        project.error(finishes.FILE, f"not readable as TOML: {exc}")
+        return
+    wrong = finishes.problems(data, {c.key: c.kind for c in project.components.values()})
+    for line in wrong:
+        project.error(finishes.FILE, line)
+    if wrong:
+        return
+    project.finishes = data
+    parts = sorted(c.key for c in project.of(kind="part"))
+    bare = [key for key in parts if finishes.name_of(data, key) is None]
+    if bare:
+        shown = ", ".join(bare[:5]) + (f" and {len(bare) - 5} more" if len(bare) > 5 else "")
+        project.finding(finishes.FILE, f"{len(bare)} of {len(parts)} part(s) have no finish, and the file names no "
+                                       f"default: {shown}")
 
 
 def _check_line_endings(project):

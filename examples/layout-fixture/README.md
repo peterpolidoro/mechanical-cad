@@ -20,6 +20,8 @@ designs/parts/spacer            a ring written as code: build.py, parameters.jso
 designs/assemblies/fixture-with-spacer
                                 an authored assembly placing fixture-root and the spacer
 vault-lock.json                 the index derived from references/
+finishes.toml                   what a picture draws each part with: the plate a
+                                metal, the spacer see-through, the pin the default
 ```
 
 Flattened from `fixture-with-spacer` it has 3 parts, 4 assembly nodes and 6
@@ -29,7 +31,8 @@ reports no error and one finding, the pin's header.
 ## Regenerating it
 
 The hand-written files are the spacer's `build.py`, `parameters.json` and
-`checks.json`, and `designs/assemblies/fixture-with-spacer/assembly.json`.
+`checks.json`, `designs/assemblies/fixture-with-spacer/assembly.json` and
+`finishes.toml`.
 Everything else is written by `generate_fixture.py`:
 
 ```sh

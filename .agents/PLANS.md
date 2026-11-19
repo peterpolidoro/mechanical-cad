@@ -7,7 +7,7 @@ open-source tools to check it, document it and add to it, with the
 free-standing tank enclosure as the test project. The full statement is
 docs/direction.md. Finished checkpoints are in .agents/HISTORY.md.
 
-## Start here (state of 2026-11-18, when the second session of that day ended)
+## Start here (state of 2026-11-19)
 
 This section is the short version; everything below it is the longer
 record. Where the work is going, what is decided and what is built are in
@@ -45,6 +45,19 @@ handoff file first.
   `tmp/dual-lever-from-step/`, 152 of 152 solids where its file has them.
 - The Makefile's short commands, looked at by tests that run none of them
   (`tests/test_makefile.py`, 2026-11-18).
+- A project's finishes, the first record of stage 7.1 (2026-11-19, after
+  Peter chose one file for the whole project over a file in each part's
+  directory): a hand-edited `finishes.toml` at the top of a project names
+  finishes and gives them to parts by key, and the validator holds it to
+  the project (`mechanical_cad/finishes.py`). The flatten step writes what
+  it says of a scene's parts as `finishes.json` beside `scene.json`, not
+  into it, so that a changed colour changes no hash that stands for
+  geometry. `tools/picture.py --finish` and `tools/section.py --finish`
+  draw with it. The fixture has one; so has the first project, as a draft.
+  `mechanical-docs` reads the derived file: its renderer draws a part in
+  its finish unless the project's `render.json` names a look for it, and
+  `mechanical_docs/still.py` draws a scene alone from a named side, the
+  first item of stage 7.2 (that repository's plan has the state).
 - A STEP file published to Vault and verified, twice (`vault-cad-tools`).
 
 **Two projects worked on with these tools on 2026-11-18**, at Peter's word
@@ -86,12 +99,19 @@ acquisition that takes a checked-out file at its last version checked in;
 and the design of a revision (W2) read and corrected. When Windows
 delivers, the delivery is checked and answered as
 `coordination/NEXT-AGENT.md` on the share describes. The shared clone of
-this repository lacks only the commit that holds this paragraph, which
-changes documents; it is brought level on Peter's word, and the Windows
-task does not need it.
+this repository lacks the last commit of 2026-11-18, which changes
+documents, and the work of 2026-11-19; it is brought level on Peter's word,
+and the Windows task needs neither. On 2026-11-19 the share was not mounted
+in the agent's session: whether Windows has delivered was not looked at,
+and the share's coordination plan and status file were not refreshed.
 
 **Waiting for Peter**:
 
+- The finishes of the first project (`free-standing-tank-enclosure`,
+  `finishes.toml`): a draft that gives 31 of its 43 parts a finish, each
+  from the part's name or from the material CAD claims for it. The twelve
+  without one, the panels among them, and every colour are his to correct;
+  and whether its manual is drawn with them (open decision 20).
 - The joint review of the Farseer model with the board's designer, which
   its brief asks for, and the printer and the material for it.
 - The researcher's answers on the bowls, and who forms them
@@ -122,9 +142,15 @@ task does not need it.
    comparing the project made from the mechanical example's file with the
    Vault mirror of the same assembly once Windows exports it; and, if Peter
    says so, the conversion of `mouse-joysticks-mech` itself.
-4. Stage 7: pictures and motion, in `mechanical-docs`. Its first record,
-   finishes curated by a project, would give the coloured pictures of
-   2026-11-18 a project's own colours.
+4. Stage 7 goes on. Finishes are built (above). Next of 7.1, each touching
+   the layout and waiting for Peter's word: joints between components with
+   an axis and its limits, named poses, views. Then, in `mechanical-docs`,
+   a turntable, an exploded sequence that follows the manual's steps and a
+   joint moved through its range, as video (7.2), and the fit check over
+   the range of a joint (7.3). Smaller and needing no word:
+   `tools/take_apart.py` writing the colours of the file it takes apart as
+   the new project's finishes (the mechanical example's file has 24, and
+   none is kept today).
 5. Smaller: vents and feet for enclosures, a polygon that follows a
    rectangular board, flat patterns of `mechanical_cad/shapes/` through
    the cut file, dimensions written into a section drawing.
@@ -134,10 +160,9 @@ task does not need it.
    holds many finished checkpoints, which belong in .agents/HISTORY.md, and
    the README's status line is of 2026-11-11.
 
-Tests on 2026-11-18: 491 pass without a kernel (86 skipped), 575 with
-FreeCAD, the bindings, build123d and bd_warehouse (3 skipped; run before
-the last test of the Makefile was added), 8 with the viewer and build123d
-together.
+Tests on 2026-11-19: 520 pass without a kernel (88 skipped), 606 with
+FreeCAD, the bindings, build123d and bd_warehouse (4 skipped), and the 12
+of `tests/test_picture.py` with the viewer and build123d together.
 
 ## Current state (2026-11-13)
 
@@ -585,6 +610,26 @@ Smaller ones:
     or: a kind of origin of its own for a part taken out of a larger file,
     and a place for the record of that file. Also open there: what a part
     is that has faces and no solid (one of the 37 in the trial).
+
+20. What the finishes left open (2026-11-19; docs/direction.md, "Built so
+    far", stage 7). Peter decided the one thing asked: one file for the
+    project. Built on that, and his to accept or change:
+    - **Beside the scene, not in it.** He was told the flatten step would
+      carry the finishes into `scene.json`. It writes `finishes.json`
+      beside it, because `mechanical-docs` gates its meshes and renders on
+      the scene's hash.
+    - **What a finish is**: an sRGB colour, `metallic`, `roughness`,
+      `opacity`, a note; one for a part, by key; an optional default. No
+      finish for one solid of a part or one occurrence.
+    - **The first project's draft** (`free-standing-tank-enclosure`,
+      `finishes.toml`): twelve parts without a finish, the panels first;
+      whether zinc is right for the two framing parts CAD claims it for;
+      every colour.
+    - **A manual with finishes.** The renderer's studio turns a finish
+      lighter than a dark grey white on top. Stills are exposed for their
+      colours; a manual's views are not, and the first project's recipe
+      does not hand its finishes to the manual. Whether it should, and how
+      a manual is then lit, is his.
 
 ## Next work, in order
 

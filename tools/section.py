@@ -1,6 +1,6 @@
 """A section of a part or of an assembly as a drawing: what a plane cuts, every part filled in its colour.
 
-    python3 tools/section.py PROJECT KEY --cut +y [--up +Z] [--out DIR]
+    python3 tools/section.py PROJECT KEY --cut +y [--up +Z] [--out DIR] [--finish]
     python3 tools/section.py PROJECT KEY --cut -x=12.5
     python3 tools/section.py FILE.step --cut +z
 
@@ -20,7 +20,12 @@ KEY is a component of the project. An assembly is put together from its
 parts' files and the placements the project records, so it need not be built
 first; every part gets a colour of its own, the same one tools/picture.py
 gives it, and the drawing has a legend. A part by itself, or a file, has one
-colour per solid.
+colour per solid. With `--finish` every part is filled in the colour of the
+finish the project gives it in its finishes.toml, as a picture made with
+`--finish` shows it, what lets through what lies behind it drawn paler; the
+legend names each part's finish, and a part that is given none is plain and
+said to have none. The drawing is then KEY-section-plus-y-finish.svg, and its
+record has each part's finish, null for none.
 
 The drawing goes to PROJECT/.cache/pictures/KEY-section-plus-y.svg, with
 KEY-section-plus-y.json beside it: where the plane is, how the sheet's axes
@@ -44,7 +49,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
 
-from mechanical_cad import jsonio, layout  # noqa: E402
+from mechanical_cad import finishes, jsonio, layout  # noqa: E402
 
 spec = importlib.util.spec_from_file_location("picture_tool", HERE / "picture.py")
 picture = importlib.util.module_from_spec(spec)
@@ -57,12 +62,14 @@ AXIS = {"+X": (1, 0, 0), "-X": (-1, 0, 0), "+Y": (0, 1, 0), "-Y": (0, -1, 0), "+
 
 
 def options(argv):
-    opts = {"cut": None, "up": "+Z", "out": None}
+    opts = {"cut": None, "up": "+Z", "out": None, "finish": False}
     positional = []
     i = 0
     while i < len(argv):
         a = argv[i]
-        if a.startswith("--") and a[2:] in opts and i + 1 < len(argv):
+        if a == "--finish":
+            opts["finish"] = True
+        elif a.startswith("--") and a[2:] in opts and i + 1 < len(argv):
             opts[a[2:]] = argv[i + 1]
             i += 1
         elif a.startswith("--"):
@@ -122,8 +129,9 @@ def settled(loop):
 
 
 def svg(title, lines, parts, low, high):
-    """The drawing. `parts` is [(name, (r, g, b), [[outline, ...] per cut face])]; the sheet's y runs upwards,
-    an SVG file's downwards, so every y is turned over."""
+    """The drawing. `parts` is [(name, (r, g, b), [[outline, ...] per cut face])], or with a fourth member how
+    much the part hides of what lies behind it, from above 0 to 1; the sheet's y runs upwards, an SVG file's
+    downwards, so every y is turned over."""
     legend_rows = len(parts)
     across, tall = high[0] - low[0], high[1] - low[1]
     width = max(across, 60.0) + 2 * MARGIN_MM + 16.0                 # room at the right for the height
@@ -143,11 +151,15 @@ def svg(title, lines, parts, low, high):
            f'<text x="{MARGIN_MM}" y="{MARGIN_MM + 3:.1f}" class="t">{escape(title)}</text>']
     for n, line in enumerate(lines):
         out.append(f'<text x="{MARGIN_MM}" y="{MARGIN_MM + 9 + 6 * n:.1f}" class="s">{escape(line)}</text>')
-    for name, colour, faces in parts:
+    def paint(colour, rest):
+        """A part's fill: its colour, and how pale it is drawn when it lets through what lies behind it."""
         fill = "#" + "".join(f"{round(255 * c):02x}" for c in colour)
+        return f'fill="{fill}"' + (f' fill-opacity="{rest[0]:g}"' if rest and rest[0] < 1 else "")
+
+    for name, colour, faces, *rest in parts:
         for loops in faces:
             path = " ".join("M " + " L ".join(f"{x(px):.4f},{y(py):.4f}" for px, py in loop) + " Z" for loop in loops)
-            out.append(f'<path d="{path}" fill="{fill}" fill-rule="evenodd" stroke="#1f2933" stroke-width="0.15" '
+            out.append(f'<path d="{path}" {paint(colour, rest)} fill-rule="evenodd" stroke="#1f2933" stroke-width="0.15" '
                        f'stroke-linejoin="round"><title>{escape(name)}</title></path>')
     # how wide and how high all of it is, written above and at the right
     left, right_, upper, lower = x(low[0]), x(high[0]), y(high[1]), y(low[1])
@@ -163,10 +175,9 @@ def svg(title, lines, parts, low, high):
     out.append(f'<path d="M {MARGIN_MM},{base:.2f} h {bar} M {MARGIN_MM},{base - 1.5:.2f} v 3 M {MARGIN_MM + bar},{base - 1.5:.2f} v 3" '
                'stroke="#1f2933" stroke-width="0.3" fill="none"/>')
     out.append(f'<text x="{MARGIN_MM + bar + 2}" y="{base + 1:.2f}" class="s">{bar} mm</text>')
-    for n, (name, colour, _) in enumerate(parts):
-        fill = "#" + "".join(f"{round(255 * c):02x}" for c in colour)
+    for n, (name, colour, _, *rest) in enumerate(parts):
         row = base + 7 + 5 * n
-        out.append(f'<rect x="{MARGIN_MM}" y="{row - 3:.2f}" width="5" height="3.5" fill="{fill}" stroke="#1f2933" stroke-width="0.15"/>')
+        out.append(f'<rect x="{MARGIN_MM}" y="{row - 3:.2f}" width="5" height="3.5" {paint(colour, rest)} stroke="#1f2933" stroke-width="0.15"/>')
         out.append(f'<text x="{MARGIN_MM + 7}" y="{row:.2f}" class="s">{escape(name)}</text>')
     out.append("</svg>")
     return "\n".join(out) + "\n"
@@ -203,7 +214,8 @@ def main(argv):
     for (name, solid), (lo, hi) in zip(placed, spans):
         if not lo[axis] - 1e-9 <= where <= hi[axis] + 1e-9:
             continue
-        for face in (solid & sheet).faces():
+        met = solid & sheet                              # nothing at all where the plane only touches the solid
+        for face in (met.faces() if met is not None else ()):
             flat = plane.to_local_coords(face)
             entry = cut.setdefault(name, [0.0, []])
             entry[0] += face.area
@@ -215,14 +227,22 @@ def main(argv):
         print(f"[section] the plane {'XYZ'[axis]} = {where:g} cuts nothing")
         return 1
     names = {name for name, _ in placed}                 # the colours a picture of the same thing has
-    shade = picture.colours(names) if len(names) > 1 else {}
     # a part by itself that is one solid is called by its key, not "solid 0001"
     called = {name: (positional[1] if len(positional) == 2 and len(names) == 1 else name) for name in cut}
-    parts = [(called[name], shade.get(name, picture.PLAIN), cut[name][1]) for name in sorted(cut)]
-    xs = [p[0] for _, _, faces in parts for loops in faces for loop in loops for p in loop]
-    ys = [p[1] for _, _, faces in parts for loops in faces for loop in loops for p in loop]
+    given = {}
+    if opts["finish"]:
+        given, bare = picture.finishes_for(positional, names)
+        if bare:
+            print(f"[section] {len(bare)} part(s) have no finish and are drawn plain: {', '.join(bare)}")
+        parts = [(f"{called[name]}: {given[name][0] or picture.NO_FINISH}", finishes.srgb(given[name][1]["color"]),
+                  cut[name][1], given[name][1]["opacity"]) for name in sorted(cut)]
+    else:
+        shade = picture.colours(names) if len(names) > 1 else {}
+        parts = [(called[name], shade.get(name, picture.PLAIN), cut[name][1]) for name in sorted(cut)]
+    xs = [p[0] for _, _, faces, *_ in parts for loops in faces for loop in loops for p in loop]
+    ys = [p[1] for _, _, faces, *_ in parts for loops in faces for loop in loops for p in loop]
     name_of = {"+": "plus-", "-": "minus-"}["+" if side > 0 else "-"] + "xyz"[axis]
-    stem = f"{stem}-section-{name_of}"
+    stem = f"{stem}-section-{name_of}" + ("-finish" if opts["finish"] else "")
     seen = ("+" if side > 0 else "-") + "XYZ"[axis]
     lines = [f"The plane {'XYZ'[axis]} = {where:g} mm, seen from {seen}. One unit of the drawing is one millimetre.",
              "To the right: " + direction(right) + "; upwards: " + direction(upward) + "."]
@@ -236,7 +256,8 @@ def main(argv):
               "sheet_in_model": {"right": list(right), "up": list(upward), "origin_mm": list(origin)},
               "extent_on_sheet_mm": {"min": [min(xs), min(ys)], "max": [max(xs), max(ys)]},
               "chord_mm": CHORD_MM,
-              "parts": [{"name": called[name], "area_mm2": cut[name][0], "pieces": len(cut[name][1])} for name in sorted(cut)]}
+              "parts": [{"name": called[name], "area_mm2": cut[name][0], "pieces": len(cut[name][1]),
+                         **({"finish": given[name][0]} if opts["finish"] else {})} for name in sorted(cut)]}
     jsonio.write(out / f"{stem}.json", record)
     print(f"[section] {drawing}")
     return 0

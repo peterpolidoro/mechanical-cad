@@ -6,8 +6,8 @@
 
 Everything under references/, vault-lock.json and the spacer's part.step,
 receipt.json and facts.json are written by this script. The hand-written
-files are designs/parts/spacer/{build.py,parameters.json,checks.json} and
-designs/assemblies/fixture-with-spacer/assembly.json.
+files are designs/parts/spacer/{build.py,parameters.json,checks.json},
+designs/assemblies/fixture-with-spacer/assembly.json and finishes.toml.
 
 The fixture is synthetic. Its "Vault" identities are invented and say so; the
 script stands in for the three commands that write a real project: the

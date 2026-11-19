@@ -64,6 +64,50 @@ def test_the_drawing_is_an_svg_in_millimetres_with_a_scale_and_a_legend():
     assert float(first[1]) > float(paths[0].get("d").split("L")[2].split()[0].split(",")[1])
 
 
+def test_a_part_that_lets_light_through_is_drawn_paler():
+    square = [(0.0, 0.0), (30.0, 0.0), (30.0, 20.0), (0.0, 20.0)]
+    text = section.svg("thing: section", [], [("plate: aluminium", (0.2, 0.4, 0.6), [[square]], 1.0),
+                                               ("window: clear", (1.0, 0.5, 0.0), [[square]], 0.4)], (0.0, 0.0), (30.0, 20.0))
+    root = ET.fromstring(text)
+    paths = [p for p in root.iter(SVG + "path") if p.get("fill") != "none"]
+    assert [(p.get("fill"), p.get("fill-opacity")) for p in paths] == [("#336699", None), ("#ff8000", "0.4")]
+    swatches = [r for r in root.iter(SVG + "rect") if r.get("stroke")]
+    assert [(r.get("fill"), r.get("fill-opacity")) for r in swatches] == [("#336699", None), ("#ff8000", "0.4")]
+
+
+@with_build123d
+def test_a_section_is_filled_with_the_finishes_the_project_gives_its_parts(project_copy):
+    out = run(project_copy, "fixture-with-spacer", "--cut", "-y=12", "--finish")
+    assert "[section] exit status 0" in out and "no finish" not in out, out
+    pictures = project_copy / ".cache" / "pictures"
+    record = json.loads((pictures / "fixture-with-spacer-section-minus-y-finish.json").read_text())
+    assert [(part["name"], part["finish"]) for part in record["parts"]] == [
+        ("base-plate", "aluminium"), ("pin", "grey-plastic"), ("spacer", "clear-blue")]
+    root = ET.fromstring((pictures / "fixture-with-spacer-section-minus-y-finish.svg").read_text())
+    fills = {p.find(SVG + "title").text: (p.get("fill"), p.get("fill-opacity")) for p in root.iter(SVG + "path") if p.get("fill") != "none"}
+    assert fills == {"base-plate: aluminium": ("#c8cacd", None), "pin: grey-plastic": ("#8a8d91", None),
+                     "spacer: clear-blue": ("#2f6fd0", "0.4")}
+    assert "spacer: clear-blue" in {t.text for t in root.iter(SVG + "text")}          # the legend names the finish
+    # the drawing that tells the parts apart is another file, and has no finish in its record
+    out = run(project_copy, "fixture-with-spacer", "--cut", "-y=12")
+    assert "[section] exit status 0" in out, out
+    assert "finish" not in json.loads((pictures / "fixture-with-spacer-section-minus-y.json").read_text())["parts"][0]
+    # a plane that only touches a solid cuts nothing of it: the pins are 5 mm round their axes at y = 15
+    out = run(project_copy, "fixture-with-spacer", "--cut", "-y=10", "--finish")
+    assert "[section] exit status 0" in out and "[section] pin" not in out and "[section] base-plate" in out, out
+    # a part the project gives no finish is drawn plain, named in the legend as having none, and null in the record
+    text = (project_copy / "finishes.toml").read_text().replace('default = "grey-plastic"', "")
+    (project_copy / "finishes.toml").write_text(text)
+    out = run(project_copy, "fixture-with-spacer", "--cut", "-y=12", "--finish")
+    assert "1 part(s) have no finish and are drawn plain: pin" in out, out
+    record = json.loads((pictures / "fixture-with-spacer-section-minus-y-finish.json").read_text())
+    assert [part["finish"] for part in record["parts"]] == ["aluminium", None, "clear-blue"]
+    root = ET.fromstring((pictures / "fixture-with-spacer-section-minus-y-finish.svg").read_text())
+    assert "pin: no finish" in {t.text for t in root.iter(SVG + "text")}
+    (project_copy / "finishes.toml").unlink()
+    assert "finishes.toml is not there" in run(project_copy, "fixture-with-spacer", "--cut", "-y=12", "--finish")
+
+
 @with_build123d
 def test_the_section_of_a_ring_is_two_rectangles_and_has_their_area(project_copy):
     out = run(project_copy, "spacer", "--cut", "+y=0")
