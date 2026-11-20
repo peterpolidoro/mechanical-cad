@@ -24,12 +24,12 @@ back and the share mounted: the Windows task of 2026-11-18 was run,
 delivered and reviewed, and the next one is written ("Waiting for the
 Windows agent" below). Before building more:
 
-1. See whether Peter has committed and pushed what that review left in
-   `vault-cad-tools` and here, and whether he has said that the shared
-   clones may be brought level (the handoff file has the commands). The
-   Windows task stops at its first step until they are.
-2. Look for a delivery on the share and process it as
-   `coordination/NEXT-AGENT.md` there describes.
+1. Look for the delivery of the Windows task of 2026-11-20 on the share
+   and process it as `coordination/NEXT-AGENT.md` there describes. The
+   task has seven parts and Peter had little time that day: a part may
+   come back as not begun, and is then asked for again.
+2. After Peter's next push, bring the shared clones level on his word
+   (the handoff file has the commands).
 3. Ask what Peter has decided of what waits for him below: the joints and
    poses draft (open decision 21) and what the finishes left open (20)
    come first, because work is built on them.
@@ -172,27 +172,30 @@ followed on Linux:
   is read and corrected.
 
 The next task is written on the share (`coordination/PROMPT-WINDOWS.txt`
-of 2026-11-20): the Windows reader follows the invisibility rule; a
-part's work surfaces; the second project exported from its mirror; the
-read once more (one sign-in through the Vault client's library and one
-read, the only contact with Vault, nothing written); the user id of the
-connection corrected as a patch of its own. **It stops at its first step
-until the shared clones hold what the review left in `vault-cad-tools`
-and here**: Peter commits and pushes both, says that the clones may be
-brought level, and then starts the agent with his Vault client open.
+of 2026-11-20, two messages), in this order: the read once more (one
+sign-in through the Vault client's library and one read, the only contact
+with Vault, nothing written; it needs Peter's Vault client open); the
+Windows reader follows the invisibility rule; a part's work surfaces; the
+second project exported from its mirror; and, added at Peter's word that
+day, two reads in Inventor on the mirrors with no request to Vault: the
+appearance and the material of every part, to seed a project's
+`finishes.toml` as a claim, and the constraints, joints and degrees of
+freedom of the second project's assembly, to hold the draft `motion.toml`
+against (open decision 21). Last, and only if there was time: the user id
+of the connection corrected as a patch of its own. Peter committed and
+pushed the review's work that day, the shared clones were brought level
+on his word, and the task's gate holds.
 When it delivers, the package of the second project is imported into a
 scratch project outside every repository and set beside the project made
 from the same assembly's STEP file (`tmp/dual-lever-from-step/`).
 
-The shared clones were level with what Peter had pushed on 2026-11-18
-when this was written, and lack everything since.
-
-Put to Peter on 2026-11-20 and not answered: two more reads on Windows,
-in Inventor only and on the mirrors, with no request to Vault. The
-appearance and the material of every part, to seed a project's
-`finishes.toml` as a claim; and the constraints, joints and degrees of
-freedom of the second project's assembly, to hold the draft `motion.toml`
-against (open decision 21). Neither is in the task.
+Tried on Linux that day, ahead of the delivery: the first project's
+package of 2026-11-13 from the share imported into an empty scratch
+directory with the corrected import, measured (37 parts in 41 seconds),
+validated without an error, and its parts found again one for one among
+the first project's by their facts. The same steps wait for the second
+project's package; the project made from that assembly's STEP file has 37
+parts where the mirror has 38.
 
 **Waiting for Peter**:
 
