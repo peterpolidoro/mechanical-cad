@@ -24,12 +24,12 @@ back and the share mounted: the Windows task of 2026-11-18 was run,
 delivered and reviewed, and the next one is written ("Waiting for the
 Windows agent" below). Before building more:
 
-1. Read "Waiting for the Windows agent" below: the task of seven parts was
-   delivered and reviewed on 2026-11-20, and a short task of two parts is
-   written. It sends nothing to Vault.
-2. The shared clones are level with what Peter pushed on the evening of
-   2026-11-20 and that task's gate holds. After his next push, bring them
-   level again on his word (the handoff file has the commands).
+1. Read "Waiting for the Windows agent" below: three tasks were delivered
+   and reviewed on 2026-11-20, and none is written now. The next one
+   depends on what Peter says of the reference route ("Waiting for Peter").
+2. After Peter's next push, bring the shared clones level on his word (the
+   handoff file has the commands). The Windows working tree holds one
+   patch until then, a line in `windows/HISTORY.md`.
 3. Ask what Peter has decided of what waits for him below: the joints and
    poses draft (open decision 21) and what the finishes left open (20)
    come first, because work is built on them.
@@ -197,10 +197,9 @@ sign-in and one read were made:
   measured, valid, no error and no finding. The 37 parts of the project
   made from the assembly's STEP file (`tmp/dual-lever-from-step/`) are all
   among them by solids, faces and volume; the 38th is an encoder that file
-  does not have. **Not the same**: the assembly built from the records
-  against that STEP file, 11 of 153 solids at their place and 142 a few
-  millimetres off. Not looked into; an export of the root from the mirror
-  is asked of Windows as the check.
+  does not have. The assembly built from the records is not that STEP
+  file's (11 of 153 solids at their place), and the third task of the day
+  showed that this is the file's doing and not the records'.
 - Appearances and materials of the 75 parts of both projects are read
   (evidence, `f/`), to seed a `finishes.toml` as a claim. For 25 metal
   parts the colour given is one grey and not what one sees. Not used yet.
@@ -217,15 +216,34 @@ sign-in and one read were made:
   the folder. Rehearsed, never run against Vault: a live run of W1 would be
   the first with it.
 
-Both patches are applied as delivered and wait for Peter's commit. The task
-after it is written on the share (`coordination/PROMPT-WINDOWS.txt` of
-2026-11-20, the third of that day), with no contact with Vault at all: an
-export of the second project's root assembly from its mirror as one STEP
-file, to hold the recorded placements against, and a page for Peter on
-how to check one wrapper part and one assembly into his test folder from
-Inventor, under other names than the pilot's. Peter committed and pushed
-the review's work that evening, the shared clones were brought level on
-his word, and the task's gate holds: he can start the Windows agent.
+Peter committed and pushed both patches that evening and the shared
+clones were brought level on his word. A third task followed at once,
+with no contact with Vault at all, and was delivered and reviewed (17
+checks, none failed):
+
+- **Inventor's own STEP export of the second project's root, from its
+  mirror, is the assembly the package's records describe**: 153 of 153
+  solids where the records put them, within 1.6e-12 mm, none unexpected
+  (`tools/compare_assembly_step.py` on the scratch project and that file).
+  The 115 occurrences Inventor gave that run are those of the package,
+  every cell of every placement. So the import of a project with a file
+  in two model states, suppressed occurrences and a flexible instance is
+  held against the CAD system's own file, and the STEP file the mechanical
+  repository holds is another version or pose of the assembly. The
+  comparison holds a solid by volume and centre of mass: a gear turned
+  about its own axis reads as in place.
+- A page for Peter on making one part with the STEP file as a reference
+  model and one assembly by hand and checking them into his test folder,
+  under other names than the pilot's (evidence
+  `2026-11-20-windows-root-assembly-step-and-a-page-for-peter-01/i/`).
+  Written offline by the Windows agent and not tried.
+- A line for the read in `windows/HISTORY.md`, applied as delivered and
+  waiting for Peter's commit.
+
+No Windows task is written now. What comes next there is Peter's choice
+below: if he checks that pair in, one sign-in and two reads show what the
+add-in records for the pilot's two relations; if not, the live run as it
+stands, on his word for one request.
 
 **Waiting for Peter**:
 
@@ -249,10 +267,11 @@ his word, and the task's gate holds: he can start the Windows agent.
 - How W1 goes on, now that the add-in's relations are read
   (docs/direction.md, "For Peter to decide", 4). Recommended: he checks
   one wrapper part with its assembly into the test folder from Inventor
-  himself, one more read shows what the add-in records for them, and the
-  pilot is made to send the same; then his word for the live run. Or his
-  word for the live run as it stands, which adds two files whose relations
-  carry less than the add-in's.
+  himself (he has the page for it since 2026-11-20), one more read shows
+  what the add-in records for them, and the pilot is made to send the
+  same; then his word for the live run. Or his word for the live run as it
+  stands, which adds two files whose relations carry less than the
+  add-in's.
 - Which changed file the pilot of a revision publishes
   (`vault-cad-tools/docs/update-step-file-design.md`, section 10).
 - The monitors' mount in the first project, held until he has spoken with
@@ -275,11 +294,11 @@ his word, and the task's gate holds: he can start the Windows agent.
 3. After stage 6, which is built: the layout's own word on a part without
    a solid (the tools now name one, and one stage takes it by name: open
    decision 19);
-   why the assembly built from the Vault mirror of the mechanical example
-   is not its STEP file's (the parts are, one for one; see "Waiting for the
-   Windows agent"); seeding a project's finishes from the appearances read
-   in Inventor, and holding the draft joints against the constraints read
-   there; and, if Peter
+   seeding a project's finishes from the appearances read in Inventor,
+   and holding the draft joints against the constraints read there (the
+   package of the mechanical example imports and is Inventor's assembly;
+   the project made from its older STEP file has the same parts in another
+   pose or version); and, if Peter
    says so, the conversion of `mouse-joysticks-mech` itself.
 4. Stage 7: everything in it is built, the joints and what uses them as
    a draft. Left: Peter's word on that draft (open decision 21), and then

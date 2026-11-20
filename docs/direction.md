@@ -1418,6 +1418,18 @@ id, with what it uses; not the folder's three roots.
   to the rule of the Windows check. docs/exporter-package.md, "Not met on
   real data", has what the import showed, and what it did not: the assembly
   built from the records is not the STEP file Linux has of that assembly.
+- **A third task that day, delivered and reviewed (17 checks on Linux,
+  none failed), nothing sent to Vault.** Inventor's own STEP export of the
+  second project's root from its mirror is the assembly the package's
+  records describe: 153 of 153 solids where the records put them, and
+  Inventor's occurrences are the package's, cell for cell. So the package
+  of a project with a file in two model states, suppressed occurrences and
+  a flexible instance is held against the CAD system's own file, as the
+  first project's was on 2026-11-11, and the STEP file the mechanical
+  repository holds of that assembly is another version or pose. With it
+  came a page for Peter on checking one wrapper part and one assembly into
+  his test folder from Inventor by hand (in the evidence on the share, not
+  tried), and a line for the read in the Windows history.
 - **The Windows task after that** (written on 2026-11-20; one sign-in
   through the Vault client's library and one read, nothing written): the
   Windows reader follows the rule for a hidden item in a group; a part's

@@ -524,12 +524,21 @@ lab): 38 parts measured and valid, the validator without an error or a
 finding. Every one of the 37 parts of the project made from that assembly's
 own STEP file is a part of the import by its solids, faces and volume; the
 38th is a part that file does not have. The assembly built from the records
-is **not** that STEP file's assembly: 11 of 153 solids are at their place
-and 142 are a few millimetres from the nearest solid of their volume. The
-file is an export of an earlier working copy; whether the difference is the
-version, the pose, or the records is not known, and an export of the root
-from the mirror itself is the check that would say (as on 2026-11-11 for
-the first project).
+is not that STEP file's assembly: 11 of 153 solids are at their place and
+142 are a few millimetres from the nearest solid of their volume. That
+file is an export of an earlier working copy, and the difference is the
+file's: **Inventor's own export of the root from the mirror** (Windows,
+2026-11-20, as on 2026-11-11 for the first project) **is the assembly the
+records describe**, 153 of 153 solids where the records put them, within
+1.6e-12 mm, none unexpected; and the 115 occurrences Inventor gave that
+run are those of `occurrences.json`, every cell of every placement the
+same number. Two things to know of that check. Inventor writes such a file
+with each product in its document's length unit (42 contexts in inches and
+2 in millimetres here), and the comparison reads each in its own. And the
+comparison holds a solid by its volume and its centre of mass, so a gear
+turned about its own axis reads as in place: the file has the two gears of
+each flexible instance as their own assembly has them, the records have
+them as each instance has them, and the four agree by that measure.
 Not met in the enclosure: a model state other
 than the primary one, a flexible instance inside a flexible instance, an
 override more than one level below its instance, two instances of one
