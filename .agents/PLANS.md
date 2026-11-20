@@ -27,10 +27,9 @@ Windows agent" below). Before building more:
 1. Read "Waiting for the Windows agent" below: the task of seven parts was
    delivered and reviewed on 2026-11-20, and a short task of two parts is
    written. It sends nothing to Vault.
-2. After Peter's next push, bring the shared clones level on his word
-   (the handoff file has the commands). The gate of that task names the
-   files of the two Windows patches and the import as they are in the
-   working tree of `vault-cad-tools`.
+2. The shared clones are level with what Peter pushed on the evening of
+   2026-11-20 and that task's gate holds. After his next push, bring them
+   level again on his word (the handoff file has the commands).
 3. Ask what Peter has decided of what waits for him below: the joints and
    poses draft (open decision 21) and what the finishes left open (20)
    come first, because work is built on them.
@@ -224,8 +223,9 @@ after it is written on the share (`coordination/PROMPT-WINDOWS.txt` of
 export of the second project's root assembly from its mirror as one STEP
 file, to hold the recorded placements against, and a page for Peter on
 how to check one wrapper part and one assembly into his test folder from
-Inventor, under other names than the pilot's. Its gate needs his commit,
-his push and the shared clones level.
+Inventor, under other names than the pilot's. Peter committed and pushed
+the review's work that evening, the shared clones were brought level on
+his word, and the task's gate holds: he can start the Windows agent.
 
 **Waiting for Peter**:
 
