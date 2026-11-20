@@ -629,6 +629,15 @@ ignored notes of this checkout, not here. Still his to decide:
    task, which rehearses the two adds offline and reads what Inventor's
    own add-in records for such a relation. If the run stops between the
    two, the wrapper part is in the folder and the assembly is not.
+   Both are done (2026-11-20), and the read changes the recommendation:
+   the add-in's relations carry three texts and the pilot's would carry
+   none, one of the three being a number inside the parent file that
+   nothing we have can read. Recommended now: before the live run, Peter
+   checks one such pair into the test folder from Inventor himself, under
+   other names than the pilot's, and one more read shows what the add-in
+   records for exactly these two relations. The alternative is to run the
+   pilot as it stands and see what Inventor and the Vault client make of
+   two files whose relations say less than the add-in's.
 
 Answered on 2026-11-17 and now under "Decided": the second project may be
 mirrored for testing, in the shared directory. The mirror asked for is the
@@ -1383,6 +1392,32 @@ id, with what it uses; not the folder's three roots.
   - **The design of W2 was read**: nine remarks, all in the design now. Two
     change it: a check-out that is refused need not raise an error, and
     "checked out to this account" has to be read by the executor itself.
+- **That next task, delivered and reviewed the same day (2026-11-20; 43
+  checks on Linux, none failed).** Nothing was written to Vault and nothing
+  asked of it by the task itself, for which the Vault client was not
+  running. **The read was made after the delivery**, at Peter's word in
+  the Windows session with his Vault client open: one sign-in through the
+  Vault client's library and one read, nothing written. It showed what
+  Inventor's add-in records for a relation: for the six files the second project's root uses directly, the add-in
+  recorded the text `INVENTOR` as the source, the child's own Vault path as
+  the expected path, and as the reference id a whole number that differs
+  for each child and rises with the order in which the files came into
+  Vault. Where the add-in takes that number from is not known; Inventor's
+  programming interface was not found to give it. All six are references
+  from an assembly to Inventor files; what the add-in records for a part
+  that holds a STEP file was not seen. Delivered
+  with the task: the Windows reader
+  follows the rule for a named group and says the same as `stepfile.py` of
+  every file; a part's work surfaces and the warning for a part without a
+  solid; **the second project's package**, which the import takes and the
+  kernel and the validator read (38 parts, 5 assemblies); the material and
+  appearance of every part of both projects and the constraints, joints and
+  degrees of freedom of the second project's assembly, read in Inventor;
+  and the user id of the connection read from the session, rehearsed. Both
+  patches are applied as delivered. The import holds a part's work surfaces
+  to the rule of the Windows check. docs/exporter-package.md, "Not met on
+  real data", has what the import showed, and what it did not: the assembly
+  built from the records is not the STEP file Linux has of that assembly.
 - **The Windows task after that** (written on 2026-11-20; one sign-in
   through the Vault client's library and one read, nothing written): the
   Windows reader follows the rule for a hidden item in a group; a part's

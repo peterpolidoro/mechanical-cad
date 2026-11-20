@@ -359,7 +359,7 @@ project's root places one sub-assembly twice, once in its primary model
 state and once in another, and each state suppresses the occurrences that
 belong to the other. Inventor opens the one file as two documents. **The
 exporter does this since 2026-11-20** (`windows/Export-Package.ps1`, receipt
-schema 4): on the mirror of that project every guard of it passed (43
+schema 4, and 5 since it names the parts without a solid): on the mirror of that project every guard of it passed (43
 documents of 42 files, 7 suppressed occurrences named, 115 occurrences in
 context), and the first project exports as before, 89 of its 90 files the
 same bytes and `package.json` with the new count.
@@ -449,8 +449,14 @@ item is also a member of a named group:
   face. The gear's mirrored copy, a part without the surface, has the
   same volume and the same number of faces.
 - `Get-StepInvisibility` in `windows/Step-Header.ps1` mirrors the rule and
-  follows it; until it does, the exporter stops at the two gears of that
-  project and at no other of its 38 parts.
+  follows it since 2026-11-20. The two readers were held against each other
+  that day on the translator's files of the project's 38 parts, twice, and
+  again on Linux on the 38 files of its package: they name the same items in
+  every file, one in each gear's and none in the other 36. Two differences
+  between them remain, in no file met: the wording of two refusals, and a
+  `#12` inside a text, which `stepfile.py` takes for a reference and the
+  Windows reader does not (it can only make `stepfile.py` refuse a file the
+  other reads).
 
 ## A part without a solid
 
@@ -474,6 +480,11 @@ the extent is the surface's.
 - **The exporter's receipt warns** of a part with no solid body that an
   occurrence places, by its master id and the number of its occurrences. A
   warning, not a stop.
+- **Built on 2026-11-20.** The exporter writes the key and the warning
+  (receipt schema 5). Its package check and the import
+  (`vault_cad_tools/package_import.py`) hold the key to one rule: an integer
+  of 1 or more, on a part only; a number written `1.0` is refused by both.
+  The second project's package has the key in three files and one warning.
 - **What such a part is in a project is not settled here.** Its
   `facts.json` says `solids` 0 with its shells and faces, which the
   validator accepts. The tools that compare solids name it as not compared,
@@ -503,12 +514,27 @@ part in a model state other than its primary one, and an unknown BOM
 structure have never fired on real data; the ones the package check repeats
 are exercised offline. Two have fired, both on the second project: the stop
 for a model state other than the primary one on 2026-11-17, and the stop for
-an `INVISIBILITY` in another form on 2026-11-20; each is decided above, and
-no package of that project exists yet.
+an `INVISIBILITY` in another form on 2026-11-20; each is decided above.
+**That project has a package since 2026-11-20**: 88 files, 38 parts and 5
+assemblies in 43 documents (one file in two model states), 115 occurrences
+in the context of the root, 7 suppressed occurrences named, three parts
+with a work surface and one part without a solid. Imported on Linux that
+day into a scratch project outside every repository (its records name a
+lab): 38 parts measured and valid, the validator without an error or a
+finding. Every one of the 37 parts of the project made from that assembly's
+own STEP file is a part of the import by its solids, faces and volume; the
+38th is a part that file does not have. The assembly built from the records
+is **not** that STEP file's assembly: 11 of 153 solids are at their place
+and 142 are a few millimetres from the nearest solid of their volume. The
+file is an export of an earlier working copy; whether the difference is the
+version, the pose, or the records is not known, and an export of the root
+from the mirror itself is the check that would say (as on 2026-11-11 for
+the first project).
 Not met in the enclosure: a model state other
 than the primary one, a flexible instance inside a flexible instance, an
 override more than one level below its instance, two instances of one
 document posed differently, a referenced document that no occurrence places,
 thread features, patterns of holes other than a mirror, user parameters and
-sheet metal. Every package so far is of the first project and comes from one
+sheet metal. The second project has the first of these and two instances of
+one document in different states. Both projects' packages come from one
 workstation.

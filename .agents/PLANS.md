@@ -24,12 +24,13 @@ back and the share mounted: the Windows task of 2026-11-18 was run,
 delivered and reviewed, and the next one is written ("Waiting for the
 Windows agent" below). Before building more:
 
-1. Look for the delivery of the Windows task of 2026-11-20 on the share
-   and process it as `coordination/NEXT-AGENT.md` there describes. The
-   task has seven parts and Peter had little time that day: a part may
-   come back as not begun, and is then asked for again.
+1. Read "Waiting for the Windows agent" below: the task of seven parts was
+   delivered and reviewed on 2026-11-20, and a short task of two parts is
+   written. It sends nothing to Vault.
 2. After Peter's next push, bring the shared clones level on his word
-   (the handoff file has the commands).
+   (the handoff file has the commands). The gate of that task names the
+   files of the two Windows patches and the import as they are in the
+   working tree of `vault-cad-tools`.
 3. Ask what Peter has decided of what waits for him below: the joints and
    poses draft (open decision 21) and what the finishes left open (20)
    come first, because work is built on them.
@@ -171,31 +172,60 @@ followed on Linux:
   in (rehearsed, not run against Vault), and the design of a revision (W2)
   is read and corrected.
 
-The next task is written on the share (`coordination/PROMPT-WINDOWS.txt`
-of 2026-11-20, two messages), in this order: the read once more (one
-sign-in through the Vault client's library and one read, the only contact
-with Vault, nothing written; it needs Peter's Vault client open); the
-Windows reader follows the invisibility rule; a part's work surfaces; the
-second project exported from its mirror; and, added at Peter's word that
-day, two reads in Inventor on the mirrors with no request to Vault: the
-appearance and the material of every part, to seed a project's
-`finishes.toml` as a claim, and the constraints, joints and degrees of
-freedom of the second project's assembly, to hold the draft `motion.toml`
-against (open decision 21). Last, and only if there was time: the user id
-of the connection corrected as a patch of its own. Peter committed and
-pushed the review's work that day, the shared clones were brought level
-on his word, and the task's gate holds.
-When it delivers, the package of the second project is imported into a
-scratch project outside every repository and set beside the project made
-from the same assembly's STEP file (`tmp/dual-lever-from-step/`).
+That next task, of seven parts, was run and delivered the same day and
+reviewed (53 checks, none failed). Nothing was written to Vault, and one
+sign-in and one read were made:
 
-Tried on Linux that day, ahead of the delivery: the first project's
-package of 2026-11-13 from the share imported into an empty scratch
-directory with the corrected import, measured (37 parts in 41 seconds),
-validated without an error, and its parts found again one for one among
-the first project's by their facts. The same steps wait for the second
-project's package; the project made from that assembly's STEP file has 37
-parts where the mirror has 38.
+- **The read was made after the delivery**, at Peter's word in the Windows
+  session with his Vault client open: one sign-in and one read, nothing
+  written (12 of the 53 checks are of it). What Inventor's add-in records
+  is known now: for the six files the second project's root uses directly, the add-in
+  recorded the text `INVENTOR` as the source, the child's own Vault path as
+  the expected path, and as the reference id a whole number that differs
+  for each child and rises with the order in which the files came into
+  Vault. Where the add-in takes that number from is not known; Inventor's
+  programming interface was not found to give it. All six are references
+  from an assembly to Inventor files; what the add-in records for a part
+  that holds a STEP file was not seen. So the two relations of W1, which would
+  carry nothing in the three fields, are not what the add-in writes, and
+  no new request was prepared: the reference id cannot be given.
+- The Windows reader follows the rule for a named group; both readers say
+  the same of the 38 files, on Windows and again on Linux.
+- A part says its work surfaces and the receipt warns of a part without a
+  solid; the import holds the key to the same rule as the Windows check.
+- **The second project has a package**, and it is imported on Linux into a
+  scratch project outside every repository: 38 parts and 5 assemblies,
+  measured, valid, no error and no finding. The 37 parts of the project
+  made from the assembly's STEP file (`tmp/dual-lever-from-step/`) are all
+  among them by solids, faces and volume; the 38th is an encoder that file
+  does not have. **Not the same**: the assembly built from the records
+  against that STEP file, 11 of 153 solids at their place and 142 a few
+  millimetres off. Not looked into; an export of the root from the mirror
+  is asked of Windows as the check.
+- Appearances and materials of the 75 parts of both projects are read
+  (evidence, `f/`), to seed a `finishes.toml` as a claim. For 25 metal
+  parts the colour given is one grey and not what one sees. Not used yet.
+- Constraints, joints and degrees of freedom of the second project are
+  read (evidence, `g/`). Set beside the draft `motion.toml` by reading the
+  summary, not number by number: the two gear shafts are where the draft
+  has them and the gears' ratio is 1; the stage's constraint has limits of
+  -21 mm and 21 mm where the draft assumes 6.5; and the two lever units,
+  which the draft turns in their slots, are held by an angle in the CAD and
+  have no freedom there. An occurrence below a sub-assembly answers in its
+  own document's coordinates.
+- The user id of the connection is read from the session in both publishing
+  scripts, and a session without one is refused before anything is asked of
+  the folder. Rehearsed, never run against Vault: a live run of W1 would be
+  the first with it.
+
+Both patches are applied as delivered and wait for Peter's commit. The task
+after it is written on the share (`coordination/PROMPT-WINDOWS.txt` of
+2026-11-20, the third of that day), with no contact with Vault at all: an
+export of the second project's root assembly from its mirror as one STEP
+file, to hold the recorded placements against, and a page for Peter on
+how to check one wrapper part and one assembly into his test folder from
+Inventor, under other names than the pilot's. Its gate needs his commit,
+his push and the shared clones level.
 
 **Waiting for Peter**:
 
@@ -216,10 +246,13 @@ parts where the mirror has 38.
   its brief asks for, and the printer and the material for it.
 - The researcher's answers on the bowls, and who forms them
   (`free-standing-tank-enclosure`, plan, next work 7).
-- His word for the live run of W1, which adds two files to his test folder
-  (docs/direction.md, "For Peter to decide", 4). Recommended after the
-  Windows task above has read what Inventor's add-in records, which the
-  task of 2026-11-18 could not.
+- How W1 goes on, now that the add-in's relations are read
+  (docs/direction.md, "For Peter to decide", 4). Recommended: he checks
+  one wrapper part with its assembly into the test folder from Inventor
+  himself, one more read shows what the add-in records for them, and the
+  pilot is made to send the same; then his word for the live run. Or his
+  word for the live run as it stands, which adds two files whose relations
+  carry less than the add-in's.
 - Which changed file the pilot of a revision publishes
   (`vault-cad-tools/docs/update-step-file-design.md`, section 10).
 - The monitors' mount in the first project, held until he has spoken with
@@ -242,8 +275,11 @@ parts where the mirror has 38.
 3. After stage 6, which is built: the layout's own word on a part without
    a solid (the tools now name one, and one stage takes it by name: open
    decision 19);
-   comparing the project made from the mechanical example's file with the
-   Vault mirror of the same assembly once Windows exports it; and, if Peter
+   why the assembly built from the Vault mirror of the mechanical example
+   is not its STEP file's (the parts are, one for one; see "Waiting for the
+   Windows agent"); seeding a project's finishes from the appearances read
+   in Inventor, and holding the draft joints against the constraints read
+   there; and, if Peter
    says so, the conversion of `mouse-joysticks-mech` itself.
 4. Stage 7: everything in it is built, the joints and what uses them as
    a draft. Left: Peter's word on that draft (open decision 21), and then
@@ -271,7 +307,7 @@ parts where the mirror has 38.
 
 Tests on 2026-11-20: 640 pass without a kernel (121 skipped), 758
 with FreeCAD, the bindings, build123d and bd_warehouse (5 skipped); in
-`vault-cad-tools`, 115 when run from this checkout. Not run again that
+`vault-cad-tools`, 116 when run from this checkout. Not run again that
 day, nothing in them having changed: the 14 of `tests/test_picture.py`
 with the viewer and build123d together, and `mechanical-docs` (221, 6
 skipped, and 227 with FreeCAD at the end of 2026-11-19).
