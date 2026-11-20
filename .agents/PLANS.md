@@ -7,7 +7,7 @@ open-source tools to check it, document it and add to it, with the
 free-standing tank enclosure as the test project. The full statement is
 docs/direction.md. Finished checkpoints are in .agents/HISTORY.md.
 
-## Start here (state of 2026-11-19)
+## Start here (state of 2026-11-20)
 
 This section is the short version. Where the work is going, what is decided
 and what is built are in docs/direction.md ("Goals, and where each stands",
@@ -19,17 +19,21 @@ ids, and the state of the shared clones are in the ignored
 and `coordination/status/`. A session that begins after this one reads "For
 the next session" at the end of that handoff file first.
 
-**Where a new session begins.** Three rounds of work on 2026-11-19 are
-built, tested and in the four repositories; nothing is half done. Before
-building more:
+**Where a new session begins.** On 2026-11-20 Peter's Windows laptop was
+back and the share mounted: the Windows task of 2026-11-18 was run,
+delivered and reviewed, and the next one is written ("Waiting for the
+Windows agent" below). Before building more:
 
-1. Ask what Peter has decided of what waits for him below: the joints and
+1. See whether Peter has committed and pushed what that review left in
+   `vault-cad-tools` and here, and whether he has said that the shared
+   clones may be brought level (the handoff file has the commands). The
+   Windows task stops at its first step until they are.
+2. Look for a delivery on the share and process it as
+   `coordination/NEXT-AGENT.md` there describes.
+3. Ask what Peter has decided of what waits for him below: the joints and
    poses draft (open decision 21) and what the finishes left open (20)
    come first, because work is built on them.
-2. See whether the share is mounted and his Windows laptop is back. If so,
-   look for a delivery and bring the shared clones level on his word
-   (the handoff file has the commands); if not, nothing there can move.
-3. Otherwise take "Next on Linux" from 5, the smaller things that need no
+4. Otherwise take "Next on Linux" from 5, the smaller things that need no
    word, or whatever he asks for.
 
 **Done and working**, each with tests (commands in docs/adding-a-part.md):
@@ -138,26 +142,57 @@ that day:
   file of numbers there (`studies/bowls/`), so that the researcher's
   answers are a change of numbers and one command.
 
-**Waiting for the Windows agent**, which Peter starts; on 2026-11-19 he
-said his Windows laptop is down, so nothing there moves until it is back.
-The shared clones
-were brought level on his word twice on 2026-11-18, the second time when
-the session ended, with everything he had pushed until then; the gate of
-the task on the share passes. The task has five parts and writes nothing to
-Vault: the two adds of the reference route (W1) rehearsed; one read of
-what Inventor's add-in records for a relation between two files; the
-exporter with model states, run on the mirror of the second project; an
-acquisition that takes a checked-out file at its last version checked in;
-and the design of a revision (W2) read and corrected. When Windows
-delivers, the delivery is checked and answered as
-`coordination/NEXT-AGENT.md` on the share describes. The shared clone of
-this repository lacks the last commit of 2026-11-18, which changes
-documents, and the work of 2026-11-19; it is brought level on Peter's word,
-and the Windows task needs neither. On 2026-11-19 the share was not mounted
-in the agent's session, in any of its three rounds: the share's
-coordination plan and status file were not refreshed, and they still say
-what was true on 2026-11-18. Everything of 2026-11-19 is on the remotes
-and in none of the shared clones.
+**Waiting for the Windows agent**, which Peter starts. The task of
+2026-11-18 was delivered on 2026-11-20 and reviewed that day (56 checks,
+none failed; nothing written to Vault and nothing read, because the one
+sign-in it allowed failed and was not tried again). What it gave, and what
+followed on Linux:
+
+- The two adds of the reference route (W1) ran whole against a stand-in.
+  One line was wrong and is corrected: a live run would have sent three
+  empty texts with each relation where the request says nothing is sent.
+- What Inventor's add-in records for a relation is still not known. The
+  read is asked for once more, with Peter's Vault client open.
+- The exporter takes model states and suppressed occurrences. The second
+  project passed those guards and stopped at a generated gear's STEP file:
+  a hidden surface that is also in a named group. There is no package of
+  that project yet.
+- Decided here that day, in docs/exporter-package.md: an invisible item
+  may also be in the item list of an `APPLIED_GROUP_ASSIGNMENT`, and the
+  group is left as it is (`mechanical_cad/stepfile.py`, with a test; on
+  the file that stopped the export the kernel then reads one valid solid);
+  a part without a solid is kept and placed, and `native.bodies` says how
+  many work surfaces it has; and the three places where the exporter
+  differs from the wording of 2026-11-18 stand.
+- Found by reading the first `package.json` of the changed exporter: the
+  import in `vault-cad-tools` would have refused it for its new count.
+  Corrected there, with tests.
+- A file a colleague has checked out is taken at its last version checked
+  in (rehearsed, not run against Vault), and the design of a revision (W2)
+  is read and corrected.
+
+The next task is written on the share (`coordination/PROMPT-WINDOWS.txt`
+of 2026-11-20): the Windows reader follows the invisibility rule; a
+part's work surfaces; the second project exported from its mirror; the
+read once more (one sign-in through the Vault client's library and one
+read, the only contact with Vault, nothing written); the user id of the
+connection corrected as a patch of its own. **It stops at its first step
+until the shared clones hold what the review left in `vault-cad-tools`
+and here**: Peter commits and pushes both, says that the clones may be
+brought level, and then starts the agent with his Vault client open.
+When it delivers, the package of the second project is imported into a
+scratch project outside every repository and set beside the project made
+from the same assembly's STEP file (`tmp/dual-lever-from-step/`).
+
+The shared clones were level with what Peter had pushed on 2026-11-18
+when this was written, and lack everything since.
+
+Put to Peter on 2026-11-20 and not answered: two more reads on Windows,
+in Inventor only and on the mirrors, with no request to Vault. The
+appearance and the material of every part, to seed a project's
+`finishes.toml` as a claim; and the constraints, joints and degrees of
+freedom of the second project's assembly, to hold the draft `motion.toml`
+against (open decision 21). Neither is in the task.
 
 **Waiting for Peter**:
 
@@ -180,7 +215,8 @@ and in none of the shared clones.
   (`free-standing-tank-enclosure`, plan, next work 7).
 - His word for the live run of W1, which adds two files to his test folder
   (docs/direction.md, "For Peter to decide", 4). Recommended after the
-  Windows task above.
+  Windows task above has read what Inventor's add-in records, which the
+  task of 2026-11-18 could not.
 - Which changed file the pilot of a revision publishes
   (`vault-cad-tools/docs/update-step-file-design.md`, section 10).
 - The monitors' mount in the first project, held until he has spoken with
@@ -230,12 +266,12 @@ and in none of the shared clones.
 6. The Linux half of a revision as a new version (request, plan, journal,
    record, import), after Windows has read the design.
 
-Tests at the end of 2026-11-19: 639 pass without a kernel (121 skipped), 757
-with FreeCAD, the bindings, build123d and bd_warehouse (5 skipped), and the
-14 of `tests/test_picture.py` with the viewer and build123d together. In
-`mechanical-docs`, 221 (6 skipped) and 227 with FreeCAD, and its three
-fixtures build at preview quality with every check passed; in
-`vault-cad-tools`, 113 when run from this checkout.
+Tests on 2026-11-20: 640 pass without a kernel (121 skipped), 758
+with FreeCAD, the bindings, build123d and bd_warehouse (5 skipped); in
+`vault-cad-tools`, 115 when run from this checkout. Not run again that
+day, nothing in them having changed: the 14 of `tests/test_picture.py`
+with the viewer and build123d together, and `mechanical-docs` (221, 6
+skipped, and 227 with FreeCAD at the end of 2026-11-19).
 
 ## Open decisions to put to Peter
 

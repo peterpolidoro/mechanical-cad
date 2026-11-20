@@ -1348,6 +1348,47 @@ id, with what it uses; not the folder's three roots.
   states, run on the mirror of the second project; an acquisition that
   takes a file a colleague has checked out at its last version checked
   in; and the design of W2 read and corrected.
+- **That task, delivered and reviewed** (2026-11-20, the day Peter's
+  Windows laptop was back; 56 checks on Linux against the evidence and the
+  mirror, none failed). Nothing was written to Vault and nothing was read:
+  the one sign-in the task allowed failed and was not tried again.
+  - **The two adds of W1 ran whole against a stand-in** for the Vault
+    client's library, which was first held against the installed client by
+    reflection. One line was wrong: a live run would have sent three empty
+    texts with each relation where the request says nothing is sent.
+    Corrected. Also seen: the connection is made with user id 0, which an
+    add does not mind and a check-out may.
+  - **What Inventor's add-in records for a relation is still not known.**
+    The sign-in failed because the token of Autodesk's identity service on
+    the workstation had run out and was being refreshed; the Vault client
+    was not open. The read is asked for once more, with the client open.
+  - **The exporter takes a file in two model states and names suppressed
+    occurrences.** The second project passed every guard of that and
+    stopped later, at the STEP file of a generated gear: a hidden surface
+    that is also a member of a named group. **There is no package of it
+    yet.** Decided on Linux that day
+    ([exporter-package.md](exporter-package.md)): such a file is taken and
+    the group left as it is (`mechanical_cad/stepfile.py`; measured on the
+    file that stopped the export, one valid solid); and a part without a
+    solid, which that project also has, is kept and says how many work
+    surfaces it has. The first project exports as before, 89 of its 90
+    files the same bytes.
+  - **Found on Linux by reading the first `package.json` of the changed
+    exporter**: the import compared its counts with the parts and the
+    assemblies alone and would have refused it. Corrected in
+    `vault-cad-tools`, with tests.
+  - **A file a colleague has checked out** is taken at its last version
+    checked in, rehearsed against a stand-in server and not yet run
+    against Vault.
+  - **The design of W2 was read**: nine remarks, all in the design now. Two
+    change it: a check-out that is refused need not raise an error, and
+    "checked out to this account" has to be read by the executor itself.
+- **The Windows task after that** (written on 2026-11-20; one sign-in
+  through the Vault client's library and one read, nothing written): the
+  Windows reader follows the rule for a hidden item in a group; a part's
+  work surfaces; the second project exported; the read of what the add-in
+  records, once more; and the user id of the connection corrected, as a
+  change of its own.
 - **W2, the design** (2026-11-17): written, not built
   (`vault-cad-tools/docs/update-step-file-design.md`). A revision is a new
   version of the same file: the request names the version the repository

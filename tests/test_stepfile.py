@@ -202,6 +202,28 @@ def test_invisible_items_are_found_and_left_out():
     assert S.visible_only(voids) == voids.replace(MARK, b"").replace(b"(#70,#30,\r\n #31,#32)", b"(#70,#32)")
 
 
+def test_an_invisible_item_may_also_be_in_a_named_group():
+    # a hidden construction surface with a name, as the translator writes the pitch diameter of a generated gear
+    group = b"#16=APPLIED_GROUP_ASSIGNMENT(#17,(#31));\r\n#17=GROUP('Pitch Diameter',$);\r\n"
+    grouped = HIDDEN.replace(MARK, group + MARK)
+    assert S.invisible_items(grouped) == [30, 31]
+    visible = S.visible_only(grouped)
+    # the group is not a shape: it keeps naming the item, and the same two statements change as without it
+    assert visible == grouped.replace(MARK, b"").replace(b"(#70,#30,\r\n #31,#32)", b"(#70,#32)")
+    assert group in visible and S.invisible_items(visible) == [] and S.visible_only(visible) == visible
+    # a group with a visible item beside the hidden one, and a hidden item in two groups
+    more = grouped.replace(b"(#17,(#31))", b"(#17,(#32,#31))").replace(MARK, b"#18=APPLIED_GROUP_ASSIGNMENT(#17,(#30,#31));\r\n" + MARK)
+    assert S.invisible_items(more) == [30, 31] and b"(#17,(#32,#31))" in S.visible_only(more)
+    # the group does not stand for the representation: an item that only a group lists is in no shape to be left out of
+    with pytest.raises(S.StepFileError, match="#31 is marked invisible but is not an item of any representation"):
+        S.visible_only(grouped.replace(b"(#70,#30,\r\n #31,#32)", b"(#70,#30,#32)"))
+    # and an invisible item that is the group itself, or anywhere but in the list of items, is not this form
+    for odd in (b"#16=APPLIED_GROUP_ASSIGNMENT(#31,(#32));\r\n", b"#16=APPLIED_GROUP_ASSIGNMENT(#17,(#32),#31);\r\n",
+                b"#16=APPLIED_GROUP_ASSIGNMENT(#17,((#31)));\r\n"):
+        with pytest.raises(S.StepFileError, match=r"#16 APPLIED_GROUP_ASSIGNMENT (uses an invisible item outside|holds something)"):
+            S.visible_only(grouped.replace(b"#16=APPLIED_GROUP_ASSIGNMENT(#17,(#31));\r\n", odd))
+
+
 def test_a_file_that_marks_nothing_invisible_is_returned_as_it_is():
     assert S.invisible_items(INVENTOR) == []
     assert S.visible_only(INVENTOR) is INVENTOR

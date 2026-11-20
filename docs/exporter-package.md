@@ -25,6 +25,12 @@ What changed from draft 2:
 - A suppressed occurrence, and a BOM structure the layout does not list, stop
   the export.
 
+Since draft 3, each in its own section below: what a model state and a
+suppressed occurrence are in the package (decided 2026-11-18, built by the
+exporter 2026-11-20, and a suppressed occurrence no longer stops it), a
+hidden item that is also in a named group, and a part without a solid
+(both 2026-11-20).
+
 The layout the package feeds is in
 [layout-specification.md](layout-specification.md). Where this document says
 "as in the layout", the field is defined there.
@@ -87,8 +93,8 @@ the same double. The import also reads a file with a byte-order mark and CRLF.
 | `vault_id` | the vault the files came from |
 | `root` | `master_id`, `version_id`, `model_state` of the root assembly |
 | `acquisition` | `captured_at` (when the exact versions were frozen), `acquired_at` (when the files were downloaded) and `method` |
-| `counts` | `parts`, `assemblies` |
-| `not_exported` | a list of `master_id`, `model_state`, `reason`: a referenced document that no occurrence places, and a file of the acquisition that Inventor did not open; empty when there is none |
+| `counts` | `parts`, `assemblies`, and since 2026-11-20 `suppressed_occurrences`: how many the assemblies' `source.json` name, 0 when none. A package written before that day has the first two only |
+| `not_exported` | a list of `master_id`, `model_state`, `reason`: a referenced document that no occurrence places, a file of the acquisition that Inventor did not open, and a file that only suppressed occurrences place; empty when there is none |
 | `translator_outputs` | for each `part.step`, `sha256` and `bytes` of the file as the translator wrote it, before the header was normalised |
 | `files` | an object: the path of every other file in the package, with `sha256` and `bytes` |
 
@@ -127,7 +133,8 @@ import command adds. In particular:
   be in a public repository is not settled; leaving them out can be reversed
   by one export.
 - `native`, for a part: the document's length unit, `extent_mm`, `volume_mm3`
-  and `bodies` (`solid_bodies`, `visible_solid_bodies`, `surface_bodies`), and
+  and `bodies` (`solid_bodies`, `visible_solid_bodies`, `surface_bodies`, and
+  `work_surfaces` when the part has one: "A part without a solid" below), and
   the lists below. `volume_mm3` is what Inventor says of the document, a
   claim and not a measure: the volume at whatever accuracy the document
   has, hidden bodies included. Inventor leaves a body out of it, without a
@@ -155,7 +162,9 @@ import command adds. In particular:
     the features of a part stops the export.
 - `native`, for an assembly: its length unit, how often it is placed in this
   export, the number of its children, and its own active design view
-  representation, positional representation and level of detail.
+  representation, positional representation and level of detail; and
+  `suppressed_occurrences` when the document suppresses one ("Model states
+  and suppressed occurrences" below).
 - `materials`: the claim per part and body of
   `vault-cad-tools/docs/authoring-and-materials.md`, 4.1, or null until the
   exporter records it. It is null in every file so far.
@@ -177,12 +186,12 @@ itself defines, read from the document and not from one of its instances:
 - The root's `assembly.json` states the frame, `handedness` and `up_axis`.
   This is the exporter's declaration of Inventor's convention, not something
   read from the document.
-- The exporter stops on a suppressed occurrence. Inventor does not load the
+- A suppressed occurrence is not a child. Inventor does not load the
   document of a suppressed occurrence, so nothing can be exported from it in
-  the same session and most of its properties cannot be read. The second
-  project has seven; what the exporter is to write instead of stopping is
-  decided below, under "Model states and suppressed occurrences", and is not
-  built.
+  the same session and most of its properties cannot be read. The exporter
+  stopped at one until 2026-11-20; it now names it in the assembly's
+  `source.json` ("Model states and suppressed occurrences" below). The
+  second project has seven.
 - The exporter stops on a placement that is not a rotation and a translation
   within 1e-9 (a mirrored occurrence), and on a BOM structure the layout does
   not list (Inventor has a seventh value, `Varies`).
@@ -256,6 +265,8 @@ What the exporter guarantees, because only it can check these at the source:
   measures and draws (`stepfile.py`, `visible_only`), and understands one form
   of the mark; the exporter stops if a file has an `INVISIBILITY` in another
   form (`Get-StepInvisibility` in `Step-Header.ps1` is the text-level check).
+  The form, and what it has allowed since 2026-11-20, is under "A hidden
+  item in a named group" below.
 - A solid with an internal void is a `BREP_WITH_VOIDS`, not a
   `MANIFOLD_SOLID_BREP`. Whatever counts solids in the text of a file to
   compare them with `native.bodies` counts both. A count that differs is a
@@ -270,7 +281,12 @@ package and the project before it writes anything:
 1. Every file is verified against `package.json`, and nothing may be in the
    package that `package.json` does not list. The vault and the root assembly
    are compared with the project's `vault-project.toml`. The project's
-   directories must be what its index says they are.
+   directories must be what its index says they are. `counts` is held to what
+   the package holds: the parts, the assemblies, and the suppressed
+   occurrences the assemblies name (a package that names some must count
+   them; one written before 2026-11-20 names none and counts none). A child
+   that is suppressed, or that its document also names as suppressed, is
+   refused.
 2. `occurrences.json` is checked against the assembly documents, and the
    overrides are derived from it:
    - every occurrence is the child its parent's document defines under that
@@ -337,12 +353,16 @@ Not done: the import into the enclosure's branch itself.
 
 ## Model states and suppressed occurrences
 
-Decided on 2026-11-18. **The exporter does not do this yet**: it stops at
-the first document that is not in its primary model state, and that is what
-stopped the export of the second project on 2026-11-17. That project's root
-places one sub-assembly twice, once in its primary model state and once in
-another, and each state suppresses the occurrences that belong to the other.
-Inventor opens the one file as two documents.
+Decided on 2026-11-18, after the export of the second project stopped on
+2026-11-17 at a document that was not in its primary model state. That
+project's root places one sub-assembly twice, once in its primary model
+state and once in another, and each state suppresses the occurrences that
+belong to the other. Inventor opens the one file as two documents. **The
+exporter does this since 2026-11-20** (`windows/Export-Package.ps1`, receipt
+schema 4): on the mirror of that project every guard of it passed (43
+documents of 42 files, 7 suppressed occurrences named, 115 occurrences in
+context), and the first project exports as before, 89 of its 90 files the
+same bytes and `package.json` with the new count.
 
 - **A document of the package is a Vault file in a model state.** The tree,
   `source.json` and a child's identity have had it so since draft 3, and
@@ -352,32 +372,114 @@ Inventor opens the one file as two documents.
   document by Inventor's full document name, takes the state from that
   document and not from the state the file was saved in, and binds both
   documents to the one acquired file.
-- **A level of detail named after the document's own model state** is that
-  state. Any other level of detail that is not the master stops the export,
-  as before.
+- **A level of detail is a model state under its earlier name.** An
+  occurrence's level of detail must be the master or the occurrence's own
+  model state. An assembly document's must be the master or name a model
+  state of its file: Inventor reports the state the file was saved in as the
+  level of detail of every document of that file, the primary one included
+  (seen 2026-11-17 and 2026-11-20), so the document's own state cannot be
+  asked of it there and is read from the document alone. Any other level of
+  detail stops the export, as before.
 - **A suppressed occurrence is not a child.** In a model state, "suppressed"
   says that the state does not have the occurrence: Inventor loads no
   document for it and gave nothing but its name when asked (2026-11-17), so
   it has no identity and no placement to write. The assembly's `source.json`
   names every one under `native.suppressed_occurrences`, a list of `name`
   and, only where they can be read without unsuppressing anything,
-  `master_id` and `path` of the file it would place. `package.json` counts
-  them under `counts`. No child an exporter writes has `suppressed` true;
-  the flag stays because the layout has it for authored assemblies.
+  `master_id` and `path` of the file it would place. The key is written
+  only when the document suppresses an occurrence, never as an empty list:
+  an assembly without one keeps the bytes it had. `package.json` counts them
+  under `counts.suppressed_occurrences`, which is always there. No child an
+  exporter writes has `suppressed` true; the flag stays because the layout
+  has it for authored assemblies. In the context of the root an occurrence
+  must be suppressed exactly where its document says so, or the export
+  stops.
 - A file of the acquisition that only suppressed occurrences place is under
   `not_exported`, with that as the reason.
 - The STEP file a count is compared with is the export of the document in
   its state.
+- **A part in a model state that is not its primary one still stops the
+  export.** None has been met, and what the translator writes for one has
+  not been seen. The rule above was decided for assemblies.
 
-The import needs nothing new, and a test holds it to that
-(`vault-cad-tools/tests/test_package_import.py`, "one file in two model
-states"): a key is found by master id and model state, a state that is not
-the primary one gives the key `<key>@<state>`, and `native` is kept as
-written.
+The import holds the count and the names to each other since 2026-11-20
+(`vault-cad-tools/tests/test_package_import.py`). Until then it compared
+`counts` with the parts and the assemblies alone and would have refused
+every package of the changed exporter; that was found when the first such
+`package.json` was read on Linux. Otherwise it needed nothing new, and a
+test holds it to that ("one file in two model states"): a key is found by
+master id and model state, a state that is not the primary one gives the key
+`<key>@<state>`, and `native` is kept as written.
 
-Not decided: a part without a body that an assembly places, which the second
-project also has. What the exporter does with one today is asked of the
-Windows side first.
+## A hidden item in a named group
+
+Decided on 2026-11-20. The export of the second project stopped that day,
+after every guard of model states had passed, at the STEP file of a
+generated gear: the file hides a construction surface (the gear's pitch
+diameter) in the form `stepfile.py` understands, a styled item named by an
+`INVISIBILITY` and the item listed directly in a representation, and the
+item is also a member of a named group:
+
+```
+#24=INVISIBILITY((#28,#28));
+#28=STYLED_ITEM('',(...),#26);
+#26=SHELL_BASED_SURFACE_MODEL('Srf1',(#25));
+#19=APPLIED_GROUP_ASSIGNMENT(#20,(#26));     #20=GROUP('Pitch Diameter',$);
+#11600=SHAPE_REPRESENTATION('',(#6252,#26,#30),#11588);
+```
+
+- **An invisible item may also be in the item list of an
+  `APPLIED_GROUP_ASSIGNMENT`.** A group is not a shape and places nothing.
+  The item must still be listed directly in a representation, as before, and
+  anything else that uses an invisible item is still refused: an item that is
+  the group of an assignment and not one of its items, an assignment with
+  more than its two parameters, a mapped item, a complex instance.
+- **The group is left as it is.** `visible_only` changes what it changed
+  before, the mark and the item lists of the representations, and no other
+  byte: the group keeps naming the item, as the item's styled item does.
+  The Windows side proposed taking the item out of the group as well, and
+  the assignment and its group away when nothing is left in them. Not
+  taken: nothing that reads these files reads shapes from a group, and the
+  fewer statements the filter rewrites, the less there is to mirror in two
+  languages.
+- Measured on Linux on the file that stopped the export, with the rule: one
+  item left out, 34 bytes fewer, and the kernel reads one valid solid of one
+  shell and 334 faces (4185.674 mm3; Inventor says 4186.094 of the part);
+  read with the mark ignored, the same file has a second shell and a 335th
+  face. The gear's mirrored copy, a part without the surface, has the
+  same volume and the same number of faces.
+- `Get-StepInvisibility` in `windows/Step-Header.ps1` mirrors the rule and
+  follows it; until it does, the exporter stops at the two gears of that
+  project and at no other of its 38 parts.
+
+## A part without a solid
+
+Decided on 2026-11-20, for this draft. The second project places a part
+that has no body: a supplier's model of a switch, one work surface of 37
+faces. The exporter does not stop at it (Windows, 2026-11-20, by a read-only
+run of the exporter's part steps): the translator reports success and writes
+two open shells and no solid; `solid_bodies`, `visible_solid_bodies` and
+`surface_bodies` are 0, `volume_mm3` is 0 because Inventor answers 0, and
+the extent is the surface's.
+
+- **It is kept and placed.** It is in the assembly, Inventor counts its
+  occurrences, and it has an extent; leaving it out would make the package
+  disagree with the assembly it is an export of.
+- **`native.bodies` gains `work_surfaces`**, the number of work surfaces the
+  part has, written only when it has one, so that a part without any keeps
+  the bytes it had. It says where faces come from that belong to no body.
+  In the second project three parts have one: the switch, where it is all
+  the part is, and the two gears, where it is the hidden surface of the
+  section above.
+- **The exporter's receipt warns** of a part with no solid body that an
+  occurrence places, by its master id and the number of its occurrences. A
+  warning, not a stop.
+- **What such a part is in a project is not settled here.** Its
+  `facts.json` says `solids` 0 with its shells and faces, which the
+  validator accepts. The tools that compare solids name it as not compared,
+  and the documentation meshes its faces only when it is named. Whether the
+  layout should say more is with Peter (`.agents/PLANS.md`, open
+  decision 19).
 
 ## Not in the package
 
@@ -394,16 +496,19 @@ Windows side first.
 
 ## Not met on real data
 
-The exporter's stops for a document with a view, an `INVISIBILITY` in another
-form, a suppressed occurrence, a difference without a flexible occurrence
-above it, instances with other children than their document, and an unknown
-BOM structure have never fired on real data; the ones the package check
-repeats are exercised offline. The stop for a model state other than the
-primary one fired on the second project on 2026-11-17, which also has
-suppressed occurrences ("Model states and suppressed occurrences" above).
+The exporter's stops for a document with a view, a difference without a
+flexible occurrence above it, instances with other children than their
+document, an occurrence suppressed in context and not in its document, a
+part in a model state other than its primary one, and an unknown BOM
+structure have never fired on real data; the ones the package check repeats
+are exercised offline. Two have fired, both on the second project: the stop
+for a model state other than the primary one on 2026-11-17, and the stop for
+an `INVISIBILITY` in another form on 2026-11-20; each is decided above, and
+no package of that project exists yet.
 Not met in the enclosure: a model state other
 than the primary one, a flexible instance inside a flexible instance, an
 override more than one level below its instance, two instances of one
 document posed differently, a referenced document that no occurrence places,
 thread features, patterns of holes other than a mirror, user parameters and
-sheet metal. Both packages come from one workstation on one day.
+sheet metal. Every package so far is of the first project and comes from one
+workstation.

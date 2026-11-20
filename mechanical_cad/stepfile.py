@@ -400,6 +400,7 @@ _INSTANCE = re.compile(rb"#(\d+)\s*=\s*([A-Za-z_][A-Za-z0-9_]*)?\s*\(")
 _REF = re.compile(rb"#(\d+)")
 _ONE_REF = re.compile(rb"\s*#(\d+)\s*\Z")
 _STYLED = ("STYLED_ITEM", "OVER_RIDING_STYLED_ITEM")
+_GROUP = "APPLIED_GROUP_ASSIGNMENT"
 
 
 def _elements(data, i):
@@ -487,6 +488,14 @@ def _visibility_edits(data):
         if not used:
             continue
         name = kind or "a complex instance"
+        if kind == _GROUP:
+            # A named group may hold an invisible item beside the representation that lists it. A group is not
+            # a shape: it places nothing, and it is left as it is.
+            fields = _elements(data, paren)[0]
+            if len(fields) != 2 or {int(r) for r in _REF.findall(data, *fields[0])} & set(hidden):
+                raise StepFileError(f"#{ident} {name} uses an invisible item outside its list of items")
+            _ref_list(data, fields[1], f"the items of #{ident} {name}")
+            continue
         fields = _elements(data, paren)[0] if kind.endswith("REPRESENTATION") else []
         if len(fields) < 2:
             raise StepFileError(f"#{min(used)} is marked invisible and is used by #{ident} ({name}); only items "
@@ -515,7 +524,11 @@ def invisible_items(data):
     (OpenCASCADE, and with it FreeCAD) takes them for ordinary solids. Only this
     form is understood: an INVISIBILITY that hides anything but styled items,
     or an invisible item that is not listed directly in a representation,
-    raises StepFileError.
+    raises StepFileError. So does an invisible item that anything else uses,
+    with one exception: it may also be in the item list of an
+    APPLIED_GROUP_ASSIGNMENT, which is how the translator writes a hidden
+    construction surface that has a name (the pitch diameter of a generated
+    gear, met on 2026-11-20).
     """
     return _visibility_edits(data)[0]
 
@@ -525,7 +538,8 @@ def visible_only(data):
 
     Each invisible item is taken out of the item list of every representation
     that holds it, and the INVISIBILITY entities are removed; the items' own
-    entities stay in the file, referenced by no shape. No other byte changes.
+    entities stay in the file, referenced by no shape. A group that names such
+    an item keeps naming it. No other byte changes.
     A file that marks nothing invisible is returned as it is, and applying
     this twice gives the same bytes as applying it once.
     """
